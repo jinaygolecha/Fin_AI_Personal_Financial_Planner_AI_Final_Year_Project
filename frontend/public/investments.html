@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Investments — Jinay Finance AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body>
+  <div id="sidebarRoot"></div>
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="topbar-title">Investment Portfolio</div><div class="topbar-sub">Stocks, Mutual Funds, SIP, Gold, Crypto</div></div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" id="addInvestBtn"><i class="ri-add-line"></i>Add Investment</button>
+      </div>
+    </div>
+    <div class="content">
+      <!-- Portfolio Summary -->
+      <div class="metrics-grid">
+        <div class="metric-card"><div class="metric-icon mi-blue"><i class="ri-funds-line"></i></div><div class="metric-label">Portfolio Value</div><div class="metric-value" id="portfolioValue">...</div></div>
+        <div class="metric-card"><div class="metric-icon mi-green"><i class="ri-arrow-up-line"></i></div><div class="metric-label">Total Invested</div><div class="metric-value" id="totalInvested">...</div></div>
+        <div class="metric-card"><div class="metric-icon mi-amber"><i class="ri-percent-line"></i></div><div class="metric-label">Total P&L</div><div class="metric-value" id="totalPnl">...</div><div class="metric-sub" id="pnlPct">--</div></div>
+        <div class="metric-card"><div class="metric-icon mi-blue"><i class="ri-stock-line"></i></div><div class="metric-label">Holdings</div><div class="metric-value" id="holdingsCount">--</div></div>
+      </div>
+
+      <!-- Holdings Table -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Holdings</span></div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>Name / Symbol</th><th>Type</th><th>Quantity</th><th>Avg Price</th><th>Current Value</th><th>P&L</th><th>Action</th></tr></thead>
+            <tbody id="holdingsBody"><tr><td colspan="7" style="text-align:center;padding:40px;color:#6b7280">Loading portfolio...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Investment Modal -->
+  <div class="modal-overlay" id="addInvestModal">
+    <div class="modal">
+      <div class="modal-header"><span class="modal-title">Add Investment</span><button class="modal-close" onclick="closeModal('addInvestModal')">✕</button></div>
+      <div class="form-group"><label class="form-label">Investment Type</label>
+        <select id="investType" class="form-select">
+          <option value="STOCK">Stock</option><option value="MUTUAL_FUND">Mutual Fund</option>
+          <option value="SIP">SIP</option><option value="GOLD">Gold</option>
+          <option value="CRYPTO">Crypto</option><option value="FD">Fixed Deposit</option>
+          <option value="PPF">PPF</option><option value="NPS">NPS</option><option value="OTHER">Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Name / Symbol</label><input type="text" id="investName" class="form-input" placeholder="e.g. RELIANCE, HDFC Mid-Cap Fund, Bitcoin"></div>
+      <div class="form-group"><label class="form-label">NSE/BSE Symbol (for stocks)</label><input type="text" id="investSymbol" class="form-input" placeholder="e.g. RELIANCE.NSE, TCS.NSE"></div>
+      <div class="form-group"><label class="form-label">Quantity / Units</label><input type="number" id="investQty" class="form-input" placeholder="10" min="0" step="0.001"></div>
+      <div class="form-group"><label class="form-label">Purchase Price per Unit (₹)</label><input type="number" id="investPrice" class="form-input" placeholder="2500" min="0" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Purchase Date</label><input type="date" id="investDate" class="form-input"></div>
+      <div id="investError" style="color:#fca5a5;font-size:12px;margin-bottom:8px;display:none;"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="saveInvestment()"><i class="ri-check-line"></i> Save Investment</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:5000/api/v1';
+    const token = localStorage.getItem('jf_access_token');
+    if (!token) window.location.href = '/login.html';
+    const fmt = (v) => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(v||0);
+    const fmtFull = (v) => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:2}).format(v||0);
+    const apiFetch = async (url, opts={}) => {
+      const r = await fetch(`${API_BASE}${url}`,{headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},...opts});
+      if(r.status===401){localStorage.clear();window.location.href='/login.html';return null;}
+      return r.json();
+    };
+
+    document.getElementById('sidebarRoot').innerHTML = getSidebar('investments');
+    initSidebarUser();
+
+    const investTypeLabels = { STOCK:'📈 Stock', MUTUAL_FUND:'📊 Mutual Fund', SIP:'🔄 SIP', GOLD:'🥇 Gold', CRYPTO:'🪙 Crypto', FD:'🏦 FD', PPF:'📋 PPF', NPS:'🌅 NPS', OTHER:'📁 Other' };
+
+    const loadPortfolio = async () => {
+      const data = await apiFetch('/investments/portfolio');
+      if (!data?.success) {
+        document.getElementById('holdingsBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#ef4444">Failed to load portfolio.</td></tr>';
+        return;
+      }
+
+      const portfolio = data.data;
+      document.getElementById('portfolioValue').textContent = fmt(portfolio.currentValue || 0);
+      document.getElementById('totalInvested').textContent = fmt(portfolio.investedAmount || 0);
+      const pnl = (portfolio.currentValue || 0) - (portfolio.investedAmount || 0);
+      const pnlPct = portfolio.investedAmount > 0 ? ((pnl / portfolio.investedAmount) * 100).toFixed(2) : 0;
+      document.getElementById('totalPnl').textContent = fmt(pnl);
+      document.getElementById('totalPnl').style.color = pnl >= 0 ? '#10b981' : '#ef4444';
+      document.getElementById('pnlPct').textContent = (pnl >= 0 ? '+' : '') + pnlPct + '%';
+      document.getElementById('holdingsCount').textContent = portfolio.holdings?.length || 0;
+
+      const holdings = portfolio.holdings || [];
+      if (!holdings.length) {
+        document.getElementById('holdingsBody').innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:#6b7280"><i class="ri-stock-line" style="font-size:32px;display:block;margin-bottom:8px"></i>No investments yet. Click "Add Investment" to start building your portfolio.</td></tr>`;
+        return;
+      }
+
+      document.getElementById('holdingsBody').innerHTML = holdings.map(h => {
+        const pnl = h.pnl || 0;
+        const pnlPct = h.pnlPercent || 0;
+        const investedAmt = h.totalCost || 0;
+        const currentVal = h.currentValue || investedAmt;
+        return `<tr>
+          <td><div style="font-weight:600">${h.name||h.symbol}</div>${h.symbol ? `<div style="font-size:11px;color:#6b7280">${h.symbol}</div>` : ''}</td>
+          <td><span class="badge badge-blue">${investTypeLabels[h.assetType]||h.assetType||'Asset'}</span></td>
+          <td>${h.quantity || '--'}</td>
+          <td>${h.averageBuyPrice ? fmtFull(h.averageBuyPrice) : '--'}</td>
+          <td style="font-weight:600">${fmt(currentVal)}</td>
+          <td style="font-weight:600;color:${pnl>=0?'#10b981':'#ef4444'}">${pnl>=0?'+':''}${fmt(pnl)} <span style="font-size:10px">(${pnl>=0?'+':''}${pnlPct}%)</span></td>
+          <td><button class="btn-icon-only" style="color:#ef4444" title="Remove" onclick="showToast('Use API to remove investment','info')"><i class="ri-delete-bin-line"></i></button></td>
+        </tr>`;
+      }).join('');
+    };
+
+    const saveInvestment = async () => {
+      const errEl = document.getElementById('investError');
+      const symRaw = document.getElementById('investSymbol').value.trim();
+      const nameRaw = document.getElementById('investName').value.trim();
+      // Use symbol or generate from name
+      const symbol = symRaw || nameRaw.replace(/\s+/g, '_').toUpperCase();
+      const payload = {
+        symbol,
+        name: nameRaw || symbol,
+        assetType: document.getElementById('investType').value,
+        quantity: parseFloat(document.getElementById('investQty').value) || 1,
+        buyPrice: parseFloat(document.getElementById('investPrice').value),
+        purchaseDate: document.getElementById('investDate').value || undefined,
+      };
+      if (!nameRaw && !symRaw) { errEl.textContent='Enter a name or symbol.'; errEl.style.display='block'; return; }
+      if (!payload.buyPrice || payload.buyPrice <= 0) { errEl.textContent='Enter a purchase price.'; errEl.style.display='block'; return; }
+      errEl.style.display='none';
+
+      const res = await apiFetch('/investments/buy',{method:'POST',body:JSON.stringify(payload)});
+      if (res?.success) { closeModal('addInvestModal'); showToast('Investment added!','success'); loadPortfolio(); }
+      else { errEl.textContent=res?.error?.message||'Failed.'; errEl.style.display='block'; }
+    };
+
+    document.getElementById('addInvestBtn').onclick = () => showModal('addInvestModal');
+
+    function showModal(id){document.getElementById(id).classList.add('show');}
+    function closeModal(id){document.getElementById(id).classList.remove('show');}
+    document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+    function showToast(msg,type='success'){const t=document.createElement('div');t.style.cssText=`position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.4);`;if(type==='success')t.style.cssText+='background:#065f46;border:1px solid #10b981;color:#6ee7b7;';else if(type==='error')t.style.cssText+='background:#7f1d1d;border:1px solid #ef4444;color:#fca5a5;';else t.style.cssText+='background:#1e1b4b;border:1px solid #6366f1;color:#a5b4fc;';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
+    function getSidebar(active){const nav=[['dashboard','ri-dashboard-line','Dashboard'],['transactions','ri-exchange-line','Transactions'],['budget','ri-pie-chart-line','Budgets'],['goals','ri-flag-line','Goals'],['investments','ri-stock-line','Portfolio'],['loans','ri-bank-line','Loans & EMI'],['calendar','ri-calendar-line','Calendar'],['analytics','ri-bar-chart-line','Analytics'],['ai-advisor','ri-robot-line','AI Advisor']];return `<aside class="sidebar"><div class="sidebar-brand"><div class="brand-icon"><i class="ri-line-chart-line"></i></div><div><div class="brand-text">Jinay Finance AI</div><div class="brand-sub">by Jinay Golecha</div></div></div><div class="nav-section" style="margin-top:8px">${nav.map(([href,icon,label])=>`<a href="/${href}.html" class="nav-item${active===href?' active':''}"><i class="${icon}"></i>${label}</a>`).join('')}</div><div class="sidebar-footer"><div class="user-info"><div class="avatar" id="sidebarAvatar">J</div><div><div class="user-name" id="sidebarUserName">User</div><div class="user-role" id="sidebarUserRole">Free</div></div><i class="ri-logout-box-line logout-btn" id="sidebarLogout" title="Logout"></i></div></div></aside>`;}
+    function initSidebarUser(){const user=JSON.parse(localStorage.getItem('jf_user')||'{}');const name=user.firstName||user.username||'User';const el=document.getElementById('sidebarUserName'),rl=document.getElementById('sidebarUserRole'),av=document.getElementById('sidebarAvatar');if(el)el.textContent=name+(user.lastName?' '+user.lastName:'');if(rl)rl.textContent=user.isPremium?'⭐ Premium':'Free User';if(av)av.textContent=name[0].toUpperCase();document.getElementById('sidebarLogout').onclick=async()=>{const rt=localStorage.getItem('jf_refresh_token');try{await fetch(`${API_BASE}/auth/logout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({refreshToken:rt})});}catch{}localStorage.clear();window.location.href='/login.html';};}
+    loadPortfolio();
+  </script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budgets — Jinay Finance AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body>
+  <div id="sidebarRoot"></div>
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Budget Manager</div>
+        <div class="topbar-sub" id="budgetMonth">Managing budget for this month</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" id="addBudgetBtn"><i class="ri-add-line"></i>Add Budget</button>
+        <button class="btn btn-secondary" id="autoSetupBtn"><i class="ri-magic-line"></i>Auto Setup 50/30/20</button>
+      </div>
+    </div>
+    <div class="content">
+      <!-- Overview -->
+      <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="metric-card">
+          <div class="metric-icon mi-blue"><i class="ri-wallet-3-line"></i></div>
+          <div class="metric-label">Total Budgeted</div>
+          <div class="metric-value" id="totalBudgeted">₹0</div>
+          <div class="metric-sub">This month</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon mi-red"><i class="ri-shopping-cart-line"></i></div>
+          <div class="metric-label">Total Spent</div>
+          <div class="metric-value" id="totalSpent">₹0</div>
+          <div class="metric-sub" id="spentPct">Loading...</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-icon mi-green"><i class="ri-money-dollar-circle-line"></i></div>
+          <div class="metric-label">Remaining</div>
+          <div class="metric-value" id="totalRemaining">₹0</div>
+          <div class="metric-sub" id="budgetStatus">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Budget Cards -->
+      <div id="budgetList">
+        <div class="card"><div style="text-align:center;padding:40px;color:#6b7280">Loading budgets...</div></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Budget Modal -->
+  <div class="modal-overlay" id="addBudgetModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Add Budget Category</span>
+        <button class="modal-close" onclick="closeModal('addBudgetModal')">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category Name</label>
+        <input type="text" id="budgetCategory" class="form-input" placeholder="e.g. Food, Transport, Entertainment">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Monthly Limit (₹)</label>
+        <input type="number" id="budgetLimit" class="form-input" placeholder="10000" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Month</label>
+        <select id="budgetMonthSel" class="form-select">
+          <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+          <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+          <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+          <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Year</label>
+        <input type="number" id="budgetYear" class="form-input" value="2025" min="2024">
+      </div>
+      <div id="budgetError" style="color:#fca5a5;font-size:12px;margin-bottom:8px;display:none;"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="saveBudget()">
+        <i class="ri-check-line"></i> Save Budget
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:5000/api/v1';
+    const token = localStorage.getItem('jf_access_token');
+    if (!token) window.location.href = '/login.html';
+    const fmt = (v) => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(v||0);
+    const apiFetch = async (url, opts={}) => {
+      const r = await fetch(`${API_BASE}${url}`,{headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`,...(opts.headers||{})},...opts});
+      if(r.status===401){localStorage.clear();window.location.href='/login.html';return null;}
+      return r.json();
+    };
+
+    document.getElementById('sidebarRoot').innerHTML = getSidebar('budget');
+    initSidebarUser();
+
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+
+    document.getElementById('budgetMonth').textContent = `Managing budget for ${now.toLocaleDateString('en-IN',{month:'long',year:'numeric'})}`;
+    document.getElementById('budgetMonthSel').value = month;
+    document.getElementById('budgetYear').value = year;
+
+    const loadBudgets = async () => {
+      const data = await apiFetch(`/budgets?month=${month}&year=${year}`);
+      if (!data?.success) {
+        document.getElementById('budgetList').innerHTML = '<div class="card"><div style="text-align:center;padding:30px;color:#ef4444">Failed to load budgets. Check server.</div></div>';
+        return;
+      }
+
+      const budgets = data.data.budgets || [];
+      const summary = data.data.summary || {};
+
+      document.getElementById('totalBudgeted').textContent = fmt(summary.totalBudgeted || 0);
+      document.getElementById('totalSpent').textContent = fmt(summary.totalSpent || 0);
+      document.getElementById('totalRemaining').textContent = fmt(summary.totalRemaining || 0);
+      const pct = summary.totalBudgeted > 0 ? Math.round((summary.totalSpent / summary.totalBudgeted) * 100) : 0;
+      document.getElementById('spentPct').textContent = `${pct}% of total budget used`;
+      document.getElementById('budgetStatus').textContent = pct >= 100 ? '⚠️ Over budget!' : pct >= 90 ? '⚠️ Near limit' : '✅ On track';
+
+      if (!budgets.length) {
+        document.getElementById('budgetList').innerHTML = `<div class="card"><div class="empty-state"><i class="ri-pie-chart-line"></i><h3>No budgets set</h3><p>Click "Add Budget" to start tracking spending, or use "Auto Setup 50/30/20" for a quick start.</p></div></div>`;
+        return;
+      }
+
+      document.getElementById('budgetList').innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">
+          ${budgets.map(b => {
+            const pct = b.monthlyLimit > 0 ? Math.min(Math.round((b.spent / b.monthlyLimit) * 100), 100) : 0;
+            const color = pct >= 100 ? 'red' : pct >= 90 ? 'red' : pct >= 75 ? 'var(--warning)' : 'var(--primary)';
+            const progressClass = pct >= 75 ? 'red' : '';
+            return `<div class="card">
+              <div class="card-header" style="margin-bottom:10px">
+                <span style="font-size:14px;font-weight:600">${b.categoryName}</span>
+                <span style="font-size:12px;color:${pct>=100?'#ef4444':pct>=90?'#f59e0b':'#6b7280'}">${pct}%</span>
+              </div>
+              <div class="progress-bar" style="margin-bottom:10px">
+                <div class="progress-fill ${progressClass}" style="width:${pct}%;background:${color}"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:10px">
+                <span>Spent: <strong style="color:white">${fmt(b.spent)}</strong></span>
+                <span>Limit: <strong style="color:white">${fmt(b.monthlyLimit)}</strong></span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:12px;color:${pct>=100?'#ef4444':'#10b981'}">
+                  ${pct>=100?`Over by ${fmt(b.spent-b.monthlyLimit)}`:`${fmt(b.monthlyLimit-b.spent)} remaining`}
+                </span>
+                <button class="btn-icon-only" onclick="deleteBudget('${b.id}')" style="color:#ef4444;width:28px;height:28px" title="Delete"><i class="ri-delete-bin-line"></i></button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      `;
+    };
+
+    const saveBudget = async () => {
+      const category = document.getElementById('budgetCategory').value.trim();
+      const limit = parseFloat(document.getElementById('budgetLimit').value);
+      const mon = parseInt(document.getElementById('budgetMonthSel').value);
+      const yr = parseInt(document.getElementById('budgetYear').value);
+      const errEl = document.getElementById('budgetError');
+      if (!category) { errEl.textContent='Enter a category name.'; errEl.style.display='block'; return; }
+      if (!limit || limit <= 0) { errEl.textContent='Enter a valid limit > 0.'; errEl.style.display='block'; return; }
+      errEl.style.display='none';
+      const res = await apiFetch('/budgets',{method:'POST',body:JSON.stringify({categoryName:category,monthlyLimit:limit,month:mon,year:yr})});
+      if (res?.success) {
+        closeModal('addBudgetModal');
+        document.getElementById('budgetCategory').value='';
+        document.getElementById('budgetLimit').value='';
+        showToast('Budget saved!','success');
+        loadBudgets();
+      } else {
+        errEl.textContent=res?.error?.message||'Failed to save budget.';
+        errEl.style.display='block';
+      }
+    };
+
+    const deleteBudget = async (id) => {
+      if (!confirm('Delete this budget?')) return;
+      const res = await apiFetch(`/budgets/${id}`,{method:'DELETE'});
+      if (res?.success) { showToast('Budget deleted.','info'); loadBudgets(); }
+      else showToast(res?.error?.message||'Failed to delete.','error');
+    };
+
+    // Auto setup 50/30/20 based on income
+    document.getElementById('autoSetupBtn').onclick = async () => {
+      const dashRes = await apiFetch('/dashboard');
+      if (!dashRes?.success) { showToast('Cannot load income data.','error'); return; }
+      const income = dashRes.data.monthlyIncome || 0;
+      if (!income) { showToast('No income data. Add a salary transaction first.','error'); return; }
+      
+      const autoCategories = [
+        { name: 'Housing & Utilities', pct: 0.30 },
+        { name: 'Food & Groceries', pct: 0.10 },
+        { name: 'Transport', pct: 0.10 },
+        { name: 'Savings & Investments', pct: 0.20 },
+        { name: 'Entertainment', pct: 0.10 },
+        { name: 'Healthcare', pct: 0.05 },
+        { name: 'Miscellaneous', pct: 0.15 },
+      ];
+
+      let saved = 0;
+      for (const cat of autoCategories) {
+        const res = await apiFetch('/budgets',{method:'POST',body:JSON.stringify({categoryName:cat.name,monthlyLimit:Math.round(income*cat.pct),month,year})});
+        if (res?.success) saved++;
+      }
+      showToast(`${saved} budget categories created!`,'success');
+      loadBudgets();
+    };
+
+    document.getElementById('addBudgetBtn').onclick = () => showModal('addBudgetModal');
+
+    function showModal(id){document.getElementById(id).classList.add('show');}
+    function closeModal(id){document.getElementById(id).classList.remove('show');}
+    document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+
+    function showToast(msg,type='success'){
+      const t=document.createElement('div');
+      t.style.cssText=`position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;font-family:Inter,sans-serif;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.4);`;
+      if(type==='success')t.style.cssText+='background:#065f46;border:1px solid #10b981;color:#6ee7b7;';
+      else if(type==='error')t.style.cssText+='background:#7f1d1d;border:1px solid #ef4444;color:#fca5a5;';
+      else t.style.cssText+='background:#1e1b4b;border:1px solid #6366f1;color:#a5b4fc;';
+      t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3500);
+    }
+
+    function getSidebar(active){
+      const nav=[['dashboard','ri-dashboard-line','Dashboard'],['transactions','ri-exchange-line','Transactions'],['budget','ri-pie-chart-line','Budgets'],['goals','ri-flag-line','Goals'],['investments','ri-stock-line','Portfolio'],['loans','ri-bank-line','Loans & EMI'],['calendar','ri-calendar-line','Calendar'],['analytics','ri-bar-chart-line','Analytics'],['ai-advisor','ri-robot-line','AI Advisor']];
+      return `<aside class="sidebar"><div class="sidebar-brand"><div class="brand-icon"><i class="ri-line-chart-line"></i></div><div><div class="brand-text">Jinay Finance AI</div><div class="brand-sub">by Jinay Golecha</div></div></div><div class="nav-section" style="margin-top:8px">${nav.map(([href,icon,label])=>`<a href="/${href}.html" class="nav-item${active===href?' active':''}"><i class="${icon}"></i>${label}</a>`).join('')}</div><div class="sidebar-footer"><div class="user-info"><div class="avatar" id="sidebarAvatar">J</div><div><div class="user-name" id="sidebarUserName">User</div><div class="user-role" id="sidebarUserRole">Free</div></div><i class="ri-logout-box-line logout-btn" id="sidebarLogout" title="Logout"></i></div></div></aside>`;
+    }
+    function initSidebarUser(){
+      const user=JSON.parse(localStorage.getItem('jf_user')||'{}');
+      const name=user.firstName||user.username||'User';
+      const el=document.getElementById('sidebarUserName'),rl=document.getElementById('sidebarUserRole'),av=document.getElementById('sidebarAvatar');
+      if(el)el.textContent=name+(user.lastName?' '+user.lastName:'');
+      if(rl)rl.textContent=user.isPremium?'⭐ Premium':'Free User';
+      if(av)av.textContent=name[0].toUpperCase();
+      document.getElementById('sidebarLogout').onclick=async()=>{const rt=localStorage.getItem('jf_refresh_token');try{await fetch(`${API_BASE}/auth/logout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({refreshToken:rt})});}catch{}localStorage.clear();window.location.href='/login.html';};
+    }
+
+    loadBudgets();
+  </script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jinay Finance AI — AI-Powered Personal Finance & Investment Advisor</title>
+  <meta name="description" content="Take control of your finances with AI-powered insights, investment tracking, budget management, and personalized financial advice.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--primary:#6366f1;--bg:#05050f;--surface:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);--text:#f9fafb;--muted:#6b7280}
+    html{scroll-behavior:smooth}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+    
+    /* Nav */
+    nav{display:flex;align-items:center;justify-content:space-between;padding:16px 60px;position:fixed;top:0;width:100%;z-index:100;background:rgba(5,5,15,0.8);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+    .nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .nav-icon{width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:white}
+    .nav-name{font-size:16px;font-weight:700;color:white}
+    .nav-links{display:flex;gap:32px}
+    .nav-links a{color:var(--muted);text-decoration:none;font-size:14px;transition:color .2s}
+    .nav-links a:hover{color:white}
+    .nav-actions{display:flex;gap:12px;align-items:center}
+    .btn-ghost{padding:8px 16px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;text-decoration:none;transition:all .2s}
+    .btn-ghost:hover{background:var(--surface);border-color:rgba(255,255,255,0.2)}
+    .btn-primary{padding:8px 20px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:8px;color:white;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;text-decoration:none;transition:all .2s}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(99,102,241,.4)}
+    
+    /* Hero */
+    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative}
+    .hero::before{content:'';position:fixed;top:0;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(ellipse,rgba(99,102,241,.18) 0%,transparent 70%);pointer-events:none}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:20px;font-size:12px;color:#a5b4fc;margin-bottom:24px}
+    .hero-title{font-size:clamp(36px,6vw,72px);font-weight:800;line-height:1.1;margin-bottom:20px;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,.6) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-subtitle{font-size:clamp(16px,2.5vw,20px);color:var(--muted);max-width:600px;line-height:1.6;margin-bottom:40px}
+    .hero-actions{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+    .btn-hero{padding:14px 28px;font-size:15px;font-weight:600;border-radius:12px;font-family:'Inter',sans-serif;cursor:pointer;text-decoration:none;transition:all .3s;display:inline-flex;align-items:center;gap:8px}
+    .btn-hero.primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none}
+    .btn-hero.primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(99,102,241,.5)}
+    .btn-hero.secondary{background:transparent;color:white;border:1px solid rgba(255,255,255,.2)}
+    .btn-hero.secondary:hover{background:rgba(255,255,255,.06)}
+    .hero-stats{display:flex;gap:48px;justify-content:center;margin-top:60px;flex-wrap:wrap}
+    .stat{text-align:center}
+    .stat-value{font-size:28px;font-weight:800;background:linear-gradient(135deg,#6366f1,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .stat-label{font-size:12px;color:var(--muted);margin-top:4px}
+    
+    /* Features */
+    .section{padding:80px 24px}
+    .section-center{text-align:center;max-width:600px;margin:0 auto 48px}
+    .section-badge{display:inline-block;padding:4px 12px;background:rgba(99,102,241,.12);border-radius:20px;font-size:12px;color:#a5b4fc;margin-bottom:12px}
+    .section-title{font-size:clamp(28px,4vw,42px);font-weight:800;margin-bottom:12px}
+    .section-sub{font-size:15px;color:var(--muted)}
+    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1100px;margin:0 auto}
+    .feature-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;transition:all .3s}
+    .feature-card:hover{border-color:rgba(99,102,241,.4);transform:translateY(-4px);box-shadow:0 20px 60px rgba(99,102,241,.1)}
+    .feature-icon{width:48px;height:48px;background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(139,92,246,.2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#a5b4fc;margin-bottom:16px}
+    .feature-title{font-size:16px;font-weight:700;margin-bottom:8px}
+    .feature-desc{font-size:13px;color:var(--muted);line-height:1.6}
+    
+    /* CTA */
+    .cta{padding:80px 24px;text-align:center}
+    .cta-card{max-width:700px;margin:0 auto;background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.1));border:1px solid rgba(99,102,241,.2);border-radius:24px;padding:60px 40px}
+    .cta-title{font-size:clamp(24px,4vw,40px);font-weight:800;margin-bottom:12px}
+    .cta-sub{color:var(--muted);margin-bottom:32px;font-size:15px}
+    
+    /* Footer */
+    footer{border-top:1px solid var(--border);padding:32px 60px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+    .footer-brand{font-size:13px;color:var(--muted)}
+    .footer-links{display:flex;gap:24px}
+    .footer-links a{font-size:12px;color:var(--muted);text-decoration:none}
+    .footer-links a:hover{color:white}
+    
+    @media(max-width:900px){.features-grid{grid-template-columns:1fr 1fr}.nav-links{display:none}nav{padding:16px 24px}}
+    @media(max-width:600px){.features-grid{grid-template-columns:1fr}.hero-stats{gap:24px}footer{padding:24px}}
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="nav-brand">
+      <div class="nav-icon"><i class="ri-line-chart-line"></i></div>
+      <span class="nav-name">Jinay Finance AI</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#about">About</a>
+    </div>
+    <div class="nav-actions">
+      <a href="/login.html" class="btn-ghost">Sign In</a>
+      <a href="/signup.html" class="btn-primary">Get Started Free</a>
+    </div>
+  </nav>
+  
+  <section class="hero">
+    <div class="hero-badge"><i class="ri-ai-generate"></i> Powered by AI · Built for India</div>
+    <h1 class="hero-title">Your Complete<br>Financial Command Center</h1>
+    <p class="hero-subtitle">Track spending, grow investments, manage loans, and get personalized AI advice — all in one place. Built for the Indian market with ₹ (INR) at its core.</p>
+    <div class="hero-actions">
+      <a href="/signup.html" class="btn-hero primary"><i class="ri-rocket-line"></i>Start for Free</a>
+      <a href="/login.html" class="btn-hero secondary"><i class="ri-login-box-line"></i>Sign In</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-value">₹INR</div><div class="stat-label">Indian Rupee First</div></div>
+      <div class="stat"><div class="stat-value">AI</div><div class="stat-label">Personalized Advice</div></div>
+      <div class="stat"><div class="stat-value">NSE</div><div class="stat-label">Live Market Data</div></div>
+      <div class="stat"><div class="stat-value">100%</div><div class="stat-label">Your Data, Secured</div></div>
+    </div>
+  </section>
+
+  <section class="section" id="features">
+    <div class="section-center">
+      <div class="section-badge">Everything You Need</div>
+      <h2 class="section-title">Complete Financial Management</h2>
+      <p class="section-sub">From daily expenses to long-term investments — manage it all in one unified platform</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card"><div class="feature-icon"><i class="ri-dashboard-line"></i></div><div class="feature-title">Smart Dashboard</div><div class="feature-desc">Real-time overview of your net worth, income, expenses, savings rate, and financial health score.</div></div>
+      <div class="feature-card"><div class="feature-icon"><i class="ri-exchange-line"></i></div><div class="feature-title">Transaction Tracking</div><div class="feature-desc">Log expenses and income with voice entry, categorization, and merchant tracking.</div></div>
+      <div class="feature-card"><div class="feature-icon"><i class="ri-pie-chart-line"></i></div><div class="feature-title">Budget Management</div><div class="feature-desc">Set monthly budgets per category. Get alerts at 75%, 90%, and 100% of your budget.</div></div>
+      <div class="feature-card"><div class="feature-icon"><i class="ri-flag-line"></i></div><div class="feature-title">Savings Goals</div><div class="feature-desc">Set and track goals for home, car, vacation, emergency fund, and more.</div></div>
+      <div class="feature-card"><div class="feature-icon"><i class="ri-stock-line"></i></div><div class="feature-title">Investment Portfolio</div><div class="feature-desc">Track stocks, mutual funds, SIPs, gold, and crypto with live P&L calculations.</div></div>
+      <div class="feature-card"><div class="feature-icon"><i class="ri-bank-line"></i></div><div class="feature-title">Loan & EMI Manager</div><div class="feature-desc">Manage all loans, calculate EMIs, and simulate prepayment to save interest.</div></div>
+      <div class="feature-card"><div class="feature-icon"><i class="ri-robot-line"></i></div><div class="feature-title">AI Financial Advisor</div><div class="feature-desc">Get personalized advice based on your actual financial data. Ask anything.</div></div>
+      <div class="feature-card"><div class="feature-icon"><i class="ri-calendar-line"></i></div><div class="feature-title">Financial Calendar</div><div class="feature-desc">Track EMI due dates, SIP dates, subscription renewals, and custom reminders.</div></div>
+      <div class="feature-card"><div class="feature-icon"><i class="ri-file-chart-line"></i></div><div class="feature-title">Analytics & Reports</div><div class="feature-desc">Deep insights into spending patterns, category breakdowns, and monthly trends.</div></div>
+    </div>
+  </section>
+  
+  <section class="cta">
+    <div class="cta-card">
+      <h2 class="cta-title">Ready to take control?</h2>
+      <p class="cta-sub">Join thousands taking control of their financial future with AI-powered insights.</p>
+      <a href="/signup.html" class="btn-hero primary"><i class="ri-rocket-line"></i>Create Free Account</a>
+    </div>
+  </section>
+  
+  <footer>
+    <div class="footer-brand">© 2025 Jinay Finance AI · Built by Jinay Golecha · Final Year Engineering Project</div>
+    <div class="footer-links">
+      <a href="/login.html">Login</a>
+      <a href="/signup.html">Sign Up</a>
+    </div>
+  </footer>
+  
+  <script>
+    // Redirect to dashboard if already logged in
+    if (localStorage.getItem('jf_access_token')) {
+      window.location.href = '/dashboard.html';
+    }
+    // Handle Google OAuth token callback
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('access_token')) {
+      localStorage.setItem('jf_access_token', params.get('access_token'));
+      if (params.get('refresh_token')) localStorage.setItem('jf_refresh_token', params.get('refresh_token'));
+      window.location.href = '/dashboard.html';
+    }
+  </script>
+</body>
+</html>

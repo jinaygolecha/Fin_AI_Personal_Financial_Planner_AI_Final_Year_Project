@@ -1,0 +1,113 @@
+const jwt = require('jsonwebtoken');
+const prisma = require('../config/database');
+
+/**
+ * JWT Authentication Middleware
+ * Verifies the Bearer token in Authorization header
+ * Sets req.user to the authenticated user object
+ */
+const authenticate = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Authentication token is required.' },
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          success: false,
+          error: { code: 'TOKEN_EXPIRED', message: 'Access token has expired. Please refresh.' },
+        });
+      }
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_TOKEN', message: 'Invalid authentication token.' },
+      });
+    }
+
+    // Verify user still exists and is active
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isPremium: true,
+        isActive: true,
+        currency: true,
+        timezone: true,
+      },
+    });
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'USER_NOT_FOUND', message: 'User account not found or deactivated.' },
+      });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Optional authentication — does not fail if no token
+ * Sets req.user if valid token exists, otherwise req.user is null
+ */
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      req.user = null;
+      return next();
+    }
+
+    const token = authHeader.split(' ')[1];
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        select: { id: true, email: true, username: true, firstName: true, role: true },
+      });
+      req.user = user || null;
+    } catch {
+      req.user = null;
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Role-based authorization — use AFTER authenticate
+ */
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'You do not have permission to perform this action.' },
+      });
+    }
+    next();
+  };
+};
+
+module.exports = { authenticate, optionalAuth, authorize };

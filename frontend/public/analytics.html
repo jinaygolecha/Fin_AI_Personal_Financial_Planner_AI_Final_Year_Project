@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics — Jinay Finance AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+</head>
+<body>
+  <div id="sidebarRoot"></div>
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="topbar-title">Analytics & Insights</div><div class="topbar-sub">Deep dive into your spending patterns and trends</div></div>
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" onclick="loadAnalytics('week')" id="btnW">Week</button>
+        <button class="btn btn-primary" onclick="loadAnalytics('month')" id="btnM">Month</button>
+        <button class="btn btn-secondary" onclick="loadAnalytics('year')" id="btnY">Year</button>
+        <a href="#" class="btn btn-secondary" id="exportBtn"><i class="ri-download-line"></i>Export</a>
+      </div>
+    </div>
+    <div class="content">
+      <div class="metrics-grid">
+        <div class="metric-card"><div class="metric-icon mi-green"><i class="ri-arrow-down-line"></i></div><div class="metric-label">Total Income</div><div class="metric-value" id="aIncome">...</div><div class="metric-sub" id="aIncomeTx">-- transactions</div></div>
+        <div class="metric-card"><div class="metric-icon mi-red"><i class="ri-arrow-up-line"></i></div><div class="metric-label">Total Expenses</div><div class="metric-value" id="aExpense">...</div><div class="metric-sub" id="aExpenseTx">-- transactions</div></div>
+        <div class="metric-card"><div class="metric-icon mi-blue"><i class="ri-save-line"></i></div><div class="metric-label">Net Savings</div><div class="metric-value" id="aSavings">...</div><div class="metric-sub" id="aSavingsRate">-- savings rate</div></div>
+        <div class="metric-card"><div class="metric-icon mi-amber"><i class="ri-bar-chart-line"></i></div><div class="metric-label">Transactions</div><div class="metric-value" id="aTxCount">--</div><div class="metric-sub">This period</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-bottom:16px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Income vs Expenses Trend</span></div>
+          <div id="trendChart" style="height:240px"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Spending by Category</span></div>
+          <div id="categoryChart" style="height:240px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">Category Breakdown</span></div>
+        <div id="categoryTable"><div style="text-align:center;padding:30px;color:#6b7280">Loading...</div></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:5000/api/v1';
+    const token = localStorage.getItem('jf_access_token');
+    if (!token) window.location.href = '/login.html';
+    const fmt = (v) => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(v||0);
+    const apiFetch = async (url, opts={}) => {
+      const r = await fetch(`${API_BASE}${url}`,{headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},...opts});
+      if(r.status===401){localStorage.clear();window.location.href='/login.html';return null;}
+      return r.json();
+    };
+
+    document.getElementById('sidebarRoot').innerHTML = getSidebar('analytics');
+    initSidebarUser();
+
+    let trendChart, catChart;
+
+    const loadAnalytics = async (period = 'month') => {
+      ['btnW','btnM','btnY'].forEach(id => {
+        document.getElementById(id).className = 'btn btn-secondary';
+      });
+      document.getElementById(period === 'week' ? 'btnW' : period === 'year' ? 'btnY' : 'btnM').className = 'btn btn-primary';
+
+      const data = await apiFetch(`/analytics?period=${period}`);
+      if (!data?.success) return;
+      const d = data.data;
+      const s = d.summary;
+
+      document.getElementById('aIncome').textContent = fmt(s.totalIncome);
+      document.getElementById('aExpense').textContent = fmt(s.totalExpenses);
+      document.getElementById('aSavings').textContent = fmt(s.netSavings);
+      document.getElementById('aSavingsRate').textContent = `${s.savingsRate}% savings rate`;
+      document.getElementById('aIncomeTx').textContent = `${s.incomeTransactions} transactions`;
+      document.getElementById('aExpenseTx').textContent = `${s.expenseTransactions} transactions`;
+      document.getElementById('aTxCount').textContent = s.incomeTransactions + s.expenseTransactions;
+
+      // Trend chart
+      if (!trendChart) trendChart = echarts.init(document.getElementById('trendChart'), 'dark');
+      const dates = d.monthlyTrend.map(t => new Date(t.date).toLocaleDateString('en-IN', {day:'numeric',month:'short'}));
+      trendChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis', formatter: (p) => p.map(pp => `${pp.seriesName}: ${fmt(pp.value)}`).join('<br>') },
+        legend: { bottom: 0, textStyle: { color: '#6b7280', fontSize: 11 } },
+        grid: { top: 10, right: 10, bottom: 40, left: 70 },
+        xAxis: { type: 'category', data: dates, axisLabel: { color: '#6b7280', fontSize: 10 }, axisLine: { show: false }, axisTick: { show: false } },
+        yAxis: { type: 'value', axisLabel: { color: '#6b7280', fontSize: 10, formatter: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0) + 'K' : v) }, splitLine: { lineStyle: { color: 'rgba(255,255,255,.05)' } } },
+        series: [
+          { name: 'Amount', type: 'bar', data: d.monthlyTrend.map(t => t.amount), itemStyle: { color: '#6366f1', borderRadius: [3,3,0,0] }, barMaxWidth: 20 },
+        ],
+      });
+
+      // Category pie
+      if (!catChart) catChart = echarts.init(document.getElementById('categoryChart'), 'dark');
+      const catData = d.categoryBreakdown.slice(0, 8);
+      catChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { formatter: p => `${p.name}: ${fmt(p.value)} (${p.percent}%)` },
+        series: [{
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['50%', '45%'],
+          data: catData.map(c => ({ name: c.category, value: c.amount })),
+          label: { show: false },
+          itemStyle: { borderRadius: 4, borderWidth: 2, borderColor: '#111827' },
+        }],
+        legend: { bottom: 0, textStyle: { color: '#6b7280', fontSize: 10 } },
+      });
+
+      // Category table
+      if (!catData.length) {
+        document.getElementById('categoryTable').innerHTML = '<div class="empty-state"><i class="ri-pie-chart-line"></i><h3>No expense data</h3><p>Add some expense transactions to see category breakdown.</p></div>';
+        return;
+      }
+      document.getElementById('categoryTable').innerHTML = `
+        <table><thead><tr><th>Category</th><th>Amount</th><th>%</th><th>Distribution</th></tr></thead>
+        <tbody>${catData.map(c => `
+          <tr>
+            <td><strong>${c.category}</strong></td>
+            <td>${fmt(c.amount)}</td>
+            <td><span class="badge badge-blue">${c.percentage}%</span></td>
+            <td style="width:200px"><div class="progress-bar" style="margin:0"><div class="progress-fill" style="width:${c.percentage}%"></div></div></td>
+          </tr>
+        `).join('')}</tbody></table>
+      `;
+    };
+
+    document.getElementById('exportBtn').onclick = (e) => {
+      e.preventDefault();
+      window.open(`${API_BASE}/export/transactions.csv`, '_blank');
+    };
+
+    function getSidebar(active){const nav=[['dashboard','ri-dashboard-line','Dashboard'],['transactions','ri-exchange-line','Transactions'],['budget','ri-pie-chart-line','Budgets'],['goals','ri-flag-line','Goals'],['investments','ri-stock-line','Portfolio'],['loans','ri-bank-line','Loans & EMI'],['calendar','ri-calendar-line','Calendar'],['analytics','ri-bar-chart-line','Analytics'],['ai-advisor','ri-robot-line','AI Advisor']];return `<aside class="sidebar"><div class="sidebar-brand"><div class="brand-icon"><i class="ri-line-chart-line"></i></div><div><div class="brand-text">Jinay Finance AI</div><div class="brand-sub">by Jinay Golecha</div></div></div><div class="nav-section" style="margin-top:8px">${nav.map(([href,icon,label])=>`<a href="/${href}.html" class="nav-item${active===href?' active':''}"><i class="${icon}"></i>${label}</a>`).join('')}</div><div class="sidebar-footer"><div class="user-info"><div class="avatar" id="sidebarAvatar">J</div><div><div class="user-name" id="sidebarUserName">User</div><div class="user-role" id="sidebarUserRole">Free</div></div><i class="ri-logout-box-line logout-btn" id="sidebarLogout" title="Logout"></i></div></div></aside>`;}
+    function initSidebarUser(){const user=JSON.parse(localStorage.getItem('jf_user')||'{}');const name=user.firstName||user.username||'User';const el=document.getElementById('sidebarUserName'),rl=document.getElementById('sidebarUserRole'),av=document.getElementById('sidebarAvatar');if(el)el.textContent=name+(user.lastName?' '+user.lastName:'');if(rl)rl.textContent=user.isPremium?'⭐ Premium':'Free User';if(av)av.textContent=name[0].toUpperCase();document.getElementById('sidebarLogout').onclick=async()=>{const rt=localStorage.getItem('jf_refresh_token');try{await fetch(`${API_BASE}/auth/logout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({refreshToken:rt})});}catch{}localStorage.clear();window.location.href='/login.html';};}
+
+    loadAnalytics('month');
+  </script>
+</body>
+</html>

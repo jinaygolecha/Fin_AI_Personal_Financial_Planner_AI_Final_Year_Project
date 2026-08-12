@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loans & EMI — Jinay Finance AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body>
+  <div id="sidebarRoot"></div>
+  <main class="main-content">
+    <div class="topbar">
+      <div><div class="topbar-title">Loans & EMI Manager</div><div class="topbar-sub">Track all your loans, EMIs, and interest payments</div></div>
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" id="calcBtn"><i class="ri-calculator-line"></i>EMI Calculator</button>
+        <button class="btn btn-primary" id="addLoanBtn"><i class="ri-add-line"></i>Add Loan</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="metric-card"><div class="metric-icon mi-red"><i class="ri-bank-line"></i></div><div class="metric-label">Total Outstanding</div><div class="metric-value" id="totalOutstanding">...</div></div>
+        <div class="metric-card"><div class="metric-icon mi-amber"><i class="ri-calendar-line"></i></div><div class="metric-label">Monthly EMI</div><div class="metric-value" id="monthlyEMI">...</div></div>
+        <div class="metric-card"><div class="metric-icon mi-blue"><i class="ri-percent-line"></i></div><div class="metric-label">Avg Interest</div><div class="metric-value" id="avgInterest">...</div></div>
+        <div class="metric-card"><div class="metric-icon mi-green"><i class="ri-check-double-line"></i></div><div class="metric-label">Active Loans</div><div class="metric-value" id="activeLoans">-</div></div>
+      </div>
+
+      <div id="loansList">
+        <div class="card"><div style="text-align:center;padding:40px;color:#6b7280">Loading loans...</div></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Loan Modal -->
+  <div class="modal-overlay" id="addLoanModal">
+    <div class="modal">
+      <div class="modal-header"><span class="modal-title">Add Loan</span><button class="modal-close" onclick="closeModal('addLoanModal')">✕</button></div>
+      <div class="form-group"><label class="form-label">Loan Type</label>
+        <select id="loanType" class="form-select">
+          <option value="HOME">Home Loan</option><option value="CAR">Car Loan</option>
+          <option value="PERSONAL">Personal Loan</option><option value="EDUCATION">Education Loan</option>
+          <option value="BUSINESS">Business Loan</option><option value="GOLD">Gold Loan</option><option value="OTHER">Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Lender / Bank</label><input type="text" id="loanLender" class="form-input" placeholder="e.g. HDFC Bank, SBI"></div>
+      <div class="form-group"><label class="form-label">Principal Amount (₹)</label><input type="number" id="loanPrincipal" class="form-input" placeholder="500000" min="1"></div>
+      <div class="form-group"><label class="form-label">Outstanding Balance (₹)</label><input type="number" id="loanBalance" class="form-input" placeholder="450000" min="0"></div>
+      <div class="form-group"><label class="form-label">Interest Rate (% per annum)</label><input type="number" id="loanRate" class="form-input" placeholder="8.5" min="0" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Tenure (months)</label><input type="number" id="loanTenure" class="form-input" placeholder="240" min="1"></div>
+      <div class="form-group"><label class="form-label">EMI Amount (₹)</label><input type="number" id="loanEMI" class="form-input" placeholder="Auto-calculated" min="0"></div>
+      <div class="form-group"><label class="form-label">Loan Start Date</label><input type="date" id="loanStartDate" class="form-input"></div>
+      <div id="loanError" style="color:#fca5a5;font-size:12px;margin-bottom:8px;display:none;"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="saveLoan()"><i class="ri-check-line"></i> Save Loan</button>
+    </div>
+  </div>
+
+  <!-- EMI Calculator Modal -->
+  <div class="modal-overlay" id="calcModal">
+    <div class="modal">
+      <div class="modal-header"><span class="modal-title">EMI Calculator</span><button class="modal-close" onclick="closeModal('calcModal')">✕</button></div>
+      <div class="form-group"><label class="form-label">Loan Amount (₹)</label><input type="number" id="calcPrincipal" class="form-input" placeholder="500000" oninput="calcEMI()"></div>
+      <div class="form-group"><label class="form-label">Interest Rate (% per annum)</label><input type="number" id="calcRate" class="form-input" placeholder="8.5" step="0.01" oninput="calcEMI()"></div>
+      <div class="form-group"><label class="form-label">Tenure (months)</label><input type="number" id="calcTenure" class="form-input" placeholder="240" oninput="calcEMI()"></div>
+      <div id="calcResult" style="display:none;padding:16px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:12px;margin-top:8px;font-size:13px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><div style="color:#6b7280;font-size:11px;margin-bottom:4px">Monthly EMI</div><div id="calcEMIResult" style="font-size:20px;font-weight:800;color:#a5b4fc">₹0</div></div>
+          <div><div style="color:#6b7280;font-size:11px;margin-bottom:4px">Total Interest</div><div id="calcInterestResult" style="font-size:20px;font-weight:800;color:#fca5a5">₹0</div></div>
+          <div><div style="color:#6b7280;font-size:11px;margin-bottom:4px">Total Payment</div><div id="calcTotalResult" style="font-size:20px;font-weight:800;color:white">₹0</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:5000/api/v1';
+    const token = localStorage.getItem('jf_access_token');
+    if (!token) window.location.href = '/login.html';
+    const fmt = (v) => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(v||0);
+    const apiFetch = async (url, opts={}) => {
+      const r = await fetch(`${API_BASE}${url}`,{headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`,...(opts.headers||{})},...opts});
+      if(r.status===401){localStorage.clear();window.location.href='/login.html';return null;}
+      return r.json();
+    };
+
+    document.getElementById('sidebarRoot').innerHTML = getSidebar('loans');
+    initSidebarUser();
+
+    const loanTypeLabels = { HOME:'🏠 Home Loan', CAR:'🚗 Car Loan', PERSONAL:'💳 Personal Loan', EDUCATION:'🎓 Education Loan', BUSINESS:'💼 Business Loan', GOLD:'🥇 Gold Loan', OTHER:'📋 Other Loan' };
+
+    const loadLoans = async () => {
+      const data = await apiFetch('/loans');
+      if (!data?.success) {
+        document.getElementById('loansList').innerHTML = '<div class="card"><div style="text-align:center;padding:30px;color:#ef4444">Failed to load loans.</div></div>';
+        return;
+      }
+
+      const loans = data.data.loans || [];
+      const total = loans.reduce((s, l) => s + parseFloat(l.outstandingBalance || l.principalAmount || 0), 0);
+      const emi = loans.reduce((s, l) => s + parseFloat(l.emiAmount || 0), 0);
+      const avgRate = loans.length ? (loans.reduce((s, l) => s + parseFloat(l.interestRate || 0), 0) / loans.length) : 0;
+
+      document.getElementById('totalOutstanding').textContent = fmt(total);
+      document.getElementById('monthlyEMI').textContent = fmt(emi);
+      document.getElementById('avgInterest').textContent = avgRate.toFixed(1) + '%';
+      document.getElementById('activeLoans').textContent = loans.filter(l => l.status === 'ACTIVE').length;
+
+      if (!loans.length) {
+        document.getElementById('loansList').innerHTML = `<div class="card"><div class="empty-state"><i class="ri-bank-line"></i><h3>No loans recorded</h3><p>Track your home loan, car loan, or any other EMIs here.</p></div></div>`;
+        return;
+      }
+
+      document.getElementById('loansList').innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+          ${loans.map(l => {
+            const outstanding = parseFloat(l.outstandingBalance || l.principalAmount || 0);
+            const principal = parseFloat(l.principalAmount || 0);
+            const paid = principal - outstanding;
+            const pct = principal > 0 ? Math.round((paid / principal) * 100) : 0;
+            return `<div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+                <div>
+                  <div style="font-size:14px;font-weight:700">${loanTypeLabels[l.loanType]||l.loanType}</div>
+                  <div style="font-size:11px;color:#6b7280">${l.lenderName || l.lender || 'Unknown lender'} · ${l.interestRate}% p.a.</div>
+                </div>
+                <span class="badge ${l.status==='ACTIVE'?'badge-blue':'badge-green'}">${l.status}</span>
+              </div>
+              <div class="progress-bar" style="margin-bottom:8px">
+                <div class="progress-fill green" style="width:${pct}%"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:12px">
+                <span>Paid: <strong style="color:white">${fmt(paid)}</strong></span>
+                <span>Outstanding: <strong style="color:#ef4444">${fmt(outstanding)}</strong></span>
+              </div>
+              <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:12px">
+                <div><span style="color:#6b7280">Monthly EMI:</span><div style="font-weight:700;color:white">${fmt(l.emiAmount)}</div></div>
+                <div><span style="color:#6b7280">Tenure:</span><div style="font-weight:700;color:white">${l.tenureMonths} months</div></div>
+              </div>
+              <button class="btn-icon-only" onclick="deleteLoan('${l.id}')" style="color:#ef4444;width:100%;border-radius:8px;gap:6px;font-size:12px;padding:8px" title="Delete Loan"><i class="ri-delete-bin-line"></i> Remove</button>
+            </div>`;
+          }).join('')}
+        </div>
+      `;
+    };
+
+    const saveLoan = async () => {
+      const errEl = document.getElementById('loanError');
+      const payload = {
+        loanType: document.getElementById('loanType').value,
+        lenderName: document.getElementById('loanLender').value.trim(),
+        principalAmount: parseFloat(document.getElementById('loanPrincipal').value),
+        outstandingBalance: parseFloat(document.getElementById('loanBalance').value) || undefined,
+        interestRate: parseFloat(document.getElementById('loanRate').value),
+        tenureMonths: parseInt(document.getElementById('loanTenure').value),
+        emiAmount: parseFloat(document.getElementById('loanEMI').value) || undefined,
+        startDate: document.getElementById('loanStartDate').value || undefined,
+      };
+      if (!payload.principalAmount || payload.principalAmount <= 0) { errEl.textContent='Enter a valid principal amount.'; errEl.style.display='block'; return; }
+      if (!payload.interestRate) { errEl.textContent='Enter the interest rate.'; errEl.style.display='block'; return; }
+      if (!payload.tenureMonths) { errEl.textContent='Enter the tenure in months.'; errEl.style.display='block'; return; }
+      errEl.style.display='none';
+
+      const res = await apiFetch('/loans',{method:'POST',body:JSON.stringify(payload)});
+      if (res?.success) { closeModal('addLoanModal'); showToast('Loan added!','success'); loadLoans(); }
+      else { errEl.textContent=res?.error?.message||'Failed to add loan.'; errEl.style.display='block'; }
+    };
+
+    const deleteLoan = async (id) => {
+      if (!confirm('Remove this loan?')) return;
+      // No delete route exists yet, show message
+      showToast('Loan removal: contact administrator.','info');
+    };
+
+    const calcEMI = () => {
+      const P = parseFloat(document.getElementById('calcPrincipal').value);
+      const annualRate = parseFloat(document.getElementById('calcRate').value);
+      const n = parseInt(document.getElementById('calcTenure').value);
+      if (!P || !annualRate || !n) { document.getElementById('calcResult').style.display='none'; return; }
+      const r = (annualRate / 100) / 12;
+      const emi = P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+      const total = emi * n;
+      const interest = total - P;
+      document.getElementById('calcResult').style.display='block';
+      document.getElementById('calcEMIResult').textContent = fmt(Math.round(emi));
+      document.getElementById('calcInterestResult').textContent = fmt(Math.round(interest));
+      document.getElementById('calcTotalResult').textContent = fmt(Math.round(total));
+    };
+
+    document.getElementById('addLoanBtn').onclick = () => showModal('addLoanModal');
+    document.getElementById('calcBtn').onclick = () => showModal('calcModal');
+
+    function showModal(id){document.getElementById(id).classList.add('show');}
+    function closeModal(id){document.getElementById(id).classList.remove('show');}
+    document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+    function showToast(msg,type='success'){const t=document.createElement('div');t.style.cssText=`position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.4);`;if(type==='success')t.style.cssText+='background:#065f46;border:1px solid #10b981;color:#6ee7b7;';else if(type==='error')t.style.cssText+='background:#7f1d1d;border:1px solid #ef4444;color:#fca5a5;';else t.style.cssText+='background:#1e1b4b;border:1px solid #6366f1;color:#a5b4fc;';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
+    function getSidebar(active){const nav=[['dashboard','ri-dashboard-line','Dashboard'],['transactions','ri-exchange-line','Transactions'],['budget','ri-pie-chart-line','Budgets'],['goals','ri-flag-line','Goals'],['investments','ri-stock-line','Portfolio'],['loans','ri-bank-line','Loans & EMI'],['calendar','ri-calendar-line','Calendar'],['analytics','ri-bar-chart-line','Analytics'],['ai-advisor','ri-robot-line','AI Advisor']];return `<aside class="sidebar"><div class="sidebar-brand"><div class="brand-icon"><i class="ri-line-chart-line"></i></div><div><div class="brand-text">Jinay Finance AI</div><div class="brand-sub">by Jinay Golecha</div></div></div><div class="nav-section" style="margin-top:8px">${nav.map(([href,icon,label])=>`<a href="/${href}.html" class="nav-item${active===href?' active':''}"><i class="${icon}"></i>${label}</a>`).join('')}</div><div class="sidebar-footer"><div class="user-info"><div class="avatar" id="sidebarAvatar">J</div><div><div class="user-name" id="sidebarUserName">User</div><div class="user-role" id="sidebarUserRole">Free</div></div><i class="ri-logout-box-line logout-btn" id="sidebarLogout" title="Logout"></i></div></div></aside>`;}
+    function initSidebarUser(){const user=JSON.parse(localStorage.getItem('jf_user')||'{}');const name=user.firstName||user.username||'User';const el=document.getElementById('sidebarUserName'),rl=document.getElementById('sidebarUserRole'),av=document.getElementById('sidebarAvatar');if(el)el.textContent=name+(user.lastName?' '+user.lastName:'');if(rl)rl.textContent=user.isPremium?'⭐ Premium':'Free User';if(av)av.textContent=name[0].toUpperCase();document.getElementById('sidebarLogout').onclick=async()=>{const rt=localStorage.getItem('jf_refresh_token');try{await fetch(`${API_BASE}/auth/logout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({refreshToken:rt})});}catch{}localStorage.clear();window.location.href='/login.html';};}
+    loadLoans();
+  </script>
+</body>
+</html>

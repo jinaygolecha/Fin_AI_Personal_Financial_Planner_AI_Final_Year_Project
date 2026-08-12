@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up — Jinay Finance AI</title>
+  <meta name="description" content="Create your Jinay Finance AI account and take control of your personal finances with AI.">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #6366f1; --primary-dark: #4f46e5; --primary-light: #a5b4fc;
+      --border: rgba(255,255,255,0.12); --text-muted: #94a3b8;
+      --error: #f87171; --success: #34d399;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    body::before {
+      content: ''; position: fixed; top: -30%; right: -10%;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%);
+      animation: float 12s ease-in-out infinite; pointer-events: none;
+    }
+    @keyframes float { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,30px)} }
+    .auth-container { width: 100%; max-width: 480px; position: relative; z-index: 1; }
+    .brand { text-align: center; margin-bottom: 24px; }
+    .brand-logo { display:inline-flex; align-items:center; gap:10px; text-decoration:none; }
+    .brand-icon {
+      width:40px; height:40px;
+      background: linear-gradient(135deg, var(--primary), #8b5cf6);
+      border-radius: 10px; display:flex; align-items:center; justify-content:center;
+      font-size:20px; color:white;
+    }
+    .brand-name { font-size:20px; font-weight:700; color:white; }
+    .card {
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 36px;
+    }
+    .card-title { font-size:22px; font-weight:700; color:white; margin-bottom:6px; }
+    .card-subtitle { color:var(--text-muted); font-size:13px; margin-bottom:24px; }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .form-group { margin-bottom:14px; }
+    .form-label { display:block; font-size:12px; font-weight:500; color:var(--text-muted); margin-bottom:5px; }
+    .input-wrapper { position:relative; }
+    .input-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:15px; pointer-events:none; }
+    .form-input {
+      width:100%; padding:12px 12px 12px 38px;
+      background:rgba(255,255,255,0.05);
+      border:1px solid var(--border);
+      border-radius:10px; color:white;
+      font-size:13px; font-family:'Inter',sans-serif;
+      transition:all 0.2s; outline:none;
+    }
+    .form-input:focus { border-color:var(--primary); background:rgba(99,102,241,0.1); box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
+    .form-input::placeholder { color:rgba(255,255,255,0.25); }
+    .form-input.error { border-color:var(--error); }
+    .toggle-password { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; }
+    .error-msg { color:var(--error); font-size:11px; margin-top:3px; display:none; }
+    .error-msg.show { display:block; }
+    .password-strength { margin-top:6px; }
+    .strength-bar { height:3px; border-radius:2px; background:rgba(255,255,255,0.1); overflow:hidden; margin-bottom:3px; }
+    .strength-fill { height:100%; width:0; transition:all 0.3s; border-radius:2px; }
+    .strength-text { font-size:11px; color:var(--text-muted); }
+    .alert { padding:10px 14px; border-radius:8px; font-size:12px; margin-bottom:16px; display:none; align-items:center; gap:8px; }
+    .alert.show { display:flex; }
+    .alert.error { background:rgba(248,113,113,0.15); border:1px solid rgba(248,113,113,0.3); color:#fca5a5; }
+    .alert.success { background:rgba(52,211,153,0.15); border:1px solid rgba(52,211,153,0.3); color:#6ee7b7; }
+    .btn-primary {
+      width:100%; padding:13px;
+      background:linear-gradient(135deg, var(--primary), #8b5cf6);
+      border:none; border-radius:10px; color:white;
+      font-size:14px; font-weight:600; font-family:'Inter',sans-serif;
+      cursor:pointer; transition:all 0.3s; margin-top:6px;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+    }
+    .btn-primary:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 30px rgba(99,102,241,0.4); }
+    .btn-primary:disabled { opacity:0.6; cursor:not-allowed; }
+    .divider { display:flex; align-items:center; gap:12px; margin:16px 0; color:var(--text-muted); font-size:12px; }
+    .divider::before,.divider::after { content:''; flex:1; height:1px; background:var(--border); }
+    .btn-google {
+      width:100%; padding:12px;
+      background:rgba(255,255,255,0.06);
+      border:1px solid var(--border);
+      border-radius:10px; color:white;
+      font-size:13px; font-weight:500; font-family:'Inter',sans-serif;
+      cursor:pointer; transition:all 0.2s;
+      display:flex; align-items:center; justify-content:center; gap:10px; text-decoration:none;
+    }
+    .btn-google:hover { background:rgba(255,255,255,0.12); }
+    .auth-footer { text-align:center; margin-top:20px; font-size:13px; color:var(--text-muted); }
+    .auth-footer a { color:var(--primary-light); text-decoration:none; font-weight:500; }
+    .spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .terms { font-size:11px; color:var(--text-muted); text-align:center; margin-top:12px; }
+    .terms a { color:var(--primary-light); text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="brand">
+      <a href="/index.html" class="brand-logo">
+        <div class="brand-icon"><i class="ri-line-chart-line"></i></div>
+        <span class="brand-name">Jinay Finance AI</span>
+      </a>
+    </div>
+    
+    <div class="card">
+      <h1 class="card-title">Create account</h1>
+      <p class="card-subtitle">Start your journey to financial freedom</p>
+      
+      <div id="signupAlert" class="alert"><i id="alertIcon" class="ri-error-warning-line"></i><span id="alertMsg">Error</span></div>
+      
+      <form id="signupForm" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">First Name</label>
+            <div class="input-wrapper">
+              <i class="ri-user-line input-icon"></i>
+              <input id="firstName" type="text" class="form-input" placeholder="Jinay" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Last Name</label>
+            <div class="input-wrapper">
+              <i class="ri-user-line input-icon"></i>
+              <input id="lastName" type="text" class="form-input" placeholder="Golecha">
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <div class="input-wrapper">
+            <i class="ri-mail-line input-icon"></i>
+            <input id="email" type="email" class="form-input" placeholder="jinay@example.com" required>
+          </div>
+          <span class="error-msg" id="emailError">Please enter a valid email address</span>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <div class="input-wrapper">
+            <i class="ri-at-line input-icon"></i>
+            <input id="username" type="text" class="form-input" placeholder="jinay_golecha" required>
+          </div>
+          <span class="error-msg" id="usernameError">Username must be at least 3 characters</span>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrapper">
+            <i class="ri-lock-2-line input-icon"></i>
+            <input id="password" type="password" class="form-input" placeholder="Min. 8 characters" required>
+            <button type="button" class="toggle-password" id="togglePwd" aria-label="Toggle password">
+              <i class="ri-eye-line" id="eyeIcon"></i>
+            </button>
+          </div>
+          <div class="password-strength">
+            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+            <span class="strength-text" id="strengthText">Enter a password</span>
+          </div>
+          <span class="error-msg" id="passwordError">Password must be at least 8 characters</span>
+        </div>
+        
+        <button type="submit" class="btn-primary" id="submitBtn">
+          <span id="btnText">Create Account</span>
+          <div class="spinner" id="spinner" style="display:none;"></div>
+        </button>
+        
+        <p class="terms">By signing up, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
+      </form>
+      
+      <div class="divider">or</div>
+      
+      <a href="/api/v1/auth/google" class="btn-google">
+        <svg width="16" height="16" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Sign up with Google
+      </a>
+    </div>
+    
+    <div class="auth-footer">
+      Already have an account? <a href="/login.html">Sign in</a>
+    </div>
+  </div>
+  
+  <script>
+    const API_BASE = 'http://127.0.0.1:5000/api/v1';
+    
+    if (localStorage.getItem('jf_access_token')) window.location.href = '/dashboard.html';
+    
+    // Password strength
+    document.getElementById('password').addEventListener('input', function() {
+      const val = this.value;
+      const fill = document.getElementById('strengthFill');
+      const text = document.getElementById('strengthText');
+      let score = 0;
+      if (val.length >= 8) score++;
+      if (/[A-Z]/.test(val)) score++;
+      if (/[0-9]/.test(val)) score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+      
+      const levels = [
+        { color: '#ef4444', label: 'Too weak', w: '25%' },
+        { color: '#f97316', label: 'Weak', w: '50%' },
+        { color: '#eab308', label: 'Good', w: '75%' },
+        { color: '#22c55e', label: 'Strong', w: '100%' },
+      ];
+      const level = levels[Math.min(score - 1, 3)] || levels[0];
+      fill.style.width = val.length ? level.w : '0';
+      fill.style.background = level.color;
+      text.textContent = val.length ? level.label : 'Enter a password';
+      text.style.color = val.length ? level.color : '#94a3b8';
+    });
+    
+    // Toggle password
+    document.getElementById('togglePwd').addEventListener('click', () => {
+      const inp = document.getElementById('password');
+      const icon = document.getElementById('eyeIcon');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      icon.className = inp.type === 'password' ? 'ri-eye-line' : 'ri-eye-off-line';
+    });
+    
+    // Form submit
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const firstName = document.getElementById('firstName').value.trim();
+      const lastName = document.getElementById('lastName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      
+      let valid = true;
+      
+      if (!email || !/\S+@\S+\.\S+/.test(email)) {
+        document.getElementById('emailError').classList.add('show');
+        document.getElementById('email').classList.add('error');
+        valid = false;
+      } else {
+        document.getElementById('emailError').classList.remove('show');
+        document.getElementById('email').classList.remove('error');
+      }
+      
+      if (!username || username.length < 3) {
+        document.getElementById('usernameError').classList.add('show');
+        document.getElementById('username').classList.add('error');
+        valid = false;
+      } else {
+        document.getElementById('usernameError').classList.remove('show');
+        document.getElementById('username').classList.remove('error');
+      }
+      
+      if (!password || password.length < 8) {
+        document.getElementById('passwordError').classList.add('show');
+        document.getElementById('password').classList.add('error');
+        valid = false;
+      } else {
+        document.getElementById('passwordError').classList.remove('show');
+        document.getElementById('password').classList.remove('error');
+      }
+      
+      if (!valid) return;
+      
+      setLoading(true);
+      clearAlert();
+      
+      try {
+        const res = await fetch(`${API_BASE}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, username, password, firstName, lastName }),
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          localStorage.setItem('jf_access_token', data.data.accessToken);
+          localStorage.setItem('jf_refresh_token', data.data.refreshToken);
+          localStorage.setItem('jf_user', JSON.stringify(data.data.user));
+          
+          showAlert('success', 'Account created! Redirecting to onboarding...');
+          setTimeout(() => { window.location.href = '/onboarding.html'; }, 1000);
+        } else {
+          showAlert('error', data.error?.message || 'Registration failed. Please try again.');
+        }
+      } catch (err) {
+        showAlert('error', 'Cannot connect to server. Is the backend running on port 5000?');
+      } finally {
+        setLoading(false);
+      }
+    });
+    
+    function setLoading(loading) {
+      const btn = document.getElementById('submitBtn');
+      const text = document.getElementById('btnText');
+      const spinner = document.getElementById('spinner');
+      btn.disabled = loading;
+      text.textContent = loading ? 'Creating account...' : 'Create Account';
+      spinner.style.display = loading ? 'block' : 'none';
+    }
+    
+    function showAlert(type, message) {
+      const alert = document.getElementById('signupAlert');
+      const msg = document.getElementById('alertMsg');
+      const icon = document.getElementById('alertIcon');
+      alert.className = `alert show ${type}`;
+      msg.textContent = message;
+      icon.className = type === 'error' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line';
+    }
+    
+    function clearAlert() {
+      document.getElementById('signupAlert').classList.remove('show');
+    }
+  </script>
+</body>
+</html>
