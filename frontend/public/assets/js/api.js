@@ -1,10 +1,12 @@
 /**
  * Jinay Finance AI — Centralized API Client
  * Owner: Jinay Golecha (jinay_golecha)
- * All API calls go to Node.js/Express backend at port 5000
+ * All API calls go to Node.js/Express backend
  */
 
-const API_BASE = 'http://127.0.0.1:5000/api/v1';
+const API_BASE = window.location.origin.includes(':5000') 
+  ? '/api/v1' 
+  : 'http://127.0.0.1:5000/api/v1';
 
 // ===== Token Management =====
 
@@ -116,11 +118,38 @@ export const apiFetch = async (endpoint, options = {}) => {
   return data;
 };
 
+// ===== Authenticated File Downloader =====
+
+export const downloadFile = async (endpoint, filename) => {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}${endpoint}?token=${encodeURIComponent(token || '')}`, {
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || 'Download failed');
+  }
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+};
+
 // ===== Auth API =====
 
 export const authAPI = {
   register: (data) => apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
   login: (data) => apiFetch('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  refresh: (refreshToken) => apiFetch('/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
   logout: (refreshToken) => apiFetch('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
   getMe: () => apiFetch('/auth/me'),
   googleToken: (token) => apiFetch('/auth/google/token', { method: 'POST', body: JSON.stringify({ token }) }),
@@ -133,12 +162,20 @@ export const dashboardAPI = {
   get: () => apiFetch('/dashboard'),
 };
 
+// ===== Onboarding API =====
+
+export const onboardingAPI = {
+  submit: (data) => apiFetch('/onboarding', { method: 'POST', body: JSON.stringify(data) }),
+  status: () => apiFetch('/onboarding/status'),
+};
+
 // ===== Accounts API =====
 
 export const accountsAPI = {
   list: () => apiFetch('/accounts'),
   create: (data) => apiFetch('/accounts', { method: 'POST', body: JSON.stringify(data) }),
   get: (id) => apiFetch(`/accounts/${id}`),
+  update: (id, data) => apiFetch(`/accounts/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id) => apiFetch(`/accounts/${id}`, { method: 'DELETE' }),
   deposit: (id, data) => apiFetch(`/accounts/${id}/deposit`, { method: 'POST', body: JSON.stringify(data) }),
 };
@@ -162,6 +199,7 @@ export const transactionsAPI = {
 export const budgetsAPI = {
   list: (month, year) => apiFetch(`/budgets?month=${month}&year=${year}`),
   create: (data) => apiFetch('/budgets', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiFetch(`/budgets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id) => apiFetch(`/budgets/${id}`, { method: 'DELETE' }),
 };
 
@@ -170,6 +208,8 @@ export const budgetsAPI = {
 export const goalsAPI = {
   list: () => apiFetch('/goals'),
   create: (data) => apiFetch('/goals', { method: 'POST', body: JSON.stringify(data) }),
+  get: (id) => apiFetch(`/goals/${id}`),
+  update: (id, data) => apiFetch(`/goals/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   contribute: (id, amount) => apiFetch(`/goals/${id}/contribute`, { method: 'PATCH', body: JSON.stringify({ amount }) }),
   delete: (id) => apiFetch(`/goals/${id}`, { method: 'DELETE' }),
 };
@@ -177,9 +217,13 @@ export const goalsAPI = {
 // ===== Investments & Market API =====
 
 export const investmentsAPI = {
+  list: () => apiFetch('/investments'),
   portfolio: () => apiFetch('/investments/portfolio'),
   buy: (data) => apiFetch('/investments/buy', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiFetch(`/investments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/investments/${id}`, { method: 'DELETE' }),
   quote: (symbol) => apiFetch(`/market/quote?symbol=${symbol}`),
+  metals: () => apiFetch('/market/metals'),
   popularStocks: () => apiFetch('/market/popular'),
   watchlist: () => apiFetch('/market/watchlist'),
   addWatch: (data) => apiFetch('/market/watchlist', { method: 'POST', body: JSON.stringify(data) }),
@@ -191,8 +235,30 @@ export const investmentsAPI = {
 export const loansAPI = {
   list: () => apiFetch('/loans'),
   create: (data) => apiFetch('/loans', { method: 'POST', body: JSON.stringify(data) }),
+  get: (id) => apiFetch(`/loans/${id}`),
+  update: (id, data) => apiFetch(`/loans/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/loans/${id}`, { method: 'DELETE' }),
   calculateEMI: (data) => apiFetch('/loans/calculate-emi', { method: 'POST', body: JSON.stringify(data) }),
   simulatePrepayment: (data) => apiFetch('/loans/prepayment-simulate', { method: 'POST', body: JSON.stringify(data) }),
+};
+
+// ===== Insurance API =====
+
+export const insuranceAPI = {
+  list: () => apiFetch('/insurance'),
+  create: (data) => apiFetch('/insurance', { method: 'POST', body: JSON.stringify(data) }),
+  get: (id) => apiFetch(`/insurance/${id}`),
+  update: (id, data) => apiFetch(`/insurance/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/insurance/${id}`, { method: 'DELETE' }),
+};
+
+// ===== Subscriptions API =====
+
+export const subscriptionsAPI = {
+  list: () => apiFetch('/subscriptions'),
+  create: (data) => apiFetch('/subscriptions', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiFetch(`/subscriptions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/subscriptions/${id}`, { method: 'DELETE' }),
 };
 
 // ===== Analytics API =====
@@ -206,13 +272,18 @@ export const analyticsAPI = {
 export const calendarAPI = {
   events: (month, year) => apiFetch(`/calendar/events?month=${month}&year=${year}`),
   create: (data) => apiFetch('/calendar/events', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiFetch(`/calendar/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/calendar/events/${id}`, { method: 'DELETE' }),
 };
 
 // ===== Notifications API =====
 
 export const notificationsAPI = {
   list: () => apiFetch('/notifications'),
+  create: (data) => apiFetch('/notifications', { method: 'POST', body: JSON.stringify(data) }),
   markRead: (id) => apiFetch(`/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllRead: () => apiFetch('/notifications/read-all', { method: 'POST' }),
+  delete: (id) => apiFetch(`/notifications/${id}`, { method: 'DELETE' }),
 };
 
 // ===== AI API =====
@@ -222,14 +293,22 @@ export const aiAPI = {
   history: () => apiFetch('/ai/history'),
   clearHistory: () => apiFetch('/ai/history', { method: 'DELETE' }),
   snapshot: () => apiFetch('/ai/snapshot'),
+  investmentAnalysis: () => apiFetch('/ai/investment-analysis'),
+  insuranceReview: () => apiFetch('/ai/insurance-review'),
 };
 
 // ===== Export API =====
 
 export const exportAPI = {
-  transactions: () => window.open(`${API_BASE}/export/transactions.csv?token=${getToken()}`, '_blank'),
-  accounts: () => window.open(`${API_BASE}/export/accounts.csv?token=${getToken()}`, '_blank'),
-  summary: () => window.open(`${API_BASE}/export/summary.csv?token=${getToken()}`, '_blank'),
+  transactions: () => downloadFile('/export/transactions.csv', 'jinay_finance_transactions.csv'),
+  accounts: () => downloadFile('/export/accounts.csv', 'jinay_finance_accounts.csv'),
+  budgets: () => downloadFile('/export/budgets.csv', 'jinay_finance_budgets.csv'),
+  goals: () => downloadFile('/export/goals.csv', 'jinay_finance_goals.csv'),
+  investments: () => downloadFile('/export/investments.csv', 'jinay_finance_investments.csv'),
+  loans: () => downloadFile('/export/loans.csv', 'jinay_finance_loans.csv'),
+  insurance: () => downloadFile('/export/insurance.csv', 'jinay_finance_insurance.csv'),
+  subscriptions: () => downloadFile('/export/subscriptions.csv', 'jinay_finance_subscriptions.csv'),
+  summary: () => downloadFile('/export/summary.csv', 'jinay_finance_summary.csv'),
 };
 
 // ===== Utility Functions =====
@@ -283,14 +362,18 @@ export const handleGoogleCallback = () => {
 // Default export
 export default {
   apiFetch,
+  downloadFile,
   authAPI,
   dashboardAPI,
+  onboardingAPI,
   accountsAPI,
   transactionsAPI,
   budgetsAPI,
   goalsAPI,
   investmentsAPI,
   loansAPI,
+  insuranceAPI,
+  subscriptionsAPI,
   analyticsAPI,
   calendarAPI,
   notificationsAPI,

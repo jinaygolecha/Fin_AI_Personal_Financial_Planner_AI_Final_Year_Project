@@ -193,4 +193,96 @@ const calculateEMIHandler = async (req, res, next) => {
   }
 };
 
-module.exports = { getLoans, createLoan, simulatePrepaymentHandler, calculateEMIHandler };
+/**
+ * GET /api/v1/loans/:id
+ */
+const getLoan = async (req, res, next) => {
+  try {
+    const loan = await prisma.loan.findFirst({ where: { id: req.params.id, userId: req.user.id } });
+    if (!loan) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Loan not found.' } });
+    }
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...loan,
+        formattedPrincipal: formatINR(loan.principalAmount),
+        formattedEMI: formatINR(loan.emiAmount),
+        formattedOutstanding: formatINR(loan.outstandingBalance),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PATCH /api/v1/loans/:id
+ */
+const updateLoan = async (req, res, next) => {
+  try {
+    const loan = await prisma.loan.findFirst({ where: { id: req.params.id, userId: req.user.id } });
+    if (!loan) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Loan not found.' } });
+    }
+
+    const { loanType, lenderName, principalAmount, interestRate, tenureMonths, outstandingBalance, status } = req.body;
+    const principal = principalAmount !== undefined ? parseFloat(principalAmount) : parseFloat(loan.principalAmount);
+    const rate = interestRate !== undefined ? parseFloat(interestRate) : parseFloat(loan.interestRate);
+    const tenure = tenureMonths !== undefined ? parseInt(tenureMonths) : loan.tenureMonths;
+    const emi = calculateEMI(principal, rate, tenure);
+
+    const updated = await prisma.loan.update({
+      where: { id: req.params.id },
+      data: {
+        ...(loanType && { loanType }),
+        ...(lenderName !== undefined && { lenderName: lenderName?.trim() || null }),
+        ...(principalAmount !== undefined && { principalAmount: principal }),
+        ...(interestRate !== undefined && { interestRate: rate }),
+        ...(tenureMonths !== undefined && { tenureMonths: tenure }),
+        ...(outstandingBalance !== undefined && { outstandingBalance: parseFloat(outstandingBalance) }),
+        ...(status && { status }),
+        emiAmount: emi,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...updated,
+        formattedEMI: formatINR(updated.emiAmount),
+        formattedOutstanding: formatINR(updated.outstandingBalance),
+        message: 'Loan updated successfully.',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/v1/loans/:id
+ */
+const deleteLoan = async (req, res, next) => {
+  try {
+    const loan = await prisma.loan.findFirst({ where: { id: req.params.id, userId: req.user.id } });
+    if (!loan) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Loan not found.' } });
+    }
+
+    await prisma.loan.delete({ where: { id: req.params.id } });
+    return res.status(200).json({ success: true, data: { message: 'Loan deleted successfully.' } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  getLoans,
+  getLoan,
+  createLoan,
+  updateLoan,
+  deleteLoan,
+  simulatePrepaymentHandler,
+  calculateEMIHandler,
+};

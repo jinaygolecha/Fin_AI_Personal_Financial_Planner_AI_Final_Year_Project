@@ -127,10 +127,11 @@ const createTransaction = async (req, res, next) => {
       }
     }
 
-    // Verify account ownership if provided
-    if (accountId) {
+    // Find or resolve account
+    let targetAccountId = accountId;
+    if (targetAccountId) {
       const account = await prisma.financialAccount.findFirst({
-        where: { id: accountId, userId },
+        where: { id: targetAccountId, userId },
       });
       if (!account) {
         return res.status(404).json({
@@ -138,13 +139,21 @@ const createTransaction = async (req, res, next) => {
           error: { code: 'NOT_FOUND', message: 'Account not found.' },
         });
       }
+    } else {
+      const defaultAcc = await prisma.financialAccount.findFirst({
+        where: { userId, isActive: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (defaultAcc) {
+        targetAccountId = defaultAcc.id;
+      }
     }
 
     const transaction = await prisma.$transaction(async (tx) => {
       const t = await tx.transaction.create({
         data: {
           userId,
-          accountId: accountId || null,
+          accountId: targetAccountId || null,
           categoryId: categoryRecord?.id || null,
           amount: amountNum,
           transactionType,
@@ -155,20 +164,33 @@ const createTransaction = async (req, res, next) => {
           date: date ? new Date(date) : new Date(),
           currency: 'INR',
         },
-        include: { category: { select: { name: true } } },
+        include: { category: { select: { name: true } }, account: { select: { name: true } } },
       });
 
       // Update account balance
-      if (accountId) {
+      if (targetAccountId) {
         const balanceDelta = transactionType === 'INCOME' ? amountNum : -amountNum;
         await tx.financialAccount.update({
-          where: { id: accountId },
+          where: { id: targetAccountId },
           data: { balance: { increment: balanceDelta } },
         });
       }
 
       return t;
     });
+
+    let anomalyLevel = 'NORMAL';
+    if (transactionType === 'EXPENSE' && amountNum >= 50000) {
+      anomalyLevel = amountNum >= 200000 ? 'HIGHLY_UNUSUAL' : 'UNUSUAL';
+      await prisma.notification.create({
+        data: {
+          userId,
+          title: anomalyLevel === 'HIGHLY_UNUSUAL' ? 'High Value Expense Alert' : 'Unusual Expense Detected',
+          message: `Recorded a high-value expense of ${formatINR(amountNum)} for ${categoryRecord?.name || 'Uncategorized'}.`,
+          type: 'WARNING',
+        },
+      }).catch(() => {});
+    }
 
     return res.status(201).json({
       success: true,
@@ -178,7 +200,9 @@ const createTransaction = async (req, res, next) => {
         formattedAmount: formatINR(transaction.amount),
         type: transaction.transactionType,
         category: transaction.category?.name || 'Uncategorized',
+        account: transaction.account?.name || 'Primary Account',
         date: transaction.date,
+        anomalyStatus: anomalyLevel,
         message: 'Transaction created successfully!',
       },
     });
@@ -229,21 +253,56 @@ const updateTransaction = async (req, res, next) => {
       });
     }
 
-    const { amount, description, merchant, date, notes } = req.body;
-    const updated = await prisma.transaction.update({
-      where: { id: req.params.id },
-      data: {
-        ...(amount && { amount: parseFloat(amount) }),
-        ...(description !== undefined && { description }),
-        ...(merchant !== undefined && { merchant }),
-        ...(date && { date: new Date(date) }),
-        ...(notes !== undefined && { notes }),
-      },
+    const { amount, description, merchant, date, notes, type, category: categoryName } = req.body;
+
+    let categoryId = undefined;
+    if (categoryName) {
+      let cat = await prisma.category.findFirst({
+        where: { userId: req.user.id, name: { equals: categoryName, mode: 'insensitive' } },
+      });
+      if (!cat) {
+        cat = await prisma.category.create({
+          data: { userId: req.user.id, name: categoryName, categoryType: 'EXPENSE' },
+        });
+      }
+      categoryId = cat.id;
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const newAmount = amount !== undefined ? parseFloat(amount) : parseFloat(existing.amount);
+      const newType = type ? type.toUpperCase() : existing.transactionType;
+
+      // Adjust account balance if amount or type changed
+      if (existing.accountId && (amount !== undefined || type !== undefined)) {
+        const oldDelta = existing.transactionType === 'INCOME' ? parseFloat(existing.amount) : -parseFloat(existing.amount);
+        const newDelta = newType === 'INCOME' ? newAmount : -newAmount;
+        const diff = newDelta - oldDelta;
+        if (diff !== 0) {
+          await tx.financialAccount.update({
+            where: { id: existing.accountId },
+            data: { balance: { increment: diff } },
+          });
+        }
+      }
+
+      return await tx.transaction.update({
+        where: { id: req.params.id },
+        data: {
+          ...(amount !== undefined && { amount: newAmount }),
+          ...(type && { transactionType: newType }),
+          ...(categoryId && { categoryId }),
+          ...(description !== undefined && { description }),
+          ...(merchant !== undefined && { merchant }),
+          ...(date && { date: new Date(date) }),
+          ...(notes !== undefined && { notes }),
+        },
+        include: { category: { select: { name: true } }, account: { select: { name: true } } },
+      });
     });
 
     return res.status(200).json({
       success: true,
-      data: { ...updated, formattedAmount: formatINR(updated.amount) },
+      data: { ...updated, formattedAmount: formatINR(updated.amount), message: 'Transaction updated successfully.' },
     });
   } catch (error) {
     next(error);
@@ -266,11 +325,23 @@ const deleteTransaction = async (req, res, next) => {
       });
     }
 
-    await prisma.transaction.delete({ where: { id: req.params.id } });
+    await prisma.$transaction(async (tx) => {
+      // Revert account balance
+      if (existing.accountId) {
+        const amt = parseFloat(existing.amount);
+        const reverseDelta = existing.transactionType === 'INCOME' ? -amt : amt;
+        await tx.financialAccount.update({
+          where: { id: existing.accountId },
+          data: { balance: { increment: reverseDelta } },
+        });
+      }
+
+      await tx.transaction.delete({ where: { id: req.params.id } });
+    });
 
     return res.status(200).json({
       success: true,
-      data: { message: 'Transaction deleted successfully.' },
+      data: { message: 'Transaction deleted successfully and balance updated.' },
     });
   } catch (error) {
     next(error);

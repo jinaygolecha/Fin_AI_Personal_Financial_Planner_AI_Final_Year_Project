@@ -48,7 +48,7 @@
   </main>
 
   <script>
-    const API_BASE = 'http://127.0.0.1:5000/api/v1';
+    const API_BASE = window.location.origin.includes(':5000') ? '/api/v1' : 'http://127.0.0.1:5000/api/v1';
     const token = localStorage.getItem('jf_access_token');
     if (!token) window.location.href = '/login.html';
     const fmt = (v) => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(v||0);
@@ -132,9 +132,26 @@
       `;
     };
 
-    document.getElementById('exportBtn').onclick = (e) => {
+    document.getElementById('exportBtn').onclick = async (e) => {
       e.preventDefault();
-      window.open(`${API_BASE}/export/transactions.csv`, '_blank');
+      try {
+        const token = localStorage.getItem('jf_access_token');
+        const res = await fetch(`${API_BASE}/export/summary.csv?token=${encodeURIComponent(token || '')}`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        });
+        if (!res.ok) throw new Error('Export failed');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `jinay_finance_summary_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Failed to download export.');
+      }
     };
 
     function getSidebar(active){const nav=[['dashboard','ri-dashboard-line','Dashboard'],['transactions','ri-exchange-line','Transactions'],['budget','ri-pie-chart-line','Budgets'],['goals','ri-flag-line','Goals'],['investments','ri-stock-line','Portfolio'],['loans','ri-bank-line','Loans & EMI'],['calendar','ri-calendar-line','Calendar'],['analytics','ri-bar-chart-line','Analytics'],['ai-advisor','ri-robot-line','AI Advisor']];return `<aside class="sidebar"><div class="sidebar-brand"><div class="brand-icon"><i class="ri-line-chart-line"></i></div><div><div class="brand-text">Jinay Finance AI</div><div class="brand-sub">by Jinay Golecha</div></div></div><div class="nav-section" style="margin-top:8px">${nav.map(([href,icon,label])=>`<a href="/${href}.html" class="nav-item${active===href?' active':''}"><i class="${icon}"></i>${label}</a>`).join('')}</div><div class="sidebar-footer"><div class="user-info"><div class="avatar" id="sidebarAvatar">J</div><div><div class="user-name" id="sidebarUserName">User</div><div class="user-role" id="sidebarUserRole">Free</div></div><i class="ri-logout-box-line logout-btn" id="sidebarLogout" title="Logout"></i></div></div></aside>`;}

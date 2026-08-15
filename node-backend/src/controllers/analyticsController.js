@@ -209,6 +209,56 @@ const createCalendarEvent = async (req, res, next) => {
 };
 
 /**
+ * PATCH /api/v1/calendar/events/:id
+ */
+const updateCalendarEvent = async (req, res, next) => {
+  try {
+    const event = await prisma.calendarEvent.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (!event) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Event not found.' } });
+    }
+
+    const { title, description, eventType, eventDate, amount, color } = req.body;
+    const updated = await prisma.calendarEvent.update({
+      where: { id: req.params.id },
+      data: {
+        ...(title && { title: title.trim() }),
+        ...(description !== undefined && { description: description?.trim() || null }),
+        ...(eventType && { eventType }),
+        ...(eventDate && { eventDate: new Date(eventDate) }),
+        ...(amount !== undefined && { amount: amount ? parseFloat(amount) : null }),
+        ...(color && { color }),
+      },
+    });
+
+    return res.status(200).json({ success: true, data: { ...updated, message: 'Event updated.' } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/v1/calendar/events/:id
+ */
+const deleteCalendarEvent = async (req, res, next) => {
+  try {
+    const event = await prisma.calendarEvent.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (!event) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Event not found.' } });
+    }
+
+    await prisma.calendarEvent.delete({ where: { id: req.params.id } });
+    return res.status(200).json({ success: true, data: { message: 'Event deleted.' } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/v1/notifications
  */
 const getNotifications = async (req, res, next) => {
@@ -216,13 +266,37 @@ const getNotifications = async (req, res, next) => {
     const notifications = await prisma.notification.findMany({
       where: { userId: req.user.id },
       orderBy: { createdAt: 'desc' },
-      take: 20,
+      take: 30,
     });
 
     return res.status(200).json({
       success: true,
       data: notifications,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/notifications
+ */
+const createNotification = async (req, res, next) => {
+  try {
+    const { title, message, type = 'INFO' } = req.body;
+    if (!title || !message) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Title and message required.' } });
+    }
+    const notif = await prisma.notification.create({
+      data: {
+        userId: req.user.id,
+        title: title.trim(),
+        message: message.trim(),
+        notificationType: type,
+        isRead: false,
+      },
+    });
+    return res.status(201).json({ success: true, data: notif });
   } catch (error) {
     next(error);
   }
@@ -246,4 +320,48 @@ const markNotificationRead = async (req, res, next) => {
   }
 };
 
-module.exports = { getAnalytics, getCalendarEvents, createCalendarEvent, getNotifications, markNotificationRead };
+/**
+ * POST /api/v1/notifications/read-all
+ */
+const markAllNotificationsRead = async (req, res, next) => {
+  try {
+    await prisma.notification.updateMany({
+      where: { userId: req.user.id, isRead: false },
+      data: { isRead: true },
+    });
+    return res.status(200).json({ success: true, data: { message: 'All notifications marked as read.' } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/v1/notifications/:id
+ */
+const deleteNotification = async (req, res, next) => {
+  try {
+    const notif = await prisma.notification.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (!notif) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Notification not found.' } });
+    }
+    await prisma.notification.delete({ where: { id: req.params.id } });
+    return res.status(200).json({ success: true, data: { message: 'Notification deleted.' } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  getAnalytics,
+  getCalendarEvents,
+  createCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
+  getNotifications,
+  createNotification,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
+};

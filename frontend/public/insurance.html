@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insurance & Subscriptions — Jinay Finance AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media(max-width: 900px) { .split-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div id="sidebarRoot"></div>
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Insurance & Recurring Protection</div>
+        <div class="topbar-sub">Life, Health, Vehicle, Home & Subscription Tracking</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" id="exportInsuranceBtn"><i class="ri-download-line"></i> Export CSV</button>
+        <button class="btn btn-primary" id="addPolicyBtn"><i class="ri-shield-check-line"></i> Add Policy</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- Metrics -->
+      <div class="metrics-grid">
+        <div class="metric-card"><div class="metric-icon mi-blue"><i class="ri-shield-user-line"></i></div><div class="metric-label">Total Coverage</div><div class="metric-value" id="totalCoverage">₹0</div></div>
+        <div class="metric-card"><div class="metric-icon mi-green"><i class="ri-calendar-check-line"></i></div><div class="metric-label">Annual Premium</div><div class="metric-value" id="annualPremium">₹0</div></div>
+        <div class="metric-card"><div class="metric-icon mi-amber"><i class="ri-refresh-line"></i></div><div class="metric-label">Active Subscriptions</div><div class="metric-value" id="activeSubsCount">0</div><div class="metric-sub" id="monthlySubsCost">₹0 / mo</div></div>
+        <div class="metric-card"><div class="metric-icon mi-blue"><i class="ri-time-line"></i></div><div class="metric-label">Next Renewal</div><div class="metric-value" id="nextRenewal" style="font-size:14px">None</div></div>
+      </div>
+
+      <!-- AI Insurance Review Banner -->
+      <div class="card" style="margin-bottom:24px;border-left:4px solid #6366f1;background:rgba(99,102,241,0.06);">
+        <div class="card-header"><span class="card-title"><i class="ri-robot-line" style="color:#a5b4fc"></i> AI Insurance & Coverage Review</span></div>
+        <div id="insuranceReviewContent" style="font-size:13px;color:#cbd5e1;line-height:1.6">
+          Analyzing your protection portfolio and debt coverage...
+        </div>
+      </div>
+
+      <!-- Split: Insurance Policies & Subscriptions -->
+      <div class="split-grid">
+        <!-- Policies -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Insurance Policies</span>
+            <button class="btn btn-secondary" style="font-size:12px;padding:4px 10px;" onclick="showModal('addPolicyModal')">+ Add Policy</button>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Policy</th><th>Type</th><th>Coverage</th><th>Premium</th><th>Renewal</th><th>Action</th></tr></thead>
+              <tbody id="policiesBody"><tr><td colspan="6" style="text-align:center;padding:30px;color:#6b7280">Loading policies...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Subscriptions -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Active Subscriptions</span>
+            <button class="btn btn-secondary" style="font-size:12px;padding:4px 10px;" onclick="showModal('addSubModal')">+ Add Sub</button>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Service</th><th>Category</th><th>Cost</th><th>Cycle</th><th>Next Bill</th><th>Action</th></tr></thead>
+              <tbody id="subsBody"><tr><td colspan="6" style="text-align:center;padding:30px;color:#6b7280">Loading subscriptions...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Policy Modal -->
+  <div class="modal-overlay" id="addPolicyModal">
+    <div class="modal">
+      <div class="modal-header"><span class="modal-title">Add Insurance Policy</span><button class="modal-close" onclick="closeModal('addPolicyModal')">✕</button></div>
+      <div class="form-group"><label class="form-label">Policy Name</label><input type="text" id="policyName" class="form-input" placeholder="e.g. HDFC Life Click 2 Protect"></div>
+      <div class="form-group"><label class="form-label">Insurer</label><input type="text" id="policyInsurer" class="form-input" placeholder="e.g. HDFC Life / Star Health"></div>
+      <div class="form-group"><label class="form-label">Policy Type</label>
+        <select id="policyType" class="form-select">
+          <option value="LIFE">🛡️ Term / Life Insurance</option>
+          <option value="HEALTH">🏥 Health Insurance</option>
+          <option value="VEHICLE">🚗 Motor / Vehicle</option>
+          <option value="HOME">🏠 Home Protection</option>
+          <option value="TRAVEL">✈️ Travel</option>
+          <option value="OTHER">📁 Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Total Coverage Amount (₹)</label><input type="number" id="coverageAmount" class="form-input" placeholder="10000000" min="0"></div>
+      <div class="form-group"><label class="form-label">Premium Amount (₹)</label><input type="number" id="policyPremium" class="form-input" placeholder="18000" min="0"></div>
+      <div class="form-group"><label class="form-label">Premium Frequency</label>
+        <select id="premiumCycle" class="form-select">
+          <option value="ANNUAL">Annual</option>
+          <option value="MONTHLY">Monthly</option>
+          <option value="HALF_YEARLY">Half-Yearly</option>
+          <option value="QUARTERLY">Quarterly</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Renewal Date</label><input type="date" id="policyRenewal" class="form-input"></div>
+      <div id="policyError" style="color:#fca5a5;font-size:12px;margin-bottom:8px;display:none;"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="savePolicy()"><i class="ri-check-line"></i> Save Policy</button>
+    </div>
+  </div>
+
+  <!-- Add Subscription Modal -->
+  <div class="modal-overlay" id="addSubModal">
+    <div class="modal">
+      <div class="modal-header"><span class="modal-title">Add Subscription</span><button class="modal-close" onclick="closeModal('addSubModal')">✕</button></div>
+      <div class="form-group"><label class="form-label">Service Name</label><input type="text" id="subName" class="form-input" placeholder="e.g. Netflix, Spotify, AWS, Cult.fit"></div>
+      <div class="form-group"><label class="form-label">Category</label><input type="text" id="subCategory" class="form-input" placeholder="Entertainment / Fitness / Software"></div>
+      <div class="form-group"><label class="form-label">Cost (₹)</label><input type="number" id="subCost" class="form-input" placeholder="649" min="0"></div>
+      <div class="form-group"><label class="form-label">Billing Cycle</label>
+        <select id="subCycle" class="form-select">
+          <option value="MONTHLY">Monthly</option>
+          <option value="ANNUAL">Annual</option>
+          <option value="QUARTERLY">Quarterly</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Next Billing Date</label><input type="date" id="subNextDate" class="form-input"></div>
+      <div id="subError" style="color:#fca5a5;font-size:12px;margin-bottom:8px;display:none;"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="saveSubscription()"><i class="ri-check-line"></i> Save Subscription</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin.includes(':5000') ? '/api/v1' : 'http://127.0.0.1:5000/api/v1';
+    const token = localStorage.getItem('jf_access_token');
+    if (!token) window.location.href = '/login.html';
+    const fmt = (v) => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(v||0);
+
+    const apiFetch = async (url, opts={}) => {
+      const r = await fetch(`${API_BASE}${url}`,{headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},...opts});
+      if(r.status===401){localStorage.clear();window.location.href='/login.html';return null;}
+      return r.json();
+    };
+
+    document.getElementById('sidebarRoot').innerHTML = getSidebar('insurance');
+    initSidebarUser();
+
+    const loadInsuranceData = async () => {
+      const [insRes, subsRes, reviewRes] = await Promise.all([
+        apiFetch('/insurance'),
+        apiFetch('/subscriptions'),
+        apiFetch('/ai/insurance-review'),
+      ]);
+
+      if (insRes?.success) {
+        const d = insRes.data;
+        document.getElementById('totalCoverage').textContent = d.summary.formattedTotalCoverage;
+        document.getElementById('annualPremium').textContent = d.summary.formattedAnnualPremium;
+        if (d.summary.nextRenewal) {
+          document.getElementById('nextRenewal').textContent = new Date(d.summary.nextRenewal).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'});
+        }
+
+        const tbody = document.getElementById('policiesBody');
+        if (d.policies.length) {
+          tbody.innerHTML = d.policies.map(p => `<tr>
+            <td><div style="font-weight:600">${p.policyName}</div><div style="font-size:11px;color:#6b7280">${p.insurer||'Insurer'}</div></td>
+            <td><span class="badge badge-blue">${p.policyType}</span></td>
+            <td style="font-weight:600">${p.formattedCoverage}</td>
+            <td>${p.formattedPremium} <span style="font-size:10px;color:#6b7280">(${p.premiumCycle})</span></td>
+            <td>${new Date(p.renewalDate).toLocaleDateString('en-IN')}</td>
+            <td><button class="btn-icon-only" style="color:#ef4444" title="Delete" onclick="deletePolicy('${p.id}')"><i class="ri-delete-bin-line"></i></button></td>
+          </tr>`).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#6b7280">No insurance policies added. Protect your family with Term/Health cover.</td></tr>`;
+        }
+      }
+
+      if (subsRes?.success) {
+        const d = subsRes.data;
+        document.getElementById('activeSubsCount').textContent = d.summary.activeSubscriptions;
+        document.getElementById('monthlySubsCost').textContent = `${d.summary.formattedMonthlyTotal} / mo`;
+
+        const tbody = document.getElementById('subsBody');
+        if (d.subscriptions.length) {
+          tbody.innerHTML = d.subscriptions.map(s => `<tr>
+            <td><div style="font-weight:600">${s.serviceName}</div></td>
+            <td><span class="badge badge-blue">${s.category||'General'}</span></td>
+            <td style="font-weight:600">${s.formattedCost}</td>
+            <td>${s.billingCycle}</td>
+            <td>${new Date(s.nextBillingDate).toLocaleDateString('en-IN')}</td>
+            <td><button class="btn-icon-only" style="color:#ef4444" title="Delete" onclick="deleteSub('${s.id}')"><i class="ri-delete-bin-line"></i></button></td>
+          </tr>`).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#6b7280">No subscriptions tracked.</td></tr>`;
+        }
+      }
+
+      if (reviewRes?.success) {
+        const d = reviewRes.data;
+        const recs = d.recommendations || [];
+        document.getElementById('insuranceReviewContent').innerHTML = `
+          <div style="margin-bottom:8px;"><strong>Status:</strong> ${d.totalPolicies} active policies. Recommended Life Cover: <strong>${d.formattedRecommendedLifeCover}</strong> (Total Active Life Cover: ${d.formattedTotalLifeCover}).</div>
+          ${recs.map(r => `<div style="display:flex;gap:6px;align-items:flex-start;margin-top:4px;"><i class="ri-arrow-right-s-line" style="color:#6366f1;margin-top:2px"></i><span>${r}</span></div>`).join('')}
+          <div style="margin-top:8px;font-size:11px;color:#64748b"><em>${d.disclaimer}</em></div>
+        `;
+      }
+    };
+
+    const savePolicy = async () => {
+      const errEl = document.getElementById('policyError');
+      const payload = {
+        policyName: document.getElementById('policyName').value.trim(),
+        insurer: document.getElementById('policyInsurer').value.trim(),
+        policyType: document.getElementById('policyType').value,
+        coverageAmount: parseFloat(document.getElementById('coverageAmount').value),
+        premium: parseFloat(document.getElementById('policyPremium').value),
+        premiumCycle: document.getElementById('premiumCycle').value,
+        renewalDate: document.getElementById('policyRenewal').value,
+      };
+
+      if (!payload.policyName || !payload.coverageAmount || !payload.premium || !payload.renewalDate) {
+        errEl.textContent = 'Please fill all required policy fields.'; errEl.style.display = 'block'; return;
+      }
+      errEl.style.display = 'none';
+
+      const res = await apiFetch('/insurance', { method: 'POST', body: JSON.stringify(payload) });
+      if (res?.success) {
+        closeModal('addPolicyModal');
+        showToast('Insurance policy saved!', 'success');
+        loadInsuranceData();
+      } else {
+        errEl.textContent = res?.error?.message || 'Failed.'; errEl.style.display = 'block';
+      }
+    };
+
+    const deletePolicy = async (id) => {
+      if (!confirm('Remove this insurance policy?')) return;
+      const res = await apiFetch(`/insurance/${id}`, { method: 'DELETE' });
+      if (res?.success) { showToast('Policy removed.', 'info'); loadInsuranceData(); }
+      else { showToast('Failed to remove policy.', 'error'); }
+    };
+
+    const saveSubscription = async () => {
+      const errEl = document.getElementById('subError');
+      const payload = {
+        serviceName: document.getElementById('subName').value.trim(),
+        category: document.getElementById('subCategory').value.trim(),
+        cost: parseFloat(document.getElementById('subCost').value),
+        billingCycle: document.getElementById('subCycle').value,
+        nextBillingDate: document.getElementById('subNextDate').value,
+      };
+      if (!payload.serviceName || !payload.cost || !payload.nextBillingDate) {
+        errEl.textContent = 'Please enter service name, cost, and next billing date.'; errEl.style.display = 'block'; return;
+      }
+      errEl.style.display = 'none';
+
+      const res = await apiFetch('/subscriptions', { method: 'POST', body: JSON.stringify(payload) });
+      if (res?.success) {
+        closeModal('addSubModal');
+        showToast('Subscription saved!', 'success');
+        loadInsuranceData();
+      } else {
+        errEl.textContent = res?.error?.message || 'Failed.'; errEl.style.display = 'block';
+      }
+    };
+
+    const deleteSub = async (id) => {
+      if (!confirm('Remove this subscription?')) return;
+      const res = await apiFetch(`/subscriptions/${id}`, { method: 'DELETE' });
+      if (res?.success) { showToast('Subscription removed.', 'info'); loadInsuranceData(); }
+      else { showToast('Failed to remove.', 'error'); }
+    };
+
+    // Export CSV
+    document.getElementById('exportInsuranceBtn').onclick = async (e) => {
+      e.preventDefault();
+      try {
+        const token = localStorage.getItem('jf_access_token');
+        const res = await fetch(`${API_BASE}/export/insurance.csv?token=${encodeURIComponent(token||'')}`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+        });
+        if (!res.ok) throw new Error('Export failed');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `jinay_finance_insurance_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast('Insurance CSV downloaded!', 'success');
+      } catch {
+        showToast('Failed to download CSV.', 'error');
+      }
+    };
+
+    document.getElementById('addPolicyBtn').onclick = () => showModal('addPolicyModal');
+
+    function showModal(id){document.getElementById(id).classList.add('show');}
+    function closeModal(id){document.getElementById(id).classList.remove('show');}
+    document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+    function showToast(msg,type='success'){const t=document.createElement('div');t.style.cssText=`position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.4);`;if(type==='success')t.style.cssText+='background:#065f46;border:1px solid #10b981;color:#6ee7b7;';else if(type==='error')t.style.cssText+='background:#7f1d1d;border:1px solid #ef4444;color:#fca5a5;';else t.style.cssText+='background:#1e1b4b;border:1px solid #6366f1;color:#a5b4fc;';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
+    function getSidebar(active){const nav=[['dashboard','ri-dashboard-line','Dashboard'],['transactions','ri-exchange-line','Transactions'],['budget','ri-pie-chart-line','Budgets'],['goals','ri-flag-line','Goals'],['investments','ri-stock-line','Portfolio'],['loans','ri-bank-line','Loans & EMI'],['insurance','ri-shield-check-line','Insurance & Subs'],['calendar','ri-calendar-line','Calendar'],['analytics','ri-bar-chart-line','Analytics'],['ai-advisor','ri-robot-line','AI Advisor']];return `<aside class="sidebar"><div class="sidebar-brand"><div class="brand-icon"><i class="ri-line-chart-line"></i></div><div><div class="brand-text">Jinay Finance AI</div><div class="brand-sub">by Jinay Golecha</div></div></div><div class="nav-section" style="margin-top:8px">${nav.map(([href,icon,label])=>`<a href="/${href}.html" class="nav-item${active===href?' active':''}"><i class="${icon}"></i>${label}</a>`).join('')}</div><div class="sidebar-footer"><div class="user-info"><div class="avatar" id="sidebarAvatar">J</div><div><div class="user-name" id="sidebarUserName">User</div><div class="user-role" id="sidebarUserRole">Free</div></div><i class="ri-logout-box-line logout-btn" id="sidebarLogout" title="Logout"></i></div></div></aside>`;}
+    function initSidebarUser(){const user=JSON.parse(localStorage.getItem('jf_user')||'{}');const name=user.firstName||user.username||'User';const el=document.getElementById('sidebarUserName'),rl=document.getElementById('sidebarUserRole'),av=document.getElementById('sidebarAvatar');if(el)el.textContent=name+(user.lastName?' '+user.lastName:'');if(rl)rl.textContent=user.isPremium?'⭐ Premium':'Free User';if(av)av.textContent=name[0].toUpperCase();document.getElementById('sidebarLogout').onclick=async()=>{const rt=localStorage.getItem('jf_refresh_token');try{await fetch(`${API_BASE}/auth/logout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({refreshToken:rt})});}catch{}localStorage.clear();window.location.href='/login.html';};}
+
+    loadInsuranceData();
+  </script>
+</body>
+</html>

@@ -52,10 +52,13 @@ logs/
 *.sqlite
 *.db
 *.rdb
+*.sql
 dump.rdb
 backup.json
 backup.sql
 finance.sql
+backup-db.js
+node-backend/test-db.js
 
 # Temporary files
 *.tmp

@@ -124,7 +124,7 @@
   </div>
 
   <script>
-    const API_BASE = 'http://127.0.0.1:5000/api/v1';
+    const API_BASE = window.location.origin.includes(':5000') ? '/api/v1' : 'http://127.0.0.1:5000/api/v1';
     const token = localStorage.getItem('jf_access_token');
     if (!token) window.location.href = '/login.html';
     const fmt = (v) => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(v||0);

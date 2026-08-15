@@ -11,40 +11,45 @@ const getBudgets = async (req, res, next) => {
     const month = parseInt(req.query.month) || now.getMonth() + 1;
     const year = parseInt(req.query.year) || now.getFullYear();
 
-    const startOfMonth = new Date(year, month - 1, 1);
-    const endOfMonth = new Date(year, month, 0);
+    const startOfMonth = new Date(year, month - 1, 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
     // Get budgets for the month
     const budgets = await prisma.budget.findMany({
       where: { userId, month, year },
-      include: { category: { select: { name: true } } },
+      include: { category: { select: { id: true, name: true } } },
     });
 
-    // Get actual spending per category for the month
-    const spending = await prisma.transaction.groupBy({
-      by: ['categoryId'],
+    // Get all expense transactions for the month
+    const expenses = await prisma.transaction.findMany({
       where: {
         userId,
         transactionType: 'EXPENSE',
         date: { gte: startOfMonth, lte: endOfMonth },
       },
-      _sum: { amount: true },
+      include: { category: { select: { id: true, name: true } } },
     });
 
-    const spendingByCategory = {};
-    for (const s of spending) {
-      spendingByCategory[s.categoryId] = parseFloat(s._sum.amount || 0);
-    }
-
     const enrichedBudgets = budgets.map((b) => {
-      const categoryId = b.categoryId;
-      const spent = spendingByCategory[categoryId] || 0;
+      const catName = (b.category?.name || b.categoryName || '').toLowerCase();
+      const catId = b.categoryId;
+
+      const spent = expenses.reduce((sum, t) => {
+        const matchesId = catId && t.categoryId === catId;
+        const matchesName = t.category?.name && t.category.name.toLowerCase() === catName;
+        if (matchesId || matchesName) {
+          return sum + parseFloat(t.amount || 0);
+        }
+        return sum;
+      }, 0);
+
       const limit = parseFloat(b.monthlyLimit);
       const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0;
 
       return {
         id: b.id,
         category: b.category?.name || b.categoryName,
+        categoryName: b.category?.name || b.categoryName,
         monthlyLimit: limit,
         formattedLimit: formatINR(limit),
         spent,
@@ -60,8 +65,8 @@ const getBudgets = async (req, res, next) => {
 
     const totalLimit = enrichedBudgets.reduce((s, b) => s + b.monthlyLimit, 0);
     const totalSpent = enrichedBudgets.reduce((s, b) => s + b.spent, 0);
-
     const totalRemaining = Math.max(0, totalLimit - totalSpent);
+
     return res.status(200).json({
       success: true,
       data: {
@@ -72,12 +77,11 @@ const getBudgets = async (req, res, next) => {
           totalSpent,
           totalRemaining,
         },
-        // Legacy aliases
         totalLimit,
         totalSpent,
         formattedTotalLimit: formatINR(totalLimit),
         formattedTotalSpent: formatINR(totalSpent),
-        budgets: enrichedBudgets.map(b => ({ ...b, categoryName: b.category })),
+        budgets: enrichedBudgets,
       },
     });
   } catch (error) {
@@ -141,6 +145,40 @@ const createBudget = async (req, res, next) => {
 };
 
 /**
+ * PATCH /api/v1/budgets/:id
+ */
+const updateBudget = async (req, res, next) => {
+  try {
+    const budget = await prisma.budget.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+
+    if (!budget) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Budget not found.' },
+      });
+    }
+
+    const { monthlyLimit, categoryName } = req.body;
+    const updated = await prisma.budget.update({
+      where: { id: req.params.id },
+      data: {
+        ...(monthlyLimit && { monthlyLimit: parseFloat(monthlyLimit) }),
+        ...(categoryName && { categoryName: categoryName.trim() }),
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: { ...updated, formattedLimit: formatINR(updated.monthlyLimit), message: 'Budget updated successfully.' },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * DELETE /api/v1/budgets/:id
  */
 const deleteBudget = async (req, res, next) => {
@@ -163,4 +201,4 @@ const deleteBudget = async (req, res, next) => {
   }
 };
 
-module.exports = { getBudgets, createBudget, deleteBudget };
+module.exports = { getBudgets, createBudget, updateBudget, deleteBudget };

@@ -63,6 +63,21 @@ const register = async ({ email, username, password, firstName = '', lastName = 
     },
   });
 
+  // Create Profile and FinancialProfile
+  await prisma.profile.create({
+    data: { userId: user.id },
+  }).catch(() => {});
+
+  await prisma.financialProfile.create({
+    data: {
+      userId: user.id,
+      monthlySalary: 0,
+      estimatedMonthlyExpenses: 0,
+      currentSavings: 0,
+      totalDebt: 0,
+    },
+  }).catch(() => {});
+
   // Create default financial account
   await prisma.financialAccount.create({
     data: {

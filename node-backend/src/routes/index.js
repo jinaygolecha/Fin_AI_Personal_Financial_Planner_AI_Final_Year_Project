@@ -9,6 +9,8 @@ const budgets = require('../controllers/budgetController');
 const goals = require('../controllers/goalController');
 const investments = require('../controllers/investmentController');
 const loans = require('../controllers/loanController');
+const insurance = require('../controllers/insuranceController');
+const subscriptions = require('../controllers/subscriptionController');
 const analytics = require('../controllers/analyticsController');
 const ai = require('../controllers/aiController');
 const onboarding = require('../controllers/onboardingController');
@@ -28,25 +30,21 @@ router.get('/onboarding/status', onboarding.getOnboardingStatus);
 router.get('/accounts', accounts.getAccounts);
 router.post('/accounts', accounts.createAccount);
 router.get('/accounts/:accountId', accounts.getAccount);
+router.patch('/accounts/:accountId', accounts.updateAccount);
 router.delete('/accounts/:accountId', accounts.deleteAccount);
 router.post('/accounts/:accountId/deposit', accounts.depositMoney);
-// Backward compat: add-money without account ID (auto-creates/uses primary)
 router.post('/accounts/deposit', async (req, res, next) => {
-  req.params.accountId = '_primary';
-  // Fallback to find primary account
   const prisma = require('../config/database');
-  const account = await prisma.financialAccount.findFirst({
-    where: { userId: req.user.id },
+  let account = await prisma.financialAccount.findFirst({
+    where: { userId: req.user.id, isActive: true },
     orderBy: { createdAt: 'asc' },
   });
   if (!account) {
-    const newAcc = await prisma.financialAccount.create({
+    account = await prisma.financialAccount.create({
       data: { userId: req.user.id, name: 'Primary Account', accountType: 'BANK', balance: 0, currency: 'INR' },
     });
-    req.params.accountId = newAcc.id;
-  } else {
-    req.params.accountId = account.id;
   }
+  req.params.accountId = account.id;
   accounts.depositMoney(req, res, next);
 });
 
@@ -61,18 +59,25 @@ router.post('/transactions/voice', transactions.parseVoiceEntry);
 // Budgets
 router.get('/budgets', budgets.getBudgets);
 router.post('/budgets', budgets.createBudget);
+router.patch('/budgets/:id', budgets.updateBudget);
 router.delete('/budgets/:id', budgets.deleteBudget);
 
 // Goals
 router.get('/goals', goals.getGoals);
 router.post('/goals', goals.createGoal);
+router.get('/goals/:id', goals.getGoal);
+router.patch('/goals/:id', goals.updateGoal);
 router.patch('/goals/:id/contribute', goals.contributeToGoal);
 router.delete('/goals/:id', goals.deleteGoal);
 
 // Investments & Market
+router.get('/investments', investments.getInvestments);
 router.get('/investments/portfolio', investments.getPortfolio);
 router.post('/investments/buy', investments.buyInvestment);
+router.patch('/investments/:id', investments.updateInvestment);
+router.delete('/investments/:id', investments.deleteInvestment);
 router.get('/market/quote', investments.getStockQuote);
+router.get('/market/metals', investments.getMetals);
 router.get('/market/popular', investments.getPopularStocks);
 router.get('/market/watchlist', investments.getWatchlist);
 router.post('/market/watchlist', investments.addToWatchlist);
@@ -81,8 +86,24 @@ router.delete('/market/watchlist/:symbol', investments.removeFromWatchlist);
 // Loans
 router.get('/loans', loans.getLoans);
 router.post('/loans', loans.createLoan);
+router.get('/loans/:id', loans.getLoan);
+router.patch('/loans/:id', loans.updateLoan);
+router.delete('/loans/:id', loans.deleteLoan);
 router.post('/loans/calculate-emi', loans.calculateEMIHandler);
 router.post('/loans/prepayment-simulate', loans.simulatePrepaymentHandler);
+
+// Insurance
+router.get('/insurance', insurance.getInsurancePolicies);
+router.post('/insurance', insurance.createInsurancePolicy);
+router.get('/insurance/:id', insurance.getInsurancePolicy);
+router.patch('/insurance/:id', insurance.updateInsurancePolicy);
+router.delete('/insurance/:id', insurance.deleteInsurancePolicy);
+
+// Subscriptions
+router.get('/subscriptions', subscriptions.getSubscriptions);
+router.post('/subscriptions', subscriptions.createSubscription);
+router.patch('/subscriptions/:id', subscriptions.updateSubscription);
+router.delete('/subscriptions/:id', subscriptions.deleteSubscription);
 
 // Analytics
 router.get('/analytics', analytics.getAnalytics);
@@ -90,20 +111,33 @@ router.get('/analytics', analytics.getAnalytics);
 // Calendar
 router.get('/calendar/events', analytics.getCalendarEvents);
 router.post('/calendar/events', analytics.createCalendarEvent);
+router.patch('/calendar/events/:id', analytics.updateCalendarEvent);
+router.delete('/calendar/events/:id', analytics.deleteCalendarEvent);
 
 // Notifications
 router.get('/notifications', analytics.getNotifications);
+router.post('/notifications', analytics.createNotification);
 router.patch('/notifications/:id/read', analytics.markNotificationRead);
+router.post('/notifications/read-all', analytics.markAllNotificationsRead);
+router.delete('/notifications/:id', analytics.deleteNotification);
 
 // AI
 router.post('/ai/chat', ai.chat);
 router.get('/ai/history', ai.getChatHistory);
 router.delete('/ai/history', ai.clearChatHistory);
 router.get('/ai/snapshot', ai.getFinancialSnapshot);
+router.get('/ai/investment-analysis', ai.getInvestmentAnalysis);
+router.get('/ai/insurance-review', ai.getInsuranceReview);
 
 // Export
 router.get('/export/transactions.csv', exports_.exportTransactionsCSV);
 router.get('/export/accounts.csv', exports_.exportAccountsCSV);
+router.get('/export/budgets.csv', exports_.exportBudgetsCSV);
+router.get('/export/goals.csv', exports_.exportGoalsCSV);
+router.get('/export/investments.csv', exports_.exportInvestmentsCSV);
+router.get('/export/loans.csv', exports_.exportLoansCSV);
+router.get('/export/insurance.csv', exports_.exportInsuranceCSV);
+router.get('/export/subscriptions.csv', exports_.exportSubscriptionsCSV);
 router.get('/export/summary.csv', exports_.exportSummaryCSV);
 
 module.exports = router;

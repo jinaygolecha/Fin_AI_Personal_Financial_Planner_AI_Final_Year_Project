@@ -249,8 +249,84 @@ const addToWatchlist = async (req, res, next) => {
 };
 
 /**
- * DELETE /api/v1/market/watchlist/:symbol
+ * GET /api/v1/investments
  */
+const getInvestments = async (req, res, next) => {
+  return getPortfolio(req, res, next);
+};
+
+/**
+ * PATCH /api/v1/investments/:id
+ */
+const updateInvestment = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const portfolio = await prisma.portfolio.findUnique({ where: { userId } });
+    if (!portfolio) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Portfolio not found.' } });
+    }
+
+    const investment = await prisma.investment.findFirst({
+      where: { id: req.params.id, portfolioId: portfolio.id },
+    });
+
+    if (!investment) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Investment not found.' } });
+    }
+
+    const { quantity, averageBuyPrice, name, assetType } = req.body;
+    const updated = await prisma.investment.update({
+      where: { id: req.params.id },
+      data: {
+        ...(quantity !== undefined && { quantity: parseFloat(quantity) }),
+        ...(averageBuyPrice !== undefined && { averageBuyPrice: parseFloat(averageBuyPrice) }),
+        ...(name && { name: name.trim() }),
+        ...(assetType && { assetType }),
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...updated,
+        formattedBuyPrice: formatINR(updated.averageBuyPrice),
+        message: 'Investment updated successfully.',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/v1/investments/:id
+ */
+const deleteInvestment = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const portfolio = await prisma.portfolio.findUnique({ where: { userId } });
+    if (!portfolio) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Portfolio not found.' } });
+    }
+
+    const investment = await prisma.investment.findFirst({
+      where: { id: req.params.id, portfolioId: portfolio.id },
+    });
+
+    if (!investment) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Investment not found.' } });
+    }
+
+    await prisma.investment.delete({ where: { id: req.params.id } });
+
+    return res.status(200).json({
+      success: true,
+      data: { message: `Investment in ${investment.symbol} sold/deleted.` },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 const removeFromWatchlist = async (req, res, next) => {
   try {
     await prisma.marketWatchlist.deleteMany({
@@ -262,4 +338,28 @@ const removeFromWatchlist = async (req, res, next) => {
   }
 };
 
-module.exports = { getPortfolio, buyInvestment, getStockQuote, getPopularStocks, getWatchlist, addToWatchlist, removeFromWatchlist };
+/**
+ * GET /api/v1/market/metals
+ */
+const getMetals = async (req, res, next) => {
+  try {
+    const data = await marketService.getPreciousMetals();
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  getPortfolio,
+  getInvestments,
+  buyInvestment,
+  updateInvestment,
+  deleteInvestment,
+  getStockQuote,
+  getPopularStocks,
+  getWatchlist,
+  addToWatchlist,
+  removeFromWatchlist,
+  getMetals,
+};

@@ -51,24 +51,26 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' } },
-});
+// Rate limiting (disabled in test mode)
+if (process.env.NODE_ENV !== 'test') {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' } },
+  });
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  message: { success: false, error: { code: 'AUTH_RATE_LIMITED', message: 'Too many authentication attempts. Try again in 15 minutes.' } },
-});
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    message: { success: false, error: { code: 'AUTH_RATE_LIMITED', message: 'Too many authentication attempts. Try again in 15 minutes.' } },
+  });
 
-app.use('/api/', limiter);
-app.use('/api/v1/auth/login', authLimiter);
-app.use('/api/v1/auth/register', authLimiter);
+  app.use('/api/', limiter);
+  app.use('/api/v1/auth/login', authLimiter);
+  app.use('/api/v1/auth/register', authLimiter);
+}
 
 // ==================== REQUEST MIDDLEWARE ====================
 
@@ -98,8 +100,10 @@ app.get('/api/v1/health', async (req, res) => {
     dbStatus = 'error';
   }
 
-  res.status(dbStatus === 'connected' ? 200 : 503).json({
-    status: dbStatus === 'connected' ? 'ok' : 'degraded',
+  const isOk = dbStatus === 'connected';
+  res.status(isOk ? 200 : 503).json({
+    success: isOk,
+    status: isOk ? 'ok' : 'degraded',
     database: dbStatus,
     timestamp: new Date().toISOString(),
     version: '1.0.0',
@@ -115,26 +119,28 @@ app.get('/api/v1/health/database', async (req, res) => {
     const start = Date.now();
     await prisma.$queryRaw`SELECT 1`;
     const latency = Date.now() - start;
-    res.status(200).json({ status: 'connected', latencyMs: latency });
+    res.status(200).json({ success: true, status: 'connected', latencyMs: latency });
   } catch (err) {
-    res.status(503).json({ status: 'error', message: err.message });
+    res.status(503).json({ success: false, status: 'error', message: err.message });
   }
 });
 
 app.get('/api/v1/health/market', (req, res) => {
   const apiKey = process.env.FINNHUB_API_KEY;
-  const configured = apiKey && apiKey !== 'YOUR_FINNHUB_API_KEY';
+  const configured = !!(apiKey && apiKey !== 'YOUR_FINNHUB_API_KEY');
   res.json({
+    success: true,
     status: configured ? 'configured' : 'not_configured',
     provider: 'Finnhub',
-    note: configured ? 'Live market data available.' : 'Set FINNHUB_API_KEY in .env for live NSE/BSE data.',
+    note: configured ? 'Live market data available.' : 'Set FINNHUB_API_KEY in .env for live NSE/BSE data. Fallback active.',
   });
 });
 
 app.get('/api/v1/health/ai', (req, res) => {
   const apiKey = process.env.GEMINI_API_KEY;
-  const configured = apiKey && apiKey !== 'YOUR_GEMINI_API_KEY';
+  const configured = !!(apiKey && apiKey !== 'YOUR_GEMINI_API_KEY');
   res.json({
+    success: true,
     status: configured ? 'configured' : 'fallback',
     provider: 'Google Gemini',
     model: process.env.AI_MODEL || 'gemini-1.5-flash',

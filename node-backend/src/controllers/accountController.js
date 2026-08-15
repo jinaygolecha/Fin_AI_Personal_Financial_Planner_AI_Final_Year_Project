@@ -177,12 +177,54 @@ const getAccount = async (req, res, next) => {
 };
 
 /**
+ * PATCH /api/v1/accounts/:id or /api/v1/accounts/:accountId
+ */
+const updateAccount = async (req, res, next) => {
+  try {
+    const accountId = req.params.accountId || req.params.id;
+    const account = await prisma.financialAccount.findFirst({
+      where: { id: accountId, userId: req.user.id },
+    });
+
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Account not found.' },
+      });
+    }
+
+    const { name, accountType, institution, balance } = req.body;
+    const updated = await prisma.financialAccount.update({
+      where: { id: accountId },
+      data: {
+        ...(name && { name: name.trim() }),
+        ...(accountType && { accountType }),
+        ...(institution !== undefined && { institution: institution?.trim() || null }),
+        ...(balance !== undefined && !isNaN(parseFloat(balance)) && { balance: parseFloat(balance) }),
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...updated,
+        formattedBalance: formatINR(updated.balance),
+        message: 'Account updated successfully.',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * DELETE /api/v1/accounts/:accountId (soft delete)
  */
 const deleteAccount = async (req, res, next) => {
   try {
+    const accountId = req.params.accountId || req.params.id;
     const account = await prisma.financialAccount.findFirst({
-      where: { id: req.params.accountId, userId: req.user.id },
+      where: { id: accountId, userId: req.user.id },
     });
 
     if (!account) {
@@ -193,7 +235,7 @@ const deleteAccount = async (req, res, next) => {
     }
 
     await prisma.financialAccount.update({
-      where: { id: req.params.accountId },
+      where: { id: accountId },
       data: { isActive: false },
     });
 
@@ -206,4 +248,4 @@ const deleteAccount = async (req, res, next) => {
   }
 };
 
-module.exports = { getAccounts, createAccount, depositMoney, getAccount, deleteAccount };
+module.exports = { getAccounts, createAccount, depositMoney, getAccount, updateAccount, deleteAccount };

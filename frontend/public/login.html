@@ -412,7 +412,7 @@
   </div>
   
   <script>
-    const API_BASE = 'http://127.0.0.1:5000/api/v1';
+    const API_BASE = window.location.origin.includes(':5000') ? '/api/v1' : 'http://127.0.0.1:5000/api/v1';
     
     // Redirect if already logged in
     if (localStorage.getItem('jf_access_token')) {
@@ -433,6 +433,24 @@
       if (rt) localStorage.setItem('jf_refresh_token', rt);
       window.location.href = '/dashboard.html';
     }
+
+    if (params.get('error') === 'google_auth_failed') {
+      showAlert('error', 'Google Sign-In is not configured. Please use email/password or configure OAuth credentials.');
+    }
+
+    document.getElementById('googleLoginBtn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        const res = await fetch(`${API_BASE}/auth/google`, { method: 'GET', redirect: 'manual' });
+        if (res.status === 503 || res.status === 400 || res.status >= 500) {
+          showAlert('error', 'Google Sign-In is not configured. Please use email/password or configure OAuth credentials.');
+        } else {
+          window.location.href = `${API_BASE}/auth/google`;
+        }
+      } catch {
+        showAlert('error', 'Google Sign-In is not configured. Please use email/password or configure OAuth credentials.');
+      }
+    });
     
     // Toggle password visibility
     document.getElementById('togglePassword').addEventListener('click', () => {

@@ -158,21 +158,34 @@
         <span class="modal-title">Voice Entry</span>
         <button class="modal-close" onclick="closeModal('voiceModal')">✕</button>
       </div>
-      <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Speak or type your transaction naturally. Example: "I spent 500 rupees on food" or "Received 50000 salary"</p>
-      <div class="form-group">
-        <label class="form-label">Voice / Text Input</label>
-        <textarea id="voiceText" class="form-input" rows="3" placeholder="Type or speak your transaction..."></textarea>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:16px">Speak or type your transaction. Example: <em>"I spent 500 rupees on food"</em> or <em>"Received 50000 salary"</em></p>
+      
+      <div id="speechFallbackNotice" style="display:none;padding:8px 12px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;font-size:12px;color:#fbbf24;margin-bottom:12px;">
+        Voice input is not supported in this browser. Use manual entry.
       </div>
-      <div id="voicePreview" style="display:none;padding:12px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:10px;margin-bottom:12px;font-size:13px;"></div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button id="micBtn" type="button" class="btn btn-secondary" style="flex:1;background:rgba(99,102,241,0.15);border:1px solid #6366f1;color:#a5b4fc" onclick="toggleSpeechRecognition()">
+          <i class="ri-mic-line" id="micIcon"></i> <span id="micText">Start Speaking</span>
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Recognized / Typed Text</label>
+        <textarea id="voiceText" class="form-input" rows="3" placeholder="Click 'Start Speaking' or type here..."></textarea>
+      </div>
+      
+      <div id="voicePreview" style="display:none;padding:14px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:10px;margin-bottom:14px;font-size:13px;"></div>
+      
       <div style="display:flex;gap:10px">
         <button class="btn btn-secondary" style="flex:1" onclick="parseVoice()"><i class="ri-magic-line"></i> Parse</button>
-        <button class="btn btn-primary" style="flex:1" id="confirmVoiceBtn" onclick="confirmVoice()" disabled><i class="ri-check-line"></i> Save</button>
+        <button class="btn btn-primary" style="flex:1" id="confirmVoiceBtn" onclick="confirmVoice()" disabled><i class="ri-check-line"></i> Confirm & Save</button>
       </div>
     </div>
   </div>
 
   <script>
-    const API_BASE = 'http://127.0.0.1:5000/api/v1';
+    const API_BASE = window.location.origin.includes(':5000') ? '/api/v1' : 'http://127.0.0.1:5000/api/v1';
     const token = localStorage.getItem('jf_access_token');
     if (!token) window.location.href = '/login.html';
 
@@ -320,7 +333,74 @@
       }
     };
 
-    // Voice
+    // Voice Speech Recognition
+    let recognition = null;
+    let isListening = false;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    function toggleSpeechRecognition() {
+      if (!SpeechRecognition) {
+        document.getElementById('speechFallbackNotice').style.display = 'block';
+        return;
+      }
+
+      const micBtn = document.getElementById('micBtn');
+      const micText = document.getElementById('micText');
+      const micIcon = document.getElementById('micIcon');
+
+      if (isListening && recognition) {
+        recognition.stop();
+        isListening = false;
+        micBtn.style.background = 'rgba(99,102,241,0.15)';
+        micText.textContent = 'Start Speaking';
+        micIcon.className = 'ri-mic-line';
+        return;
+      }
+
+      try {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'en-IN';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+          isListening = true;
+          micBtn.style.background = 'rgba(239,68,68,0.2)';
+          micBtn.style.borderColor = '#ef4444';
+          micText.textContent = 'Listening... Speak now';
+          micIcon.className = 'ri-mic-fill';
+        };
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          document.getElementById('voiceText').value = transcript;
+          parseVoice();
+        };
+
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          isListening = false;
+          micBtn.style.background = 'rgba(99,102,241,0.15)';
+          micBtn.style.borderColor = '#6366f1';
+          micText.textContent = 'Start Speaking';
+          micIcon.className = 'ri-mic-line';
+        };
+
+        recognition.onend = () => {
+          isListening = false;
+          micBtn.style.background = 'rgba(99,102,241,0.15)';
+          micBtn.style.borderColor = '#6366f1';
+          micText.textContent = 'Start Speaking';
+          micIcon.className = 'ri-mic-line';
+        };
+
+        recognition.start();
+      } catch (err) {
+        console.error('Speech recognition failed to start:', err);
+        document.getElementById('speechFallbackNotice').style.display = 'block';
+      }
+    }
+
     let parsedVoice = null;
     const parseVoice = async () => {
       const text = document.getElementById('voiceText').value.trim();
@@ -330,7 +410,16 @@
         parsedVoice = res.data.parsed;
         const p = res.data.parsed;
         document.getElementById('voicePreview').style.display = 'block';
-        document.getElementById('voicePreview').innerHTML = `<strong>Parsed:</strong><br>Type: ${p.type} | Amount: ${fmt(p.amount)} | Category: ${p.category}<br><span style="color:#6b7280">${p.description}</span>`;
+        document.getElementById('voicePreview').innerHTML = `
+          <div style="font-weight:600;margin-bottom:6px;color:#a5b4fc">Detected Transaction:</div>
+          <div style="display:flex;gap:12px;margin-bottom:6px;">
+            <div><strong>Type:</strong> <span class="badge ${p.type==='INCOME'?'badge-green':'badge-red'}">${p.type}</span></div>
+            <div><strong>Amount:</strong> <span style="font-weight:700;color:${p.type==='INCOME'?'#10b981':'#ef4444'}">${fmt(p.amount)}</span></div>
+            <div><strong>Category:</strong> <span class="badge badge-blue">${p.category}</span></div>
+          </div>
+          <div style="font-size:12px;color:#94a3b8">Note: "${p.description}"</div>
+          <div style="margin-top:8px;font-size:12px;color:#34d399">Confirm? Click "Confirm & Save" below.</div>
+        `;
         document.getElementById('confirmVoiceBtn').disabled = false;
       }
     };
@@ -349,6 +438,7 @@
         document.getElementById('voiceText').value = '';
         document.getElementById('voicePreview').style.display = 'none';
         parsedVoice = null;
+        document.getElementById('confirmVoiceBtn').disabled = true;
       }
     };
 
@@ -371,9 +461,27 @@
     document.getElementById('voiceBtn').onclick = () => showModal('voiceModal');
 
     // Export
-    document.getElementById('exportBtn').onclick = (e) => {
+    document.getElementById('exportBtn').onclick = async (e) => {
       e.preventDefault();
-      window.open(`${API_BASE}/export/transactions.csv`, '_blank');
+      try {
+        const token = localStorage.getItem('jf_access_token');
+        const res = await fetch(`${API_BASE}/export/transactions.csv?token=${encodeURIComponent(token || '')}`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        });
+        if (!res.ok) throw new Error('Export failed');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `jinay_finance_transactions_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast('Transactions CSV downloaded!', 'success');
+      } catch (err) {
+        showToast('Failed to download CSV.', 'error');
+      }
     };
 
     function showModal(id) { document.getElementById(id).classList.add('show'); }

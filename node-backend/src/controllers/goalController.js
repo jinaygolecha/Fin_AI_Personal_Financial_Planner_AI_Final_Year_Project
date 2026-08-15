@@ -136,6 +136,73 @@ const contributeToGoal = async (req, res, next) => {
 };
 
 /**
+ * GET /api/v1/goals/:id
+ */
+const getGoal = async (req, res, next) => {
+  try {
+    const goal = await prisma.goal.findFirst({ where: { id: req.params.id, userId: req.user.id } });
+    if (!goal) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Goal not found.' } });
+    }
+    const target = parseFloat(goal.targetAmount);
+    const current = parseFloat(goal.currentAmount);
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...goal,
+        targetAmount: target,
+        currentAmount: current,
+        formattedTarget: formatINR(target),
+        formattedCurrent: formatINR(current),
+        remaining: Math.max(0, target - current),
+        progress: target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PATCH /api/v1/goals/:id
+ */
+const updateGoal = async (req, res, next) => {
+  try {
+    const goal = await prisma.goal.findFirst({ where: { id: req.params.id, userId: req.user.id } });
+    if (!goal) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Goal not found.' } });
+    }
+
+    const { name, goalType, targetAmount, currentAmount, targetDate, monthlyContribution, priority, status } = req.body;
+    const updated = await prisma.goal.update({
+      where: { id: req.params.id },
+      data: {
+        ...(name && { name: name.trim() }),
+        ...(goalType && { goalType }),
+        ...(targetAmount !== undefined && { targetAmount: parseFloat(targetAmount) }),
+        ...(currentAmount !== undefined && { currentAmount: parseFloat(currentAmount) }),
+        ...(targetDate && { targetDate: new Date(targetDate) }),
+        ...(monthlyContribution !== undefined && { monthlyContribution: parseFloat(monthlyContribution) }),
+        ...(priority && { priority }),
+        ...(status && { status }),
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...updated,
+        formattedTarget: formatINR(updated.targetAmount),
+        formattedCurrent: formatINR(updated.currentAmount),
+        message: 'Goal updated successfully.',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * DELETE /api/v1/goals/:id
  */
 const deleteGoal = async (req, res, next) => {
@@ -151,4 +218,4 @@ const deleteGoal = async (req, res, next) => {
   }
 };
 
-module.exports = { getGoals, createGoal, contributeToGoal, deleteGoal };
+module.exports = { getGoals, getGoal, createGoal, updateGoal, contributeToGoal, deleteGoal };

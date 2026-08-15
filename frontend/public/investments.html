@@ -3,21 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Investments — Jinay Finance AI</title>
+  <title>Investments & Precious Metals — Jinay Finance AI</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    .metals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .metal-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 18px; position: relative; overflow: hidden; }
+    .metal-card.gold { border-color: rgba(245, 158, 11, 0.3); background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), transparent); }
+    .metal-card.silver { border-color: rgba(148, 163, 184, 0.3); background: linear-gradient(135deg, rgba(148, 163, 184, 0.05), transparent); }
+    .metal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .metal-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .metal-rates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; }
+    .rate-item { background: rgba(0, 0, 0, 0.2); padding: 8px 10px; border-radius: 8px; }
+    .rate-val { font-size: 14px; font-weight: 700; color: #fff; margin-top: 2px; }
+    .status-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 9999px; text-transform: uppercase; }
+    .status-live { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+    .status-delayed { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+  </style>
 </head>
 <body>
   <div id="sidebarRoot"></div>
   <main class="main-content">
     <div class="topbar">
-      <div><div class="topbar-title">Investment Portfolio</div><div class="topbar-sub">Stocks, Mutual Funds, SIP, Gold, Crypto</div></div>
+      <div>
+        <div class="topbar-title">Investment & Precious Metals Hub</div>
+        <div class="topbar-sub">Stocks, Mutual Funds, SIP, Gold, Silver, Crypto</div>
+      </div>
       <div class="topbar-actions">
-        <button class="btn btn-primary" id="addInvestBtn"><i class="ri-add-line"></i>Add Investment</button>
+        <button class="btn btn-secondary" id="exportInvestBtn"><i class="ri-download-line"></i> Export CSV</button>
+        <button class="btn btn-primary" id="addInvestBtn"><i class="ri-add-line"></i> Add Investment</button>
       </div>
     </div>
+    
     <div class="content">
+      <!-- Precious Metals Ticker -->
+      <div class="metals-grid">
+        <div class="metal-card gold">
+          <div class="metal-header">
+            <div class="metal-title" style="color:#fbbf24"><i class="ri-copper-diamond-line"></i> Gold (MCX India)</div>
+            <span class="status-badge status-live" id="goldStatus">LIVE</span>
+          </div>
+          <div class="metal-rates">
+            <div class="rate-item">
+              <span style="color:#94a3b8">24K (per gram)</span>
+              <div class="rate-val" id="gold24kGram">₹...</div>
+            </div>
+            <div class="rate-item">
+              <span style="color:#94a3b8">24K (10 grams)</span>
+              <div class="rate-val" id="gold24k10Gram">₹...</div>
+            </div>
+            <div class="rate-item">
+              <span style="color:#94a3b8">22K (per gram)</span>
+              <div class="rate-val" id="gold22kGram">₹...</div>
+            </div>
+            <div class="rate-item">
+              <span style="color:#94a3b8">24K (per oz)</span>
+              <div class="rate-val" id="gold24kOz">₹...</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;font-size:10px;color:#64748b" id="goldUpdated">Last updated: --</div>
+        </div>
+
+        <div class="metal-card silver">
+          <div class="metal-header">
+            <div class="metal-title" style="color:#cbd5e1"><i class="ri-coin-line"></i> Silver (MCX India)</div>
+            <span class="status-badge status-live" id="silverStatus">LIVE</span>
+          </div>
+          <div class="metal-rates">
+            <div class="rate-item">
+              <span style="color:#94a3b8">Per Gram</span>
+              <div class="rate-val" id="silverGram">₹...</div>
+            </div>
+            <div class="rate-item">
+              <span style="color:#94a3b8">Per Kilogram</span>
+              <div class="rate-val" id="silverKg">₹...</div>
+            </div>
+            <div class="rate-item">
+              <span style="color:#94a3b8">Per Ounce (oz)</span>
+              <div class="rate-val" id="silverOz">₹...</div>
+            </div>
+            <div class="rate-item">
+              <span style="color:#94a3b8">Market</span>
+              <div class="rate-val" style="font-size:12px;padding-top:4px">MCX India Spot</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;font-size:10px;color:#64748b" id="silverUpdated">Last updated: --</div>
+        </div>
+      </div>
+
       <!-- Portfolio Summary -->
       <div class="metrics-grid">
         <div class="metric-card"><div class="metric-icon mi-blue"><i class="ri-funds-line"></i></div><div class="metric-label">Portfolio Value</div><div class="metric-value" id="portfolioValue">...</div></div>
@@ -31,7 +105,7 @@
         <div class="card-header"><span class="card-title">Holdings</span></div>
         <div class="table-wrapper">
           <table>
-            <thead><tr><th>Name / Symbol</th><th>Type</th><th>Quantity</th><th>Avg Price</th><th>Current Value</th><th>P&L</th><th>Action</th></tr></thead>
+            <thead><tr><th>Name / Symbol</th><th>Type</th><th>Quantity</th><th>Avg Buy Price</th><th>Total Invested</th><th>Current Value</th><th>Action</th></tr></thead>
             <tbody id="holdingsBody"><tr><td colspan="7" style="text-align:center;padding:40px;color:#6b7280">Loading portfolio...</td></tr></tbody>
           </table>
         </div>
@@ -42,31 +116,36 @@
   <!-- Add Investment Modal -->
   <div class="modal-overlay" id="addInvestModal">
     <div class="modal">
-      <div class="modal-header"><span class="modal-title">Add Investment</span><button class="modal-close" onclick="closeModal('addInvestModal')">✕</button></div>
-      <div class="form-group"><label class="form-label">Investment Type</label>
+      <div class="modal-header"><span class="modal-title">Add Investment / Holding</span><button class="modal-close" onclick="closeModal('addInvestModal')">✕</button></div>
+      <div class="form-group"><label class="form-label">Asset Type</label>
         <select id="investType" class="form-select">
-          <option value="STOCK">Stock</option><option value="MUTUAL_FUND">Mutual Fund</option>
-          <option value="SIP">SIP</option><option value="GOLD">Gold</option>
-          <option value="CRYPTO">Crypto</option><option value="FD">Fixed Deposit</option>
-          <option value="PPF">PPF</option><option value="NPS">NPS</option><option value="OTHER">Other</option>
+          <option value="STOCK">📈 Stock / Equity</option>
+          <option value="MUTUAL_FUND">📊 Mutual Fund</option>
+          <option value="SIP">🔄 Systematic Investment (SIP)</option>
+          <option value="GOLD">🥇 Gold (24K/22K)</option>
+          <option value="SILVER">🥈 Silver</option>
+          <option value="CRYPTO">🪙 Crypto</option>
+          <option value="BOND">📄 Bond / Debt</option>
+          <option value="ETF">🏛️ ETF</option>
+          <option value="OTHER">📁 Other</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label">Name / Symbol</label><input type="text" id="investName" class="form-input" placeholder="e.g. RELIANCE, HDFC Mid-Cap Fund, Bitcoin"></div>
-      <div class="form-group"><label class="form-label">NSE/BSE Symbol (for stocks)</label><input type="text" id="investSymbol" class="form-input" placeholder="e.g. RELIANCE.NSE, TCS.NSE"></div>
-      <div class="form-group"><label class="form-label">Quantity / Units</label><input type="number" id="investQty" class="form-input" placeholder="10" min="0" step="0.001"></div>
-      <div class="form-group"><label class="form-label">Purchase Price per Unit (₹)</label><input type="number" id="investPrice" class="form-input" placeholder="2500" min="0" step="0.01"></div>
-      <div class="form-group"><label class="form-label">Purchase Date</label><input type="date" id="investDate" class="form-input"></div>
+      <div class="form-group"><label class="form-label">Asset Name</label><input type="text" id="investName" class="form-input" placeholder="e.g. Reliance Industries, 24K Physical Gold, Nifty 50 ETF"></div>
+      <div class="form-group"><label class="form-label">Symbol / Identifier</label><input type="text" id="investSymbol" class="form-input" placeholder="e.g. RELIANCE, GOLD24K, BTC"></div>
+      <div class="form-group"><label class="form-label">Quantity / Weight (Grams/Units)</label><input type="number" id="investQty" class="form-input" placeholder="10" min="0" step="0.001"></div>
+      <div class="form-group"><label class="form-label">Buy Price per Unit / Gram (₹)</label><input type="number" id="investPrice" class="form-input" placeholder="2500" min="0" step="0.01"></div>
       <div id="investError" style="color:#fca5a5;font-size:12px;margin-bottom:8px;display:none;"></div>
-      <button class="btn btn-primary" style="width:100%" onclick="saveInvestment()"><i class="ri-check-line"></i> Save Investment</button>
+      <button class="btn btn-primary" style="width:100%" onclick="saveInvestment()"><i class="ri-check-line"></i> Save Holding</button>
     </div>
   </div>
 
   <script>
-    const API_BASE = 'http://127.0.0.1:5000/api/v1';
+    const API_BASE = window.location.origin.includes(':5000') ? '/api/v1' : 'http://127.0.0.1:5000/api/v1';
     const token = localStorage.getItem('jf_access_token');
     if (!token) window.location.href = '/login.html';
     const fmt = (v) => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(v||0);
     const fmtFull = (v) => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:2}).format(v||0);
+    
     const apiFetch = async (url, opts={}) => {
       const r = await fetch(`${API_BASE}${url}`,{headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},...opts});
       if(r.status===401){localStorage.clear();window.location.href='/login.html';return null;}
@@ -76,7 +155,39 @@
     document.getElementById('sidebarRoot').innerHTML = getSidebar('investments');
     initSidebarUser();
 
-    const investTypeLabels = { STOCK:'📈 Stock', MUTUAL_FUND:'📊 Mutual Fund', SIP:'🔄 SIP', GOLD:'🥇 Gold', CRYPTO:'🪙 Crypto', FD:'🏦 FD', PPF:'📋 PPF', NPS:'🌅 NPS', OTHER:'📁 Other' };
+    const investTypeLabels = {
+      STOCK:'📈 Stock', MUTUAL_FUND:'📊 Mutual Fund', SIP:'🔄 SIP',
+      GOLD:'🥇 Gold', SILVER:'🥈 Silver', CRYPTO:'🪙 Crypto',
+      BOND:'📄 Bond', ETF:'🏛️ ETF', OTHER:'📁 Other'
+    };
+
+    const loadMetals = async () => {
+      const res = await apiFetch('/market/metals');
+      if (res?.success && res.data) {
+        const d = res.data;
+        document.getElementById('gold24kGram').textContent = fmtFull(d.gold.karat24.perGram);
+        document.getElementById('gold24k10Gram').textContent = fmt(d.gold.karat24.per10Gram);
+        document.getElementById('gold22kGram').textContent = fmtFull(d.gold.karat22.perGram);
+        document.getElementById('gold24kOz').textContent = fmt(d.gold.karat24.perOunce);
+        document.getElementById('silverGram').textContent = fmtFull(d.silver.perGram);
+        document.getElementById('silverKg').textContent = fmt(d.silver.perKg);
+        document.getElementById('silverOz').textContent = fmt(d.silver.perOunce);
+        document.getElementById('goldUpdated').textContent = `Last updated: ${d.timestamp}`;
+        document.getElementById('silverUpdated').textContent = `Last updated: ${d.timestamp}`;
+        
+        const statusEl = document.getElementById('goldStatus');
+        const sStatusEl = document.getElementById('silverStatus');
+        statusEl.textContent = d.marketStatus;
+        sStatusEl.textContent = d.marketStatus;
+        if (d.marketStatus === 'LIVE') {
+          statusEl.className = 'status-badge status-live';
+          sStatusEl.className = 'status-badge status-live';
+        } else {
+          statusEl.className = 'status-badge status-delayed';
+          sStatusEl.className = 'status-badge status-delayed';
+        }
+      }
+    };
 
     const loadPortfolio = async () => {
       const data = await apiFetch('/investments/portfolio');
@@ -86,10 +197,13 @@
       }
 
       const portfolio = data.data;
-      document.getElementById('portfolioValue').textContent = fmt(portfolio.currentValue || 0);
-      document.getElementById('totalInvested').textContent = fmt(portfolio.investedAmount || 0);
-      const pnl = (portfolio.currentValue || 0) - (portfolio.investedAmount || 0);
-      const pnlPct = portfolio.investedAmount > 0 ? ((pnl / portfolio.investedAmount) * 100).toFixed(2) : 0;
+      const totalInv = portfolio.totalInvested || 0;
+      const currVal = portfolio.currentValue || totalInv;
+      const pnl = currVal - totalInv;
+      const pnlPct = totalInv > 0 ? ((pnl / totalInv) * 100).toFixed(2) : 0;
+
+      document.getElementById('portfolioValue').textContent = fmt(currVal);
+      document.getElementById('totalInvested').textContent = fmt(totalInv);
       document.getElementById('totalPnl').textContent = fmt(pnl);
       document.getElementById('totalPnl').style.color = pnl >= 0 ? '#10b981' : '#ef4444';
       document.getElementById('pnlPct').textContent = (pnl >= 0 ? '+' : '') + pnlPct + '%';
@@ -97,32 +211,40 @@
 
       const holdings = portfolio.holdings || [];
       if (!holdings.length) {
-        document.getElementById('holdingsBody').innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:#6b7280"><i class="ri-stock-line" style="font-size:32px;display:block;margin-bottom:8px"></i>No investments yet. Click "Add Investment" to start building your portfolio.</td></tr>`;
+        document.getElementById('holdingsBody').innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:#6b7280"><i class="ri-stock-line" style="font-size:32px;display:block;margin-bottom:8px"></i>No holdings yet. Click "Add Investment" to add stocks, gold, or funds.</td></tr>`;
         return;
       }
 
       document.getElementById('holdingsBody').innerHTML = holdings.map(h => {
-        const pnl = h.pnl || 0;
-        const pnlPct = h.pnlPercent || 0;
-        const investedAmt = h.totalCost || 0;
+        const investedAmt = h.totalInvested || (h.quantity * h.averageBuyPrice);
         const currentVal = h.currentValue || investedAmt;
         return `<tr>
-          <td><div style="font-weight:600">${h.name||h.symbol}</div>${h.symbol ? `<div style="font-size:11px;color:#6b7280">${h.symbol}</div>` : ''}</td>
-          <td><span class="badge badge-blue">${investTypeLabels[h.assetType]||h.assetType||'Asset'}</span></td>
-          <td>${h.quantity || '--'}</td>
-          <td>${h.averageBuyPrice ? fmtFull(h.averageBuyPrice) : '--'}</td>
+          <td><div style="font-weight:600">${h.name || h.symbol}</div><div style="font-size:11px;color:#6b7280">${h.symbol}</div></td>
+          <td><span class="badge badge-blue">${investTypeLabels[h.assetType] || h.assetType}</span></td>
+          <td>${h.quantity}</td>
+          <td>${fmtFull(h.averageBuyPrice)}</td>
+          <td>${fmt(investedAmt)}</td>
           <td style="font-weight:600">${fmt(currentVal)}</td>
-          <td style="font-weight:600;color:${pnl>=0?'#10b981':'#ef4444'}">${pnl>=0?'+':''}${fmt(pnl)} <span style="font-size:10px">(${pnl>=0?'+':''}${pnlPct}%)</span></td>
-          <td><button class="btn-icon-only" style="color:#ef4444" title="Remove" onclick="showToast('Use API to remove investment','info')"><i class="ri-delete-bin-line"></i></button></td>
+          <td><button class="btn-icon-only" style="color:#ef4444" title="Delete" onclick="deleteHolding('${h.id}')"><i class="ri-delete-bin-line"></i></button></td>
         </tr>`;
       }).join('');
+    };
+
+    const deleteHolding = async (id) => {
+      if (!confirm('Are you sure you want to remove this holding?')) return;
+      const res = await apiFetch(`/investments/${id}`, { method: 'DELETE' });
+      if (res?.success) {
+        showToast('Holding removed.', 'info');
+        loadPortfolio();
+      } else {
+        showToast(res?.error?.message || 'Failed to remove holding.', 'error');
+      }
     };
 
     const saveInvestment = async () => {
       const errEl = document.getElementById('investError');
       const symRaw = document.getElementById('investSymbol').value.trim();
       const nameRaw = document.getElementById('investName').value.trim();
-      // Use symbol or generate from name
       const symbol = symRaw || nameRaw.replace(/\s+/g, '_').toUpperCase();
       const payload = {
         symbol,
@@ -130,15 +252,47 @@
         assetType: document.getElementById('investType').value,
         quantity: parseFloat(document.getElementById('investQty').value) || 1,
         buyPrice: parseFloat(document.getElementById('investPrice').value),
-        purchaseDate: document.getElementById('investDate').value || undefined,
       };
       if (!nameRaw && !symRaw) { errEl.textContent='Enter a name or symbol.'; errEl.style.display='block'; return; }
       if (!payload.buyPrice || payload.buyPrice <= 0) { errEl.textContent='Enter a purchase price.'; errEl.style.display='block'; return; }
       errEl.style.display='none';
 
       const res = await apiFetch('/investments/buy',{method:'POST',body:JSON.stringify(payload)});
-      if (res?.success) { closeModal('addInvestModal'); showToast('Investment added!','success'); loadPortfolio(); }
-      else { errEl.textContent=res?.error?.message||'Failed.'; errEl.style.display='block'; }
+      if (res?.success) {
+        closeModal('addInvestModal');
+        showToast('Holding saved!','success');
+        document.getElementById('investName').value = '';
+        document.getElementById('investSymbol').value = '';
+        document.getElementById('investQty').value = '';
+        document.getElementById('investPrice').value = '';
+        loadPortfolio();
+      } else {
+        errEl.textContent=res?.error?.message||'Failed.'; errEl.style.display='block';
+      }
+    };
+
+    // Export
+    document.getElementById('exportInvestBtn').onclick = async (e) => {
+      e.preventDefault();
+      try {
+        const token = localStorage.getItem('jf_access_token');
+        const res = await fetch(`${API_BASE}/export/investments.csv?token=${encodeURIComponent(token||'')}`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+        });
+        if (!res.ok) throw new Error('Export failed');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `jinay_finance_investments_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        showToast('Investments CSV downloaded!', 'success');
+      } catch {
+        showToast('Failed to download CSV.', 'error');
+      }
     };
 
     document.getElementById('addInvestBtn').onclick = () => showModal('addInvestModal');
@@ -149,6 +303,8 @@
     function showToast(msg,type='success'){const t=document.createElement('div');t.style.cssText=`position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.4);`;if(type==='success')t.style.cssText+='background:#065f46;border:1px solid #10b981;color:#6ee7b7;';else if(type==='error')t.style.cssText+='background:#7f1d1d;border:1px solid #ef4444;color:#fca5a5;';else t.style.cssText+='background:#1e1b4b;border:1px solid #6366f1;color:#a5b4fc;';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
     function getSidebar(active){const nav=[['dashboard','ri-dashboard-line','Dashboard'],['transactions','ri-exchange-line','Transactions'],['budget','ri-pie-chart-line','Budgets'],['goals','ri-flag-line','Goals'],['investments','ri-stock-line','Portfolio'],['loans','ri-bank-line','Loans & EMI'],['calendar','ri-calendar-line','Calendar'],['analytics','ri-bar-chart-line','Analytics'],['ai-advisor','ri-robot-line','AI Advisor']];return `<aside class="sidebar"><div class="sidebar-brand"><div class="brand-icon"><i class="ri-line-chart-line"></i></div><div><div class="brand-text">Jinay Finance AI</div><div class="brand-sub">by Jinay Golecha</div></div></div><div class="nav-section" style="margin-top:8px">${nav.map(([href,icon,label])=>`<a href="/${href}.html" class="nav-item${active===href?' active':''}"><i class="${icon}"></i>${label}</a>`).join('')}</div><div class="sidebar-footer"><div class="user-info"><div class="avatar" id="sidebarAvatar">J</div><div><div class="user-name" id="sidebarUserName">User</div><div class="user-role" id="sidebarUserRole">Free</div></div><i class="ri-logout-box-line logout-btn" id="sidebarLogout" title="Logout"></i></div></div></aside>`;}
     function initSidebarUser(){const user=JSON.parse(localStorage.getItem('jf_user')||'{}');const name=user.firstName||user.username||'User';const el=document.getElementById('sidebarUserName'),rl=document.getElementById('sidebarUserRole'),av=document.getElementById('sidebarAvatar');if(el)el.textContent=name+(user.lastName?' '+user.lastName:'');if(rl)rl.textContent=user.isPremium?'⭐ Premium':'Free User';if(av)av.textContent=name[0].toUpperCase();document.getElementById('sidebarLogout').onclick=async()=>{const rt=localStorage.getItem('jf_refresh_token');try{await fetch(`${API_BASE}/auth/logout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({refreshToken:rt})});}catch{}localStorage.clear();window.location.href='/login.html';};}
+
+    loadMetals();
     loadPortfolio();
   </script>
 </body>

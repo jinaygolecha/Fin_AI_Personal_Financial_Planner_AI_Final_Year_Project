@@ -8,16 +8,20 @@ const prisma = require('../config/database');
  */
 const authenticate = async (req, res, next) => {
   try {
+    let token = null;
     const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.query && req.query.token) {
+      token = req.query.token;
+    }
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       return res.status(401).json({
         success: false,
         error: { code: 'UNAUTHORIZED', message: 'Authentication token is required.' },
       });
     }
-
-    const token = authHeader.split(' ')[1];
 
     let decoded;
     try {

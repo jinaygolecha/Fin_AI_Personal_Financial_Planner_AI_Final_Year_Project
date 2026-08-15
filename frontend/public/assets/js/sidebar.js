@@ -13,8 +13,9 @@ export function renderSidebar(activePage = '') {
       { href: 'goals', icon: 'ri-flag-line', label: 'Goals' },
     ]},
     { section: 'Invest', items: [
-      { href: 'investments', icon: 'ri-stock-line', label: 'Portfolio' },
+      { href: 'investments', icon: 'ri-stock-line', label: 'Portfolio & Metals' },
       { href: 'loans', icon: 'ri-bank-line', label: 'Loans & EMI' },
+      { href: 'insurance', icon: 'ri-shield-check-line', label: 'Insurance & Subs' },
     ]},
     { section: 'Tools', items: [
       { href: 'calendar', icon: 'ri-calendar-line', label: 'Calendar' },

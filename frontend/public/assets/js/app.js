@@ -4,7 +4,9 @@
  * All frontend pages include this file.
  */
 
-const API_BASE = 'http://127.0.0.1:5000/api/v1';
+const API_BASE = window.location.origin.includes(':5000') 
+  ? '/api/v1' 
+  : 'http://127.0.0.1:5000/api/v1';
 
 // ============ TOKEN MANAGEMENT ============
 export const getToken = () => localStorage.getItem('jf_access_token');
