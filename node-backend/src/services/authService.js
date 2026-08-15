@@ -11,12 +11,12 @@ const SALT_ROUNDS = 12;
  */
 const generateTokens = (userId) => {
   const accessToken = jwt.sign(
-    { userId },
+    { userId, jti: uuidv4() },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '60m' }
   );
   const refreshToken = jwt.sign(
-    { userId },
+    { userId, jti: uuidv4() },
     process.env.JWT_REFRESH_SECRET,
     { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
   );
@@ -30,8 +30,10 @@ const storeRefreshToken = async (userId, token) => {
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  await prisma.refreshToken.create({
-    data: { token, userId, expiresAt },
+  await prisma.refreshToken.upsert({
+    where: { token },
+    update: { expiresAt },
+    create: { token, userId, expiresAt },
   });
 };
 

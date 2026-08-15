@@ -1,0 +1,51 @@
+services:
+  # ------------------------------------------------------------------
+  # PostgreSQL 17 Database Service
+  # ------------------------------------------------------------------
+  postgres:
+    image: postgres:17-alpine
+    container_name: jinay_finance_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres2905}
+      POSTGRES_DB: ${POSTGRES_DB:-finance_jinay}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-finance_jinay}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ------------------------------------------------------------------
+  # Jinay Finance AI Application Service
+  # ------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jinay_finance_app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres2905}@postgres:5432/${POSTGRES_DB:-finance_jinay}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-jinay_finance_ai_jwt_secret_production_key_32chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-jinay_finance_ai_jwt_refresh_secret_production_key_32chars}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      FINNHUB_API_KEY: ${FINNHUB_API_KEY:-}
+      CURRENCY: INR
+      LOCALE: en-IN
+      TIMEZONE: Asia/Kolkata
+    ports:
+      - "5000:5000"
+
+volumes:
+  postgres_data:
+    driver: local

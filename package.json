@@ -1,19 +1,36 @@
 {
   "name": "jinay-finance-ai",
   "version": "1.0.0",
-  "description": "AI-Powered Personal Finance & Investment Advisor — Final Year Project (Jinay Golecha)",
+  "description": "AI-Powered Personal Finance & Investment Advisor — Final Year Engineering Project",
   "main": "node-backend/src/server.js",
   "scripts": {
+    "setup": "npm --prefix node-backend install && npm --prefix node-backend run prisma:generate",
     "dev": "npm --prefix node-backend run dev",
     "start": "npm --prefix node-backend start",
     "test": "npm --prefix node-backend test",
-    "prisma:generate": "npm --prefix node-backend run prisma:generate",
-    "prisma:migrate": "npm --prefix node-backend run prisma:migrate",
-    "prisma:studio": "npm --prefix node-backend run prisma:studio"
+    "build": "npm --prefix node-backend run build",
+    "lint": "npm --prefix node-backend run lint",
+    "db:generate": "npm --prefix node-backend run prisma:generate",
+    "db:migrate": "npm --prefix node-backend run prisma:migrate",
+    "db:seed": "npm --prefix node-backend run seed",
+    "db:studio": "npm --prefix node-backend run prisma:studio"
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "personal-finance",
+    "fintech",
+    "financial-planning",
+    "investment",
+    "artificial-intelligence",
+    "gemini-ai",
+    "nodejs",
+    "express",
+    "postgresql",
+    "prisma",
+    "javascript"
+  ],
   "author": "Jinay Golecha <jinay_golecha>",
-  "license": "MIT",
-  "devDependencies": {
-    "tailwindcss": "^4.0.10"
-  }
+  "license": "MIT"
 }

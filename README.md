@@ -1,17 +1,18 @@
 # 🎓 Jinay Finance AI — Personal Finance & Investment Advisor
 
 > **Final-Year Engineering Project**  
-> **Project Owner / Maintainer**: Jinay Golecha (`jinay_golecha`)  
-> **Repository**: [jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project](https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project)  
-> **Technology Stack**: Node.js v22, Express.js 4, Prisma ORM, PostgreSQL 17, Google Gemini AI, Finnhub API, Web Speech API, Vanilla HTML5/CSS3  
+> **Author & Maintainer**: Jinay Golecha (`jinay_golecha`)  
+> **Canonical Repository**: [jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project](https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project)  
+> **Technology Stack**: Node.js v22 LTS, Express.js 4, Prisma ORM, PostgreSQL 17, Google Gemini AI, Finnhub API, Web Speech API, Chart.js / ECharts, Vanilla HTML5 / Modern CSS3  
+> **License**: MIT  
 
 ---
 
 ## 📘 1. Executive Summary & Problem Statement
 
-Managing personal finances, diverse investment asset classes (Equity, Mutual Funds, SIP, Gold, Silver, Crypto), liabilities, insurance policies, and recurring subscriptions across disconnected apps is error-prone.
+Managing personal cash flows, multi-asset investments (Equities, Mutual Funds, SIP, MCX Gold, Silver, Crypto), liabilities, insurance coverage, and recurring subscriptions across fragmented platforms leads to poor visibility and financial leakages.
 
-**Jinay Finance AI** is an AI-powered financial management and investment advisory system tailored specifically for the Indian financial context (**INR - ₹ / Asia/Kolkata**). Built with a PostgreSQL schema, Prisma ORM, and Express REST API backend, the platform provides real-time portfolio valuation, multi-asset allocation insights, automated budget thresholds, loan prepayment simulations, insurance gap analysis, and voice-assisted expense entry.
+**Jinay Finance AI** is a personal finance management and investment advisory platform tailored specifically for the Indian financial ecosystem (**INR - ₹ / Asia/Kolkata**). Built with a PostgreSQL schema, Prisma ORM, and Express REST API server, the system provides real-time portfolio valuation, multi-asset allocation insights, automated budget thresholds, loan prepayment simulations, insurance gap analysis, and voice-assisted expense entry.
 
 ---
 
@@ -20,7 +21,7 @@ Managing personal finances, diverse investment asset classes (Equity, Mutual Fun
 ```
 ┌────────────────────────────────────────────────────────────┐
 │                    FRONTEND WEB CLIENT                     │
-│  HTML5 + Vanilla CSS + Chart.js / ECharts + Web Speech API  │
+│  HTML5 + Modern Vanilla CSS + Chart.js + Web Speech API    │
 └─────────────────────────────┬──────────────────────────────┘
                               │ HTTP/JSON + JWT Bearer Auth
                               ▼
@@ -45,10 +46,10 @@ Managing personal finances, diverse investment asset classes (Equity, Mutual Fun
 
 ---
 
-## 🚀 3. Key Feature Modules
+## 🚀 3. Core Feature Modules
 
-1. **Centralized Authentication & Profiles**:
-   - Secure registration, password hashing with bcrypt, JWT access & refresh tokens.
+1. **Centralized Authentication & Security**:
+   - Secure registration, password hashing with `bcrypt` (10 rounds), JWT access (60m) and refresh tokens (7d).
    - Graceful fallback for unconfigured Google OAuth.
 
 2. **Financial Onboarding & 50/30/20 Planning**:
@@ -92,73 +93,207 @@ Managing personal finances, diverse investment asset classes (Equity, Mutual Fun
 
 ---
 
-## 📡 4. REST API Endpoint Reference
+## 🛠️ 4. Technology Stack
 
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| `GET` | `/api/v1/health` | System health & DB connection | Public |
-| `GET` | `/api/v1/health/database` | PostgreSQL latency test | Public |
-| `POST` | `/api/v1/auth/register` | Register user & initialize profiles | Public |
-| `POST` | `/api/v1/auth/login` | Authenticate & issue JWT | Public |
-| `GET` | `/api/v1/auth/me` | Authenticated user profile | Bearer |
-| `POST` | `/api/v1/onboarding` | Submit financial onboarding | Bearer |
-| `GET` | `/api/v1/dashboard` | Aggregated financial metrics | Bearer |
-| `GET` | `/api/v1/accounts` | List financial accounts | Bearer |
-| `POST` | `/api/v1/accounts/:id/deposit` | Deposit money atomically | Bearer |
-| `GET` | `/api/v1/transactions` | Filterable transaction history | Bearer |
-| `POST` | `/api/v1/transactions` | Create income/expense record | Bearer |
-| `DELETE`| `/api/v1/transactions/:id` | Delete & reverse balance | Bearer |
-| `POST` | `/api/v1/transactions/voice` | Parse voice entry command | Bearer |
-| `GET` | `/api/v1/budgets` | Category budget tracking | Bearer |
-| `POST` | `/api/v1/goals` | Create savings goal | Bearer |
-| `GET` | `/api/v1/investments/portfolio`| Aggregate investment holdings | Bearer |
-| `GET` | `/api/v1/market/metals` | Live Gold & Silver rates (INR) | Bearer |
-| `POST` | `/api/v1/loans/calculate-emi` | Calculate standard loan EMI | Bearer |
-| `POST` | `/api/v1/loans/prepayment-simulate`| Prepayment tenure reduction | Bearer |
-| `GET` | `/api/v1/insurance` | Insurance policies & summary | Bearer |
-| `GET` | `/api/v1/subscriptions` | Recurring subscriptions | Bearer |
-| `POST` | `/api/v1/ai/chat` | Contextual AI financial advice | Bearer |
-| `GET` | `/api/v1/ai/investment-analysis` | Asset allocation insights | Bearer |
-| `GET` | `/api/v1/ai/insurance-review` | Protection gap analysis | Bearer |
-| `GET` | `/api/v1/export/transactions.csv` | Export transactions CSV | Bearer |
-| `GET` | `/api/v1/export/summary.csv` | Export summary report CSV | Bearer |
+| Layer | Technologies |
+|---|---|
+| **Runtime & Backend** | Node.js v22 LTS, Express.js 4.21 |
+| **ORM & Database** | Prisma 5.22, PostgreSQL 17 |
+| **Authentication & Security** | JSON Web Tokens (`jsonwebtoken`), `bcryptjs`, `helmet`, `cors`, `express-rate-limit` |
+| **Artificial Intelligence** | Google Gemini 1.5 Flash (`@google/generative-ai`) + Rule-Based Advisory Engine |
+| **Market Data** | Finnhub Stock API & Spot Precious Metals Engine |
+| **Frontend UI** | HTML5, Vanilla CSS3, Remix Icon, Chart.js, ECharts, Web Speech API |
+| **Containerization** | Docker, Docker Compose |
+| **Testing** | Node test runner, Supertest, 47-assertion acceptance suite |
 
 ---
 
-## ⚙️ 5. Setup & Running Instructions
+## ⚡ 5. Quick Start Guide
 
 ### Prerequisites
-- Node.js (v18+)
-- PostgreSQL 17 (running locally on port 5432)
+- Node.js (v20+ or v22 LTS)
+- PostgreSQL 17 (local service or Docker)
 
-### 1. Configure Environment Variables
-Copy `node-backend/.env.example` to `node-backend/.env`:
-```ini
-NODE_ENV=development
-PORT=5000
-DATABASE_URL="postgresql://postgres:postgres2905@127.0.0.1:5432/finance_jinay"
-JWT_SECRET=your_jwt_secret_key_here
-JWT_REFRESH_SECRET=your_jwt_refresh_secret_key_here
-GEMINI_API_KEY=your_gemini_api_key
-FINNHUB_API_KEY=your_finnhub_api_key
-```
+---
 
-### 2. Install Dependencies & Generate Prisma Client
+### Option A: Local Development (Windows / macOS / Linux)
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project.git
+   cd Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project
+   ```
+
+2. **Configure Environment Variables**:
+   ```bash
+   # Windows PowerShell
+   Copy-Item .env.example .env
+
+   # macOS / Linux
+   cp .env.example .env
+   ```
+
+3. **Install Dependencies & Generate Prisma Client**:
+   ```bash
+   npm run setup
+   ```
+
+4. **Seed Sample Data (Optional)**:
+   ```bash
+   npm run db:seed
+   ```
+
+5. **Start Application**:
+   ```bash
+   npm run dev
+   ```
+   Open `http://127.0.0.1:5000/` in your browser.
+
+---
+
+### Option B: Docker Compose (One-Command Setup)
+
 ```bash
-npm --prefix node-backend install
-npm --prefix node-backend run prisma:generate
-```
+git clone https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project.git
+cd Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project
 
-### 3. Run Automated Acceptance Test Suite
+docker compose up --build -d
+```
+Open `http://127.0.0.1:5000/` in your browser.
+
+---
+
+## 🔑 6. Demo Account Credentials
+
+A pre-populated demo account is available when running `npm run db:seed`:
+
+- **Email**: `demo@example.com`
+- **Password**: `DemoPassword123!`
+
+*(You can also register a new account on `/signup.html`)*
+
+---
+
+## ⚙️ 7. Environment Configuration (.env)
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `NODE_ENV` | Yes | `development` | Runtime environment (`development` / `production`) |
+| `PORT` | Yes | `5000` | Port for the Express server |
+| `DATABASE_URL` | Yes | — | PostgreSQL connection string |
+| `JWT_SECRET` | Yes | — | Cryptographic secret for access tokens |
+| `JWT_REFRESH_SECRET`| Yes | — | Cryptographic secret for refresh tokens |
+| `FRONTEND_URL` | No | `http://127.0.0.1:5000` | Origin URL for CORS and frontend redirects |
+| `GEMINI_API_KEY` | No | — | Google Gemini API key (falls back to rule engine) |
+| `FINNHUB_API_KEY` | No | — | Finnhub API key (falls back to delayed reference) |
+| `GOOGLE_CLIENT_ID` | No | — | Google OAuth 2.0 Client ID |
+| `GOOGLE_CLIENT_SECRET`| No | — | Google OAuth 2.0 Client Secret |
+
+---
+
+## 📡 8. REST API Endpoint Reference
+
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| `GET` | `/api/v1/health` | System health & DB connection status | Public |
+| `GET` | `/api/v1/health/database` | PostgreSQL connection test | Public |
+| `GET` | `/api/v1/health/ai` | Gemini AI provider health | Public |
+| `GET` | `/api/v1/health/market` | Market API provider health | Public |
+| `POST` | `/api/v1/auth/register` | Register user & initialize profiles | Public |
+| `POST` | `/api/v1/auth/login` | Authenticate user & issue JWT tokens | Public |
+| `POST` | `/api/v1/auth/refresh` | Issue new access token via refresh token | Public |
+| `GET` | `/api/v1/auth/me` | Return authenticated user details | Bearer |
+| `POST` | `/api/v1/onboarding` | Submit financial onboarding profile | Bearer |
+| `GET` | `/api/v1/onboarding/status` | Check onboarding completion status | Bearer |
+| `GET` | `/api/v1/dashboard` | Aggregated real-time financial metrics | Bearer |
+| `GET` | `/api/v1/accounts` | List user financial accounts | Bearer |
+| `POST` | `/api/v1/accounts` | Create financial account | Bearer |
+| `POST` | `/api/v1/accounts/:id/deposit` | Deposit funds atomically with income entry | Bearer |
+| `GET` | `/api/v1/transactions` | Filterable transaction history | Bearer |
+| `POST` | `/api/v1/transactions` | Create income/expense with anomaly check | Bearer |
+| `DELETE`| `/api/v1/transactions/:id` | Delete transaction & reverse balance | Bearer |
+| `POST` | `/api/v1/transactions/voice` | Parse voice entry natural language text | Bearer |
+| `GET` | `/api/v1/budgets` | Category budget tracking (50/30/20) | Bearer |
+| `POST` | `/api/v1/budgets` | Create / update category budget limit | Bearer |
+| `GET` | `/api/v1/goals` | List savings goals & progress | Bearer |
+| `POST` | `/api/v1/goals` | Create new savings goal | Bearer |
+| `PATCH`| `/api/v1/goals/:id/contribute` | Allocate savings contribution to goal | Bearer |
+| `GET` | `/api/v1/investments/portfolio`| Aggregated portfolio valuation & P&L | Bearer |
+| `POST` | `/api/v1/investments/buy` | Record equity/fund/crypto/gold holding | Bearer |
+| `GET` | `/api/v1/market/metals` | Live Gold (24K/22K) & Silver rates in INR | Bearer |
+| `POST` | `/api/v1/loans/calculate-emi` | Standard loan EMI calculator | Bearer |
+| `POST` | `/api/v1/loans/prepayment-simulate`| Prepayment interest & tenure simulation | Bearer |
+| `GET` | `/api/v1/insurance` | Insurance policies & coverage summary | Bearer |
+| `POST` | `/api/v1/insurance` | Create insurance policy | Bearer |
+| `GET` | `/api/v1/subscriptions` | Recurring subscriptions & spend analytics | Bearer |
+| `POST` | `/api/v1/subscriptions` | Create recurring subscription | Bearer |
+| `POST` | `/api/v1/ai/chat` | Contextual AI financial advisor conversation | Bearer |
+| `GET` | `/api/v1/ai/investment-analysis`| AI asset allocation & risk diversification | Bearer |
+| `GET` | `/api/v1/ai/insurance-review` | AI insurance gap & liability review | Bearer |
+| `GET` | `/api/v1/export/transactions.csv` | Export transactions CSV (Bearer or ?token=) | Bearer |
+| `GET` | `/api/v1/export/accounts.csv` | Export accounts CSV | Bearer |
+| `GET` | `/api/v1/export/budgets.csv` | Export budgets CSV | Bearer |
+| `GET` | `/api/v1/export/goals.csv` | Export goals CSV | Bearer |
+| `GET` | `/api/v1/export/investments.csv`| Export investments CSV | Bearer |
+| `GET` | `/api/v1/export/loans.csv` | Export loans CSV | Bearer |
+| `GET` | `/api/v1/export/insurance.csv` | Export insurance CSV | Bearer |
+| `GET` | `/api/v1/export/subscriptions.csv`| Export subscriptions CSV | Bearer |
+| `GET` | `/api/v1/export/summary.csv` | Export comprehensive financial summary | Bearer |
+
+---
+
+## 🧪 9. Automated Testing
+
+The repository contains an end-to-end integration test suite covering 15 critical test groups:
+
 ```bash
 npm test
 ```
 
-### 4. Start the Application
-```bash
-npm start
-```
-Open your browser at `http://127.0.0.1:5000/`.
+### Test Suite Coverage:
+- System Diagnostics & PostgreSQL connectivity
+- User Registration, duplicate prevention, and Login
+- Financial Onboarding & Health Score calculations
+- Multi-Account atomic balance updates on deposit
+- Real-time Dashboard aggregations from database
+- Expense logging, Anomaly detection, and balance reversal upon deletion
+- 50/30/20 Category Budget tracking
+- Savings Goals and contribution increments
+- Multi-Asset Investments & MCX Precious Metals rates in INR
+- Loan EMI & Prepayment simulations
+- Insurance & Subscription tracking
+- Contextual AI Advisor, Investment Analysis, and Insurance Review
+- Natural Language Voice Parser
+- Authenticated CSV Exports (via Bearer header and query token)
+- Strict Multi-Tenant Data Isolation (User A vs User B)
+
+---
+
+## 🚀 10. Deployment Instructions
+
+### Deploy to Render / Railway / Cloud VM
+
+1. **Set Environment Variables**:
+   Configure `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `NODE_ENV=production`, `PORT=5000`.
+2. **Build Command**:
+   ```bash
+   npm run setup
+   ```
+3. **Start Command**:
+   ```bash
+   npm start
+   ```
+4. **Health Check Path**:
+   `/api/v1/health`
+
+---
+
+## 🔒 11. Security & Hygiene
+
+- **No Secrets in Repository**: All configuration templates use placeholders.
+- **Password Protection**: Salted `bcrypt` encryption.
+- **Tenant Isolation**: Database queries strictly filter by authenticated `req.user.id`.
+- **Export Security**: File downloads require valid JWT authentication.
 
 ---
 
@@ -166,4 +301,5 @@ Open your browser at `http://127.0.0.1:5000/`.
 
 **Jinay Golecha**  
 *Final Year Engineering Student*  
-GitHub: [@jinaygolecha](https://github.com/jinaygolecha)
+GitHub: [@jinaygolecha](https://github.com/jinaygolecha)  
+Repository: [Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project](https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project)

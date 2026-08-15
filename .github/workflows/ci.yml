@@ -1,0 +1,66 @@
+name: CI / Build & Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Node.js 22 LTS Validation
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword_ci_test
+          POSTGRES_DB: finance_jinay_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install Dependencies
+        run: |
+          npm --prefix node-backend install
+
+      - name: Generate Prisma Client
+        run: |
+          npm --prefix node-backend run prisma:generate
+
+      - name: Run Prisma Migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgrespassword_ci_test@localhost:5432/finance_jinay_test?schema=public
+        run: |
+          cd node-backend && npx prisma db push
+
+      - name: Run Acceptance Test Suite
+        env:
+          NODE_ENV: test
+          PORT: 5000
+          DATABASE_URL: postgresql://postgres:postgrespassword_ci_test@localhost:5432/finance_jinay_test?schema=public
+          JWT_SECRET: ci_test_jwt_secret_key_minimum_32_characters
+          JWT_REFRESH_SECRET: ci_test_refresh_secret_key_minimum_32_characters
+        run: |
+          npm test
+
+      - name: Build Verification
+        run: |
+          npm run build

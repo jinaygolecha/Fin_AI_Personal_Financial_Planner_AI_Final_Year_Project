@@ -1,53 +1,94 @@
-# Contributing to AI Personal Finance Tracker
+# 🤝 Contributing to Jinay Finance AI
 
-Thank you for your interest in contributing to the **AI Personal Finance Tracker** project maintained by **Jinay Golecha** (`jinay_golecha`).
+Thank you for your interest in contributing to **Jinay Finance AI**! This document outlines guidelines and workflows for developers.
 
-## Branching Strategy
+---
 
-We follow a structured Git branching strategy:
-- `main`: Production-ready, stable codebase.
-- `develop`: Integration branch for upcoming feature releases.
-- `feature/<feature-name>`: Feature development branches.
-- `bugfix/<issue-name>`: Dedicated bug fix branches.
+## 1. Code of Conduct
 
-## Development Setup
+- Be respectful, constructive, and collaborative.
+- Write clean, well-tested code that adheres to standard JavaScript/Node.js conventions.
+- Never commit credentials, passwords, or live API keys.
 
-1. **Clone the Repository**:
+---
+
+## 2. Development Setup
+
+### Prerequisites
+- **Node.js**: v22 LTS (specified in `.nvmrc`)
+- **PostgreSQL**: 17 (local or via Docker)
+- **Git**
+
+### Step-by-Step Local Setup
+
+1. **Clone the repository**:
    ```bash
-   git clone https://github.com/jinaygolecha/Final-Year-Project.git
-   cd Final-Year-Project
+   git clone https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project.git
+   cd Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project
    ```
 
-2. **Set up Virtual Environment**:
+2. **Environment Configuration**:
    ```bash
-   python -m venv .venv
-   .venv\Scripts\activate.bat
+   # Windows PowerShell
+   Copy-Item .env.example .env
+
+   # macOS / Linux
+   cp .env.example .env
    ```
 
-3. **Install Dependencies**:
+3. **Install Dependencies & Initialize Database**:
    ```bash
-   pip install -r requirements.txt
+   npm run setup
    ```
 
-4. **Environment Variables**:
-   Copy `.env.example` to `.env` and fill in local database credentials.
-
-5. **Run Migrations & Tests**:
+4. **Seed Sample Data (Optional)**:
    ```bash
-   python manage.py migrate
-   python manage.py test
+   npm run db:seed
    ```
 
-## Commit Conventions
+5. **Start Development Server**:
+   ```bash
+   npm run dev
+   ```
+   Open `http://127.0.0.1:5000/` in your browser.
 
-Use concise and meaningful commit messages:
-- `feat: Add voice input transaction parser`
-- `fix: Enforce authorization checks on group expense querysets`
-- `docs: Update API endpoint specifications`
-- `refactor: Clean up serializer field definitions`
+---
 
-## Pull Request Process
+## 3. Branching & Commit Conventions
 
-1. Ensure all unit tests pass locally (`python manage.py test`).
-2. Ensure no linting or Django system errors (`python manage.py check`).
-3. Open a Pull Request targeting the `develop` branch with a clear summary of changes.
+### Branch Strategy
+- `main`: Canonical, production-ready branch.
+- `develop`: Integration branch for upcoming releases.
+- `feature/<feature-name>`: New feature branches.
+- `fix/<issue-name>`: Bug fix branches.
+
+### Conventional Commits
+Use standard commit prefixes:
+- `feat:` A new feature
+- `fix:` A bug fix
+- `docs:` Documentation updates
+- `style:` Code style/formatting changes
+- `refactor:` Code refactoring without behavioral change
+- `test:` Adding or updating tests
+- `chore:` Maintenance, package updates, CI/CD changes
+
+---
+
+## 4. Testing
+
+Always run the full acceptance test suite before submitting a pull request:
+```bash
+npm test
+```
+
+All 47+ test assertions must pass with 0 failures.
+
+---
+
+## 5. Submitting Pull Requests
+
+1. Fork the repository and create your branch from `main`.
+2. Ensure all tests pass (`npm test`).
+3. Commit with descriptive messages.
+4. Push to your fork and submit a Pull Request to `main`.
+5. Clearly describe the changes and link any related issues.
