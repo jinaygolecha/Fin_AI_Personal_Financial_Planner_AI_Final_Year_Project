@@ -206,6 +206,18 @@ const createTransaction = async (req, res, next) => {
       }
     }
 
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'TRANSACTION_CREATE',
+        entity: 'Transaction',
+        entityId: transaction.id,
+        ipAddress: req.ip || null,
+        userAgent: req.headers['user-agent'] || null,
+      },
+    }).catch(() => {});
+
     return res.status(201).json({
       success: true,
       data: {
@@ -347,6 +359,18 @@ const deleteTransaction = async (req, res, next) => {
 
       await tx.transaction.delete({ where: { id: req.params.id } });
     });
+
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user.id,
+        action: 'TRANSACTION_DELETE',
+        entity: 'Transaction',
+        entityId: req.params.id,
+        ipAddress: req.ip || null,
+        userAgent: req.headers['user-agent'] || null,
+      },
+    }).catch(() => {});
 
     return res.status(200).json({
       success: true,

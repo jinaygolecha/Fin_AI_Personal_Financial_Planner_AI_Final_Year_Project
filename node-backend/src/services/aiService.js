@@ -210,6 +210,15 @@ const generateRuleBasedResponse = (userMessage, ctx) => {
   return `I'm here to help with your personal finances, ${ctx.user?.firstName || 'there'}! You can ask me about your balance, savings, expenses, investments, loans, or get financial tips. Your current balance is ${formatINR(totalBalance)} and health score is ${healthScore}/100.`;
 };
 
+const CANDIDATE_MODELS = [
+  process.env.AI_MODEL || 'gemini-3.7-flash',
+  'gemini-3.7-flash',
+  'gemini-3.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-flash-latest',
+  'gemma-4-31b-it',
+];
+
 /**
  * Main AI chat function
  */
@@ -220,49 +229,67 @@ const chat = async (userId, userMessage, chatHistory = []) => {
   if (!client) {
     // Use rule-based fallback
     const response = generateRuleBasedResponse(userMessage, ctx);
-    return { response, source: 'rule_based', context: { healthScore: ctx.healthScore, netWorth: ctx.netWorth } };
-  }
-
-  try {
-    const model = client.getGenerativeModel({ model: process.env.AI_MODEL || 'gemini-1.5-flash' });
-    const systemPrompt = buildSystemPrompt(ctx);
-
-    // Build history for multi-turn conversation
-    const history = chatHistory.slice(-10).map((msg) => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }],
-    }));
-
-    const chatSession = model.startChat({
-      history: [
-        { role: 'user', parts: [{ text: systemPrompt }] },
-        { role: 'model', parts: [{ text: 'Understood. I\'m ready to help with your personalized financial queries.' }] },
-        ...history,
-      ],
-      generationConfig: {
-        maxOutputTokens: 500,
-        temperature: 0.7,
-      },
-    });
-
-    const result = await chatSession.sendMessage(userMessage);
-    const response = result.response.text();
-
     return {
       response,
-      source: 'gemini',
+      source: 'rule_based',
       context: {
         healthScore: ctx.healthScore,
         netWorth: ctx.netWorth,
         formattedNetWorth: formatINR(ctx.netWorth),
       },
     };
-  } catch (err) {
-    console.error('[AI] Gemini error:', err.message);
-    // Fall back to rule-based
-    const response = generateRuleBasedResponse(userMessage, ctx);
-    return { response, source: 'rule_based_fallback', context: { healthScore: ctx.healthScore } };
   }
+
+  const systemPrompt = buildSystemPrompt(ctx);
+  const history = chatHistory.slice(-10).map((msg) => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }],
+  }));
+
+  // Try candidate models in order
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      const model = client.getGenerativeModel({ model: modelName });
+      const chatSession = model.startChat({
+        history: [
+          { role: 'user', parts: [{ text: systemPrompt }] },
+          { role: 'model', parts: [{ text: "Understood. I'm ready to help with your personalized financial queries." }] },
+          ...history,
+        ],
+        generationConfig: {
+          maxOutputTokens: 600,
+          temperature: 0.7,
+        },
+      });
+
+      const result = await chatSession.sendMessage(userMessage);
+      const response = result.response.text();
+
+      return {
+        response,
+        source: `gemini (${modelName})`,
+        context: {
+          healthScore: ctx.healthScore,
+          netWorth: ctx.netWorth,
+          formattedNetWorth: formatINR(ctx.netWorth),
+        },
+      };
+    } catch (err) {
+      console.warn(`[AI] Gemini attempt with ${modelName} failed:`, err.message);
+    }
+  }
+
+  // Fall back to rule-based using real DB context
+  const response = generateRuleBasedResponse(userMessage, ctx);
+  return {
+    response,
+    source: 'rule_based_fallback',
+    context: {
+      healthScore: ctx.healthScore,
+      netWorth: ctx.netWorth,
+      formattedNetWorth: formatINR(ctx.netWorth),
+    },
+  };
 };
 
 module.exports = { chat, getUserFinancialContext };

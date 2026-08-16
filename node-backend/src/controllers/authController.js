@@ -24,6 +24,18 @@ const register = async (req, res, next) => {
 
     const result = await authService.register({ email, username, password, firstName, lastName, phone });
 
+    // Audit Log
+    await prisma.auditLog.create({
+      data: {
+        userId: result.user.id,
+        action: 'USER_REGISTER',
+        entity: 'User',
+        entityId: result.user.id,
+        ipAddress: req.ip || null,
+        userAgent: req.headers['user-agent'] || null,
+      },
+    }).catch(() => {});
+
     return res.status(201).json({
       success: true,
       data: {
@@ -54,6 +66,18 @@ const login = async (req, res, next) => {
     }
 
     const result = await authService.login({ emailOrUsername, password });
+
+    // Audit Log
+    await prisma.auditLog.create({
+      data: {
+        userId: result.user.id,
+        action: 'USER_LOGIN',
+        entity: 'User',
+        entityId: result.user.id,
+        ipAddress: req.ip || null,
+        userAgent: req.headers['user-agent'] || null,
+      },
+    }).catch(() => {});
 
     return res.status(200).json({
       success: true,
@@ -101,6 +125,19 @@ const logout = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
     await authService.logout(refreshToken);
+
+    if (req.user?.id) {
+      await prisma.auditLog.create({
+        data: {
+          userId: req.user.id,
+          action: 'USER_LOGOUT',
+          entity: 'User',
+          entityId: req.user.id,
+          ipAddress: req.ip || null,
+          userAgent: req.headers['user-agent'] || null,
+        },
+      }).catch(() => {});
+    }
 
     return res.status(200).json({
       success: true,

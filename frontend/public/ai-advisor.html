@@ -362,6 +362,7 @@ How can I assist you today? You can ask about your spending, run a what-if finan
     };
 
     window.sendQuick = (text) => sendMessage(text);
+    window.sendMessage = (text) => sendMessage(text);
 
     document.getElementById('sendBtn').addEventListener('click', () => sendMessage());
     document.getElementById('chatInput').addEventListener('keydown', (e) => {

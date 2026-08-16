@@ -1,26 +1,26 @@
 /**
- * Jinay Finance AI — Shared Sidebar Component
+ * Jinay Finance AI — Shared Sidebar Component (Pure Vanilla JS)
  * Owner: Jinay Golecha (jinay_golecha)
- * Inject this into every app page.
+ * Works in both standard <script> and ES module contexts.
  */
 
-export function renderSidebar(activePage = '') {
+function renderSidebar(activePage = '') {
   const nav = [
-    { section: 'Main', items: [
-      { href: 'dashboard', icon: 'ri-dashboard-line', label: 'Dashboard' },
-      { href: 'transactions', icon: 'ri-exchange-line', label: 'Transactions' },
+    { section: 'Core', items: [
+      { href: 'dashboard', icon: 'ri-dashboard-3-line', label: 'Dashboard' },
+      { href: 'transactions', icon: 'ri-exchange-dollar-line', label: 'Transactions' },
       { href: 'budget', icon: 'ri-pie-chart-line', label: 'Budgets' },
       { href: 'goals', icon: 'ri-flag-line', label: 'Goals' },
     ]},
-    { section: 'Invest', items: [
-      { href: 'investments', icon: 'ri-stock-line', label: 'Portfolio & Metals' },
-      { href: 'loans', icon: 'ri-bank-line', label: 'Loans & EMI' },
+    { section: 'Wealth & Protection', items: [
+      { href: 'investments', icon: 'ri-line-chart-line', label: 'Investments & Metals' },
+      { href: 'loans', icon: 'ri-bank-card-line', label: 'Loans & EMI' },
       { href: 'insurance', icon: 'ri-shield-check-line', label: 'Insurance & Subs' },
     ]},
-    { section: 'Tools', items: [
-      { href: 'calendar', icon: 'ri-calendar-line', label: 'Calendar' },
-      { href: 'analytics', icon: 'ri-bar-chart-line', label: 'Analytics' },
-      { href: 'ai-advisor', icon: 'ri-robot-line', label: 'AI Advisor' },
+    { section: 'Intelligence & Tools', items: [
+      { href: 'calendar', icon: 'ri-calendar-event-line', label: 'Financial Calendar' },
+      { href: 'analytics', icon: 'ri-bar-chart-box-line', label: 'Analytics & Reports' },
+      { href: 'ai-advisor', icon: 'ri-robot-2-line', label: 'AI Advisor & Simulator' },
     ]},
   ];
 
@@ -38,10 +38,10 @@ export function renderSidebar(activePage = '') {
   return `
     <aside class="sidebar">
       <div class="sidebar-brand">
-        <div class="brand-icon"><i class="ri-line-chart-line"></i></div>
+        <div class="brand-icon"><i class="ri-funds-box-fill"></i></div>
         <div>
           <div class="brand-text">Jinay Finance AI</div>
-          <div class="brand-sub">by Jinay Golecha</div>
+          <div class="brand-sub">Decision Support Platform</div>
         </div>
       </div>
       ${navHTML}
@@ -52,14 +52,14 @@ export function renderSidebar(activePage = '') {
             <div class="user-name" id="sidebarUserName">Loading...</div>
             <div class="user-role" id="sidebarUserRole">User</div>
           </div>
-          <i class="ri-logout-box-line logout-btn" id="sidebarLogout" title="Logout"></i>
+          <i class="ri-logout-box-r-line logout-btn" id="sidebarLogout" title="Logout" style="margin-left:auto;cursor:pointer;"></i>
         </div>
       </div>
     </aside>
   `;
 }
 
-export function initSidebarUser() {
+function initSidebarUser() {
   const user = JSON.parse(localStorage.getItem('jf_user') || '{}');
   const name = (user.firstName || user.username || 'User');
   const fullName = name + (user.lastName ? ' ' + user.lastName : '');
@@ -78,7 +78,7 @@ export function initSidebarUser() {
       const rt = localStorage.getItem('jf_refresh_token');
       const at = localStorage.getItem('jf_access_token');
       try {
-        await fetch('http://127.0.0.1:5000/api/v1/auth/logout', {
+        await fetch('/api/v1/auth/logout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${at}` },
           body: JSON.stringify({ refreshToken: rt }),
@@ -88,4 +88,11 @@ export function initSidebarUser() {
       window.location.href = '/login.html';
     };
   }
+}
+
+// Attach to window
+if (typeof window !== 'undefined') {
+  window.renderSidebar = renderSidebar;
+  window.getSidebar = renderSidebar;
+  window.initSidebarUser = initSidebarUser;
 }

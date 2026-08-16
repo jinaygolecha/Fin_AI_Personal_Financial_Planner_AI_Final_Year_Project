@@ -166,9 +166,14 @@
     };
 
     const deleteLoan = async (id) => {
-      if (!confirm('Remove this loan?')) return;
-      // No delete route exists yet, show message
-      showToast('Loan removal: contact administrator.','info');
+      if (!confirm('Are you sure you want to remove this loan obligation?')) return;
+      const res = await apiFetch(`/loans/${id}`, { method: 'DELETE' });
+      if (res?.success) {
+        showToast('Loan removed successfully.', 'info');
+        loadLoans();
+      } else {
+        showToast(res?.error?.message || 'Failed to remove loan.', 'error');
+      }
     };
 
     const calcEMI = () => {
