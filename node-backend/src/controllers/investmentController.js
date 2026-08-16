@@ -3,6 +3,11 @@ const marketService = require('../services/marketService');
 const { formatINR } = require('../utils/inr');
 
 /**
+ * Investments & Real-Time Market Controller
+ * Owner: Jinay Golecha (jinay_golecha)
+ */
+
+/**
  * GET /api/v1/investments/portfolio
  */
 const getPortfolio = async (req, res, next) => {
@@ -20,17 +25,43 @@ const getPortfolio = async (req, res, next) => {
       });
     }
 
+    const metals = await marketService.getPreciousMetals();
+    const gold24k = metals.gold.karat24.perGram;
+    const gold22k = metals.gold.karat22.perGram;
+    const silverGram = metals.silver.perGram;
+
     let totalInvested = 0;
     let currentPortfolioValue = 0;
     const items = [];
 
     for (const inv of portfolio.investments) {
-      const quote = await marketService.getQuote(inv.symbol);
       const qty = parseFloat(inv.quantity);
       const avgBuy = parseFloat(inv.averageBuyPrice);
-      const currPrice = quote.price;
-
       const costBasis = qty * avgBuy;
+
+      let currPrice = avgBuy;
+      let quoteName = inv.name || inv.symbol;
+      let marketStatus = 'LIVE';
+      let timestamp = metals.timestamp;
+      let source = 'LIVE';
+
+      if (inv.assetType === 'GOLD' || inv.symbol.toUpperCase().includes('GOLD')) {
+        currPrice = inv.symbol.includes('22K') ? gold22k : gold24k;
+        quoteName = inv.name || (inv.symbol.includes('22K') ? 'Gold 22K (Physical/SGB)' : 'Gold 24K (99.9% Pure)');
+        marketStatus = metals.marketStatus;
+      } else if (inv.assetType === 'SILVER' || inv.symbol.toUpperCase().includes('SILVER')) {
+        currPrice = silverGram;
+        quoteName = inv.name || 'Silver (99.9% Pure)';
+        marketStatus = metals.marketStatus;
+      } else {
+        const quote = await marketService.getQuote(inv.symbol);
+        currPrice = quote.price;
+        quoteName = inv.name || quote.name || inv.symbol;
+        marketStatus = quote.marketStatus;
+        timestamp = quote.timestamp;
+        source = quote.source;
+      }
+
       const currVal = qty * currPrice;
       const pnl = currVal - costBasis;
       const pnlPct = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
@@ -41,7 +72,7 @@ const getPortfolio = async (req, res, next) => {
       items.push({
         id: inv.id,
         symbol: inv.symbol,
-        name: inv.name || quote.name || inv.symbol,
+        name: quoteName,
         assetType: inv.assetType,
         quantity: qty,
         averageBuyPrice: avgBuy,
@@ -55,13 +86,13 @@ const getPortfolio = async (req, res, next) => {
         pnl,
         formattedPnl: formatINR(pnl),
         pnlPercent: Math.round(pnlPct * 100) / 100,
-        marketStatus: quote.marketStatus,
-        timestamp: quote.timestamp,
-        source: quote.source,
+        marketStatus,
+        timestamp,
+        source,
       });
     }
 
-    // Update portfolio totals
+    // Update portfolio totals in DB
     await prisma.portfolio.update({
       where: { userId },
       data: { totalInvested, currentValue: currentPortfolioValue },
@@ -115,7 +146,7 @@ const buyInvestment = async (req, res, next) => {
 
     const symbolUpper = symbol.toUpperCase().trim();
 
-    // Upsert investment (if already held, update weighted average)
+    // Upsert investment
     const existing = await prisma.investment.findFirst({
       where: { portfolioId: portfolio.id, symbol: symbolUpper },
     });
@@ -182,12 +213,97 @@ const getStockQuote = async (req, res, next) => {
 };
 
 /**
+ * GET /api/v1/market/history
+ */
+const getStockHistory = async (req, res, next) => {
+  try {
+    const symbol = req.query.symbol || 'RELIANCE';
+    const timeframe = req.query.timeframe || '1M';
+    const history = await marketService.getStockHistory(symbol, timeframe);
+
+    return res.status(200).json({
+      success: true,
+      data: history,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/market/search
+ */
+const searchStocks = async (req, res, next) => {
+  try {
+    const query = req.query.q || '';
+    const results = marketService.searchStocks(query);
+    return res.status(200).json({ success: true, data: results });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/v1/market/popular
  */
 const getPopularStocks = async (req, res, next) => {
   try {
     const stocks = marketService.getPopularStocks();
     return res.status(200).json({ success: true, data: stocks });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/market/metals
+ */
+const getMetals = async (req, res, next) => {
+  try {
+    const data = await marketService.getPreciousMetals();
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/market/gold
+ */
+const getGold = async (req, res, next) => {
+  try {
+    const metals = await marketService.getPreciousMetals();
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...metals.gold,
+        marketStatus: metals.marketStatus,
+        source: metals.source,
+        timestamp: metals.timestamp,
+        provider: metals.provider,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/market/silver
+ */
+const getSilver = async (req, res, next) => {
+  try {
+    const metals = await marketService.getPreciousMetals();
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...metals.silver,
+        marketStatus: metals.marketStatus,
+        source: metals.source,
+        timestamp: metals.timestamp,
+        provider: metals.provider,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -243,6 +359,20 @@ const addToWatchlist = async (req, res, next) => {
     });
 
     return res.status(201).json({ success: true, data: { ...item, message: `${symbol} added to watchlist!` } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/v1/market/watchlist/:symbol
+ */
+const removeFromWatchlist = async (req, res, next) => {
+  try {
+    await prisma.marketWatchlist.deleteMany({
+      where: { userId: req.user.id, symbol: req.params.symbol.toUpperCase() },
+    });
+    return res.status(200).json({ success: true, data: { message: 'Removed from watchlist.' } });
   } catch (error) {
     next(error);
   }
@@ -327,28 +457,6 @@ const deleteInvestment = async (req, res, next) => {
     next(error);
   }
 };
-const removeFromWatchlist = async (req, res, next) => {
-  try {
-    await prisma.marketWatchlist.deleteMany({
-      where: { userId: req.user.id, symbol: req.params.symbol.toUpperCase() },
-    });
-    return res.status(200).json({ success: true, data: { message: 'Removed from watchlist.' } });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * GET /api/v1/market/metals
- */
-const getMetals = async (req, res, next) => {
-  try {
-    const data = await marketService.getPreciousMetals();
-    return res.status(200).json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-};
 
 module.exports = {
   getPortfolio,
@@ -357,9 +465,13 @@ module.exports = {
   updateInvestment,
   deleteInvestment,
   getStockQuote,
+  getStockHistory,
+  searchStocks,
   getPopularStocks,
   getWatchlist,
   addToWatchlist,
   removeFromWatchlist,
   getMetals,
+  getGold,
+  getSilver,
 };

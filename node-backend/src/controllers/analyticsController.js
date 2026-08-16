@@ -1,5 +1,11 @@
 const prisma = require('../config/database');
 const { formatINR } = require('../utils/inr');
+const financialTwin = require('../services/financialTwinService');
+
+/**
+ * Analytics, Health Scoring & Reports Controller
+ * Owner: Jinay Golecha (jinay_golecha)
+ */
 
 /**
  * GET /api/v1/analytics
@@ -83,6 +89,219 @@ const getAnalytics = async (req, res, next) => {
           date: t.date,
           amount: parseFloat(t._sum.amount || 0),
         })),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/ai/financial-health
+ * Feature 1: Advanced AI Financial Health Score (0-100)
+ */
+const getFinancialHealth = async (req, res, next) => {
+  try {
+    const health = await financialTwin.calculateDetailedHealthScore(req.user.id);
+    return res.status(200).json({
+      success: true,
+      data: health,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/ai/cash-flow
+ * Feature 2: Cash Flow Prediction (7, 30, 90 Days)
+ */
+const getCashFlowPrediction = async (req, res, next) => {
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const prediction = await financialTwin.predictCashFlow(req.user.id, days);
+    return res.status(200).json({
+      success: true,
+      data: prediction,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/ai/anomalies
+ * Feature 3: Expense Anomalies list
+ */
+const getExpenseAnomalies = async (req, res, next) => {
+  try {
+    const anomalies = await prisma.expenseAnomaly.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: anomalies,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PATCH /api/v1/ai/anomalies/:id/feedback
+ * Feature 3: Expense Anomaly Feedback (CONFIRMED_NORMAL / SUSPICIOUS / IGNORED)
+ */
+const submitAnomalyFeedback = async (req, res, next) => {
+  try {
+    const { feedback } = req.body; // CONFIRMED_NORMAL | SUSPICIOUS | IGNORED
+    const anomaly = await prisma.expenseAnomaly.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+
+    if (!anomaly) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Anomaly not found' } });
+    }
+
+    const updated = await prisma.expenseAnomaly.update({
+      where: { id: req.params.id },
+      data: { userFeedback: feedback || 'CONFIRMED_NORMAL' },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        anomaly: updated,
+        message: `Feedback recorded: ${feedback}`,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/ai/budget-optimize
+ * Feature 4: Smart Budget Optimizer
+ */
+const getBudgetOptimization = async (req, res, next) => {
+  try {
+    const method = req.query.method || '50/30/20';
+    const optimized = await financialTwin.optimizeBudget(req.user.id, method);
+    return res.status(200).json({
+      success: true,
+      data: optimized,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/ai/risk-radar
+ * Feature 28: Financial Risk Radar
+ */
+const getRiskRadar = async (req, res, next) => {
+  try {
+    const radar = await financialTwin.evaluateRiskRadar(req.user.id);
+    return res.status(200).json({
+      success: true,
+      data: radar,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/reports/monthly
+ * Feature 22: AI Monthly Financial Report
+ */
+const getMonthlyFinancialReport = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const now = new Date();
+    const month = parseInt(req.query.month) || now.getMonth() + 1;
+    const year = parseInt(req.query.year) || now.getFullYear();
+
+    const startOfMonth = new Date(year, month - 1, 1);
+    const endOfMonth = new Date(year, month, 0);
+
+    const [
+      user,
+      incomes,
+      expenses,
+      categoryExpenses,
+      budgets,
+      portfolio,
+      goals,
+      loans,
+      insurance,
+      subscriptions,
+      healthScore,
+    ] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true, email: true } }),
+      prisma.transaction.aggregate({
+        where: { userId, transactionType: 'INCOME', date: { gte: startOfMonth, lte: endOfMonth } },
+        _sum: { amount: true },
+        _count: true,
+      }),
+      prisma.transaction.aggregate({
+        where: { userId, transactionType: 'EXPENSE', date: { gte: startOfMonth, lte: endOfMonth } },
+        _sum: { amount: true },
+        _count: true,
+      }),
+      prisma.transaction.groupBy({
+        by: ['categoryId'],
+        where: { userId, transactionType: 'EXPENSE', date: { gte: startOfMonth, lte: endOfMonth } },
+        _sum: { amount: true },
+        orderBy: { _sum: { amount: 'desc' } },
+        take: 5,
+      }),
+      prisma.budget.findMany({ where: { userId } }),
+      prisma.portfolio.findUnique({ where: { userId }, include: { investments: true } }),
+      prisma.goal.findMany({ where: { userId } }),
+      prisma.loan.findMany({ where: { userId, status: 'ACTIVE' } }),
+      prisma.insurancePolicy.findMany({ where: { userId, isActive: true } }),
+      prisma.subscription.findMany({ where: { userId, isActive: true } }),
+      financialTwin.calculateDetailedHealthScore(userId),
+    ]);
+
+    const totalIncome = parseFloat(incomes._sum.amount || 0);
+    const totalExpenses = parseFloat(expenses._sum.amount || 0);
+    const netSavings = totalIncome - totalExpenses;
+    const savingsRate = totalIncome > 0 ? Math.round((netSavings / totalIncome) * 100) : 0;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        reportMonth: `${month}/${year}`,
+        generatedAt: new Date().toISOString(),
+        user: { name: `${user?.firstName} ${user?.lastName}`.trim(), email: user?.email },
+        summary: {
+          totalIncome,
+          formattedTotalIncome: formatINR(totalIncome),
+          totalExpenses,
+          formattedTotalExpenses: formatINR(totalExpenses),
+          netSavings,
+          formattedNetSavings: formatINR(netSavings),
+          savingsRate,
+          healthScore: healthScore.overallScore,
+        },
+        healthBreakdown: healthScore.components,
+        topExpenseCategories: categoryExpenses.map(c => ({
+          categoryId: c.categoryId,
+          amount: parseFloat(c._sum.amount || 0),
+          formattedAmount: formatINR(c._sum.amount || 0),
+        })),
+        activeLoansCount: loans.length,
+        totalDebt: loans.reduce((s, l) => s + parseFloat(l.outstandingBalance), 0),
+        insurancePoliciesCount: insurance.length,
+        activeSubscriptionsCount: subscriptions.length,
+        activeGoalsCount: goals.length,
+        aiRecommendations: healthScore.recommendations,
       },
     });
   } catch (error) {
@@ -292,7 +511,7 @@ const createNotification = async (req, res, next) => {
         userId: req.user.id,
         title: title.trim(),
         message: message.trim(),
-        notificationType: type,
+        type: type,
         isRead: false,
       },
     });
@@ -355,6 +574,13 @@ const deleteNotification = async (req, res, next) => {
 
 module.exports = {
   getAnalytics,
+  getFinancialHealth,
+  getCashFlowPrediction,
+  getExpenseAnomalies,
+  submitAnomalyFeedback,
+  getBudgetOptimization,
+  getRiskRadar,
+  getMonthlyFinancialReport,
   getCalendarEvents,
   createCalendarEvent,
   updateCalendarEvent,

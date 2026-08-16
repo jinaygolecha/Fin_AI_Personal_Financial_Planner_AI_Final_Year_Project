@@ -1,9 +1,14 @@
 const prisma = require('../config/database');
 const { formatINR } = require('../utils/inr');
+const financialTwin = require('../services/financialTwinService');
+
+/**
+ * Transactions Controller with Anomaly Detection & ML Categorization
+ * Owner: Jinay Golecha (jinay_golecha)
+ */
 
 /**
  * GET /api/v1/transactions
- * List transactions for authenticated user with filters
  */
 const getTransactions = async (req, res, next) => {
   try {
@@ -179,17 +184,26 @@ const createTransaction = async (req, res, next) => {
       return t;
     });
 
-    let anomalyLevel = 'NORMAL';
-    if (transactionType === 'EXPENSE' && amountNum >= 50000) {
-      anomalyLevel = amountNum >= 200000 ? 'HIGHLY_UNUSUAL' : 'UNUSUAL';
-      await prisma.notification.create({
-        data: {
-          userId,
-          title: anomalyLevel === 'HIGHLY_UNUSUAL' ? 'High Value Expense Alert' : 'Unusual Expense Detected',
-          message: `Recorded a high-value expense of ${formatINR(amountNum)} for ${categoryRecord?.name || 'Uncategorized'}.`,
-          type: 'WARNING',
-        },
-      }).catch(() => {});
+    // Statistical Anomaly Detection
+    let anomalyResult = { isAnomaly: false, severity: 'NORMAL' };
+    if (transactionType === 'EXPENSE') {
+      anomalyResult = await financialTwin.detectExpenseAnomaly(userId, {
+        id: transaction.id,
+        amount: amountNum,
+        categoryId: categoryRecord?.name || 'General',
+        merchant: merchant || description,
+      });
+
+      if (anomalyResult.isAnomaly) {
+        await prisma.notification.create({
+          data: {
+            userId,
+            title: anomalyResult.severity === 'HIGHLY_UNUSUAL' ? '⚠️ High-Value Anomaly Detected' : 'Unusual Expense Detected',
+            message: anomalyResult.reason,
+            type: anomalyResult.severity === 'HIGHLY_UNUSUAL' ? 'ALERT' : 'WARNING',
+          },
+        }).catch(() => {});
+      }
     }
 
     return res.status(201).json({
@@ -202,7 +216,8 @@ const createTransaction = async (req, res, next) => {
         category: transaction.category?.name || 'Uncategorized',
         account: transaction.account?.name || 'Primary Account',
         date: transaction.date,
-        anomalyStatus: anomalyLevel,
+        anomalyStatus: anomalyResult.severity,
+        anomalyReason: anomalyResult.reason,
         message: 'Transaction created successfully!',
       },
     });
@@ -244,6 +259,7 @@ const updateTransaction = async (req, res, next) => {
   try {
     const existing = await prisma.transaction.findFirst({
       where: { id: req.params.id, userId: req.user.id },
+      include: { category: true },
     });
 
     if (!existing) {
@@ -253,51 +269,44 @@ const updateTransaction = async (req, res, next) => {
       });
     }
 
-    const { amount, description, merchant, date, notes, type, category: categoryName } = req.body;
+    const { amount, description, merchant, notes, category: newCategoryName } = req.body;
 
-    let categoryId = undefined;
-    if (categoryName) {
+    // ML Feedback Learning: If user changed the category, store correction
+    if (newCategoryName && existing.category?.name && newCategoryName.toLowerCase() !== existing.category.name.toLowerCase()) {
+      await prisma.transactionCategoryCorrection.create({
+        data: {
+          userId: req.user.id,
+          merchant: merchant || existing.merchant,
+          description: description || existing.description,
+          originalCategory: existing.category.name,
+          correctedCategory: newCategoryName,
+        },
+      }).catch(() => {});
+    }
+
+    let categoryId = existing.categoryId;
+    if (newCategoryName) {
       let cat = await prisma.category.findFirst({
-        where: { userId: req.user.id, name: { equals: categoryName, mode: 'insensitive' } },
+        where: { userId: req.user.id, name: { equals: newCategoryName, mode: 'insensitive' } },
       });
       if (!cat) {
         cat = await prisma.category.create({
-          data: { userId: req.user.id, name: categoryName, categoryType: 'EXPENSE' },
+          data: { userId: req.user.id, name: newCategoryName, categoryType: existing.transactionType === 'INCOME' ? 'INCOME' : 'EXPENSE' },
         });
       }
       categoryId = cat.id;
     }
 
-    const updated = await prisma.$transaction(async (tx) => {
-      const newAmount = amount !== undefined ? parseFloat(amount) : parseFloat(existing.amount);
-      const newType = type ? type.toUpperCase() : existing.transactionType;
-
-      // Adjust account balance if amount or type changed
-      if (existing.accountId && (amount !== undefined || type !== undefined)) {
-        const oldDelta = existing.transactionType === 'INCOME' ? parseFloat(existing.amount) : -parseFloat(existing.amount);
-        const newDelta = newType === 'INCOME' ? newAmount : -newAmount;
-        const diff = newDelta - oldDelta;
-        if (diff !== 0) {
-          await tx.financialAccount.update({
-            where: { id: existing.accountId },
-            data: { balance: { increment: diff } },
-          });
-        }
-      }
-
-      return await tx.transaction.update({
-        where: { id: req.params.id },
-        data: {
-          ...(amount !== undefined && { amount: newAmount }),
-          ...(type && { transactionType: newType }),
-          ...(categoryId && { categoryId }),
-          ...(description !== undefined && { description }),
-          ...(merchant !== undefined && { merchant }),
-          ...(date && { date: new Date(date) }),
-          ...(notes !== undefined && { notes }),
-        },
-        include: { category: { select: { name: true } }, account: { select: { name: true } } },
-      });
+    const updated = await prisma.transaction.update({
+      where: { id: req.params.id },
+      data: {
+        ...(amount !== undefined && { amount: parseFloat(amount) }),
+        ...(description !== undefined && { description: description?.trim() || null }),
+        ...(merchant !== undefined && { merchant: merchant?.trim() || null }),
+        ...(notes !== undefined && { notes: notes?.trim() || null }),
+        ...(categoryId && { categoryId }),
+      },
+      include: { category: true, account: true },
     });
 
     return res.status(200).json({
@@ -350,7 +359,6 @@ const deleteTransaction = async (req, res, next) => {
 
 /**
  * POST /api/v1/transactions/voice
- * Parse voice entry text into a transaction
  */
 const parseVoiceEntry = async (req, res, next) => {
   try {
@@ -411,9 +419,7 @@ const parseVoiceText = (text) => {
     }
   }
 
-  // Description — use the original text
   const description = text.trim();
-
   return { amount, type, category, description };
 };
 

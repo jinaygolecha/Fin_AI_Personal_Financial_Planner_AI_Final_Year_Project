@@ -3,6 +3,11 @@ const prisma = require('../config/database');
 const { formatINR } = require('../utils/inr');
 
 /**
+ * AI Advisor & Recommendation Controller
+ * Owner: Jinay Golecha (jinay_golecha)
+ */
+
+/**
  * POST /api/v1/ai/chat
  */
 const chat = async (req, res, next) => {
@@ -184,7 +189,7 @@ const getInvestmentAnalysis = async (req, res, next) => {
           gold: { percentage: goldPct, value: goldValue, formatted: formatINR(goldValue) },
           crypto: { percentage: cryptoPct, value: cryptoValue, formatted: formatINR(cryptoValue) },
           cash: { percentage: cashPct, value: cashBalance, formatted: formatINR(cashBalance) },
-          other: { percentage: 100 - (equityPct + goldPct + cryptoPct + cashPct), value: otherValue, formatted: formatINR(otherValue) },
+          other: { percentage: Math.max(0, 100 - (equityPct + goldPct + cryptoPct + cashPct)), value: otherValue, formatted: formatINR(otherValue) },
         },
         diversificationScore: holdings.length >= 5 ? 'Good' : holdings.length >= 2 ? 'Moderate' : 'Low',
         insights,
@@ -209,7 +214,7 @@ const getInsuranceReview = async (req, res, next) => {
     ]);
 
     const annualSalary = (parseFloat(profile?.monthlySalary || 0)) * 12;
-    const recommendedLifeCover = annualSalary * 10;
+    const recommendedLifeCover = annualSalary > 0 ? annualSalary * 10 : 5000000;
     const totalDebt = loans.reduce((sum, l) => sum + parseFloat(l.outstandingBalance), 0);
 
     const lifePolicies = policies.filter(p => p.policyType === 'LIFE');
@@ -251,6 +256,161 @@ const getInsuranceReview = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/v1/ai/recommendations
+ */
+const getRecommendations = async (req, res, next) => {
+  try {
+    const recommendations = await prisma.aiRecommendation.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: recommendations,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/ai/recommendations/:id/feedback
+ * Feature 30: AI Recommendation Feedback (Helpful, Not Helpful, Already Done)
+ */
+const submitRecommendationFeedback = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { feedbackType, recommendationTitle, comments } = req.body; // HELPFUL, NOT_HELPFUL, ALREADY_DONE
+
+    const feedback = await prisma.aIRecommendationFeedback.create({
+      data: {
+        userId,
+        recommendationId: req.params.id !== 'custom' ? req.params.id : null,
+        recommendationTitle: recommendationTitle || 'AI Financial Tip',
+        feedbackType: feedbackType || 'HELPFUL',
+        comments: comments || null,
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        feedback,
+        message: 'Thank you! Your feedback helps us personalize your financial guidance.',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/ai/voice-intent
+ * Feature 26: AI Voice Assistant with structured intent parsing & confirmation requirements
+ */
+const parseVoiceIntent = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { speechText } = req.body;
+
+    if (!speechText || speechText.trim().length === 0) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Speech text is required.' } });
+    }
+
+    const text = speechText.toLowerCase().trim();
+    const ctx = await aiService.getUserFinancialContext(userId);
+
+    // 1. Command: Add expense (Requires confirmation!)
+    const addExpenseMatch = text.match(/(?:add|record|spent)\s*(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d{1,2})?)\s*(?:rupees|for|on)?\s*([a-z\s]+)?/i) || text.match(/(?:add|record)\s*(?:a|an)?\s*(\d+(?:\.\d{1,2})?)\s*([a-z\s]+)?/i);
+    if ((text.startsWith('add') || text.startsWith('record') || text.includes('spent ')) && addExpenseMatch && parseFloat(addExpenseMatch[1]) > 0) {
+      const amount = parseFloat(addExpenseMatch[1]);
+      let category = (addExpenseMatch[2] || 'Food').replace('expense', '').trim();
+      if (!category) category = 'Food';
+      return res.status(200).json({
+        success: true,
+        data: {
+          intent: 'CREATE_EXPENSE',
+          requiresConfirmation: true,
+          confirmationMessage: `Do you want to record an expense of ${formatINR(amount)} for ${category}?`,
+          pendingPayload: {
+            amount,
+            category,
+            transactionType: 'EXPENSE',
+          },
+        },
+      });
+    }
+
+    // 2. Query: Spending check
+    if (text.includes('how much') || text.includes('what did i spend') || text.includes('total expense') || text.includes('spending')) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          intent: 'QUERY_EXPENSES',
+          requiresConfirmation: false,
+          spokenResponse: `You have spent ${formatINR(ctx.expensesThisMonth)} this month.`,
+          data: { expensesThisMonth: ctx.expensesThisMonth },
+        },
+      });
+    }
+
+    // 3. Query: Portfolio check
+    if (text.includes('portfolio') || text.includes('investment') || text.includes('invested')) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          intent: 'QUERY_PORTFOLIO',
+          requiresConfirmation: false,
+          spokenResponse: `Your investment portfolio is currently valued at ${formatINR(ctx.investmentValue)}.`,
+          data: { investmentValue: ctx.investmentValue },
+        },
+      });
+    }
+
+    // 4. Query: Net worth check
+    if (text.includes('net worth') || text.includes('wealth')) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          intent: 'QUERY_NET_WORTH',
+          requiresConfirmation: false,
+          spokenResponse: `Your total net worth is ${formatINR(ctx.netWorth)}.`,
+          data: { netWorth: ctx.netWorth },
+        },
+      });
+    }
+
+    // 5. Query: EMI check
+    if (text.includes('emi') || text.includes('loan')) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          intent: 'QUERY_EMI',
+          requiresConfirmation: false,
+          spokenResponse: ctx.monthlyEMI > 0 ? `Your monthly EMI obligation is ${formatINR(ctx.monthlyEMI)} with total outstanding debt of ${formatINR(ctx.totalDebt)}.` : 'You have no active loans or EMIs due.',
+          data: { monthlyEMI: ctx.monthlyEMI, totalDebt: ctx.totalDebt },
+        },
+      });
+    }
+
+    // General fallback
+    const aiResp = await aiService.chat(userId, speechText);
+    return res.status(200).json({
+      success: true,
+      data: {
+        intent: 'GENERAL_ASSISTANT',
+        requiresConfirmation: false,
+        spokenResponse: aiResp.response,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   chat,
   getChatHistory,
@@ -258,4 +418,7 @@ module.exports = {
   getFinancialSnapshot,
   getInvestmentAnalysis,
   getInsuranceReview,
+  getRecommendations,
+  submitRecommendationFeedback,
+  parseVoiceIntent,
 };

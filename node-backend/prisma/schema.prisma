@@ -56,6 +56,13 @@ model User {
   exportJobs         ExportJob[]
   auditLogs          AuditLog[]
   refreshTokens      RefreshToken[]
+  healthHistory      FinancialHealthHistory[]
+  cashFlowPredictions CashFlowPrediction[]
+  expenseAnomalies   ExpenseAnomaly[]
+  financialSimulations FinancialSimulation[]
+  recommendationFeedback AIRecommendationFeedback[]
+  categoryCorrections TransactionCategoryCorrection[]
+  receiptScans       ReceiptScan[]
 
   @@index([email])
   @@index([googleId])
@@ -508,6 +515,11 @@ enum NotificationType {
   SIP_DUE
   GOAL_MILESTONE
   STOCK_ALERT
+  GOLD_ALERT
+  SILVER_ALERT
+  ANOMALY_DETECTED
+  CASH_FLOW_ALERT
+  SIMULATION_RESULT
 }
 
 // ============================================================
@@ -541,6 +553,163 @@ model AIRecommendation {
   @@map("ai_recommendations")
 }
 
+model AIRecommendationFeedback {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recommendationId    String?
+  recommendationTitle String
+  feedbackType        String   // HELPFUL, NOT_HELPFUL, ALREADY_DONE
+  comments            String?
+  createdAt           DateTime @default(now())
+
+  @@index([userId])
+  @@map("ai_recommendation_feedback")
+}
+
+model FinancialHealthHistory {
+  id                   String   @id @default(uuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  overallScore         Int
+  savingsScore         Int      @default(0)
+  debtScore            Int      @default(0)
+  emergencyScore       Int      @default(0)
+  investmentScore      Int      @default(0)
+  goalScore            Int      @default(0)
+  insuranceScore       Int      @default(0)
+  cashFlowScore        Int      @default(0)
+  subscriptionScore    Int      @default(0)
+  dtiScore             Int      @default(0)
+  incomeStabilityScore Int      @default(0)
+  positiveReasons      String[] @default([])
+  attentionReasons     String[] @default([])
+  recommendations      String[] @default([])
+  createdAt            DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("financial_health_history")
+}
+
+model CashFlowPrediction {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timeframeDays    Int      // 7, 30, 90
+  expectedIncome   Decimal  @db.Decimal(15, 2)
+  expectedExpenses Decimal  @db.Decimal(15, 2)
+  expectedBalance  Decimal  @db.Decimal(15, 2)
+  lowBalanceDate   DateTime?
+  lowBalanceAmount Decimal? @db.Decimal(15, 2)
+  projections      Json
+  createdAt        DateTime @default(now())
+
+  @@index([userId])
+  @@map("cash_flow_predictions")
+}
+
+model ExpenseAnomaly {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactionId   String?
+  amount          Decimal  @db.Decimal(15, 2)
+  category        String
+  merchant        String?
+  baselineAverage Decimal  @db.Decimal(15, 2)
+  severity        String   @default("UNUSUAL") // NORMAL, UNUSUAL, HIGHLY_UNUSUAL
+  reason          String
+  userFeedback    String   @default("PENDING") // PENDING, CONFIRMED_NORMAL, SUSPICIOUS, IGNORED
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@map("expense_anomalies")
+}
+
+model FinancialSimulation {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenarioName     String
+  scenarioType     String   // SALARY_INCREASE, EXPENSE_INCREASE, EXTRA_INVESTMENT, LOAN_PREPAY, MAJOR_PURCHASE, CUSTOM
+  parameters       Json
+  currentCashFlow  Decimal  @db.Decimal(15, 2)
+  scenarioCashFlow Decimal  @db.Decimal(15, 2)
+  currentNetWorth  Decimal  @db.Decimal(15, 2)
+  scenarioNetWorth Decimal  @db.Decimal(15, 2)
+  impactSummary    String
+  detailedImpact   Json
+  createdAt        DateTime @default(now())
+
+  @@index([userId])
+  @@map("financial_simulations")
+}
+
+model TransactionCategoryCorrection {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchant          String?
+  description       String?
+  originalCategory  String
+  correctedCategory String
+  createdAt         DateTime @default(now())
+
+  @@index([userId])
+  @@map("transaction_category_corrections")
+}
+
+model ReceiptScan {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchant      String?
+  amount        Decimal? @db.Decimal(15, 2)
+  date          DateTime? @db.Date
+  category      String?
+  items         Json?
+  rawText       String?
+  status        String   @default("PENDING_CONFIRMATION") // PENDING_CONFIRMATION, CONFIRMED, REJECTED
+  transactionId String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@map("receipt_scans")
+}
+
+// ============================================================
+// MARKET & COMMODITY PRICES
+// ============================================================
+
+model MarketPriceHistory {
+  id        String   @id @default(uuid())
+  symbol    String
+  price     Decimal  @db.Decimal(15, 2)
+  open      Decimal? @db.Decimal(15, 2)
+  high      Decimal? @db.Decimal(15, 2)
+  low       Decimal? @db.Decimal(15, 2)
+  close     Decimal? @db.Decimal(15, 2)
+  volume    BigInt?
+  currency  String   @default("INR")
+  provider  String   @default("Finnhub")
+  timestamp DateTime @default(now())
+
+  @@index([symbol, timestamp])
+  @@map("market_price_history")
+}
+
+model CommodityPrice {
+  id            String   @id @default(uuid())
+  commodityType String   // GOLD_24K, GOLD_22K, SILVER
+  pricePerGram  Decimal  @db.Decimal(15, 2)
+  currency      String   @default("INR")
+  provider      String   @default("MCX_Reference")
+  timestamp     DateTime @default(now())
+
+  @@index([commodityType, timestamp])
+  @@map("commodity_prices")
+}
+
 // ============================================================
 // EXPORTS & AUDIT
 // ============================================================
@@ -572,3 +741,4 @@ model AuditLog {
   @@index([userId])
   @@map("audit_logs")
 }
+

@@ -13,6 +13,8 @@ const insurance = require('../controllers/insuranceController');
 const subscriptions = require('../controllers/subscriptionController');
 const analytics = require('../controllers/analyticsController');
 const ai = require('../controllers/aiController');
+const simulations = require('../controllers/simulationController');
+const ocrImport = require('../controllers/ocrImportController');
 const onboarding = require('../controllers/onboardingController');
 const exports_ = require('../controllers/exportController');
 
@@ -70,20 +72,24 @@ router.patch('/goals/:id', goals.updateGoal);
 router.patch('/goals/:id/contribute', goals.contributeToGoal);
 router.delete('/goals/:id', goals.deleteGoal);
 
-// Investments & Market
+// Investments & Real-Time Market
 router.get('/investments', investments.getInvestments);
 router.get('/investments/portfolio', investments.getPortfolio);
 router.post('/investments/buy', investments.buyInvestment);
 router.patch('/investments/:id', investments.updateInvestment);
 router.delete('/investments/:id', investments.deleteInvestment);
 router.get('/market/quote', investments.getStockQuote);
+router.get('/market/history', investments.getStockHistory);
+router.get('/market/search', investments.searchStocks);
 router.get('/market/metals', investments.getMetals);
+router.get('/market/gold', investments.getGold);
+router.get('/market/silver', investments.getSilver);
 router.get('/market/popular', investments.getPopularStocks);
 router.get('/market/watchlist', investments.getWatchlist);
 router.post('/market/watchlist', investments.addToWatchlist);
 router.delete('/market/watchlist/:symbol', investments.removeFromWatchlist);
 
-// Loans
+// Loans & Prepayment Simulator
 router.get('/loans', loans.getLoans);
 router.post('/loans', loans.createLoan);
 router.get('/loans/:id', loans.getLoan);
@@ -105,8 +111,9 @@ router.post('/subscriptions', subscriptions.createSubscription);
 router.patch('/subscriptions/:id', subscriptions.updateSubscription);
 router.delete('/subscriptions/:id', subscriptions.deleteSubscription);
 
-// Analytics
+// Analytics & Reports
 router.get('/analytics', analytics.getAnalytics);
+router.get('/reports/monthly', analytics.getMonthlyFinancialReport);
 
 // Calendar
 router.get('/calendar/events', analytics.getCalendarEvents);
@@ -121,15 +128,36 @@ router.patch('/notifications/:id/read', analytics.markNotificationRead);
 router.post('/notifications/read-all', analytics.markAllNotificationsRead);
 router.delete('/notifications/:id', analytics.deleteNotification);
 
-// AI
+// AI Advisor & Intelligence
 router.post('/ai/chat', ai.chat);
 router.get('/ai/history', ai.getChatHistory);
 router.delete('/ai/history', ai.clearChatHistory);
 router.get('/ai/snapshot', ai.getFinancialSnapshot);
+router.get('/ai/financial-health', analytics.getFinancialHealth);
+router.get('/ai/cash-flow', analytics.getCashFlowPrediction);
+router.get('/ai/anomalies', analytics.getExpenseAnomalies);
+router.patch('/ai/anomalies/:id/feedback', analytics.submitAnomalyFeedback);
+router.get('/ai/budget-optimize', analytics.getBudgetOptimization);
+router.get('/ai/risk-radar', analytics.getRiskRadar);
 router.get('/ai/investment-analysis', ai.getInvestmentAnalysis);
 router.get('/ai/insurance-review', ai.getInsuranceReview);
+router.get('/ai/recommendations', ai.getRecommendations);
+router.post('/ai/recommendations/:id/feedback', ai.submitRecommendationFeedback);
+router.post('/ai/voice-intent', ai.parseVoiceIntent);
 
-// Export
+// Simulations & Forecasting
+router.post('/ai/simulate', simulations.simulateScenario);
+router.get('/ai/simulations/history', simulations.getSimulationHistory);
+router.post('/ai/retirement-plan', simulations.getRetirementPlan);
+router.get('/ai/goals/:id/forecast', simulations.getGoalForecast);
+
+// Receipts OCR & Bank Statement Import
+router.post('/receipts/scan', ocrImport.scanReceipt);
+router.post('/receipts/confirm', ocrImport.confirmReceipt);
+router.post('/import/bank-statement', ocrImport.parseBankStatement);
+router.post('/import/confirm', ocrImport.confirmBankStatementImport);
+
+// Exports
 router.get('/export/transactions.csv', exports_.exportTransactionsCSV);
 router.get('/export/accounts.csv', exports_.exportAccountsCSV);
 router.get('/export/budgets.csv', exports_.exportBudgetsCSV);

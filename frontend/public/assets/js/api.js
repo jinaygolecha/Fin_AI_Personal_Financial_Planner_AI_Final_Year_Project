@@ -201,6 +201,7 @@ export const budgetsAPI = {
   create: (data) => apiFetch('/budgets', { method: 'POST', body: JSON.stringify(data) }),
   update: (id, data) => apiFetch(`/budgets/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id) => apiFetch(`/budgets/${id}`, { method: 'DELETE' }),
+  optimize: (method = '50/30/20') => apiFetch(`/ai/budget-optimize?method=${method}`),
 };
 
 // ===== Goals API =====
@@ -212,6 +213,7 @@ export const goalsAPI = {
   update: (id, data) => apiFetch(`/goals/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   contribute: (id, amount) => apiFetch(`/goals/${id}/contribute`, { method: 'PATCH', body: JSON.stringify({ amount }) }),
   delete: (id) => apiFetch(`/goals/${id}`, { method: 'DELETE' }),
+  forecast: (id) => apiFetch(`/ai/goals/${id}/forecast`),
 };
 
 // ===== Investments & Market API =====
@@ -223,7 +225,11 @@ export const investmentsAPI = {
   update: (id, data) => apiFetch(`/investments/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id) => apiFetch(`/investments/${id}`, { method: 'DELETE' }),
   quote: (symbol) => apiFetch(`/market/quote?symbol=${symbol}`),
+  history: (symbol, timeframe = '1M') => apiFetch(`/market/history?symbol=${symbol}&timeframe=${timeframe}`),
+  search: (q) => apiFetch(`/market/search?q=${encodeURIComponent(q)}`),
   metals: () => apiFetch('/market/metals'),
+  gold: () => apiFetch('/market/gold'),
+  silver: () => apiFetch('/market/silver'),
   popularStocks: () => apiFetch('/market/popular'),
   watchlist: () => apiFetch('/market/watchlist'),
   addWatch: (data) => apiFetch('/market/watchlist', { method: 'POST', body: JSON.stringify(data) }),
@@ -261,10 +267,11 @@ export const subscriptionsAPI = {
   delete: (id) => apiFetch(`/subscriptions/${id}`, { method: 'DELETE' }),
 };
 
-// ===== Analytics API =====
+// ===== Analytics & Reports API =====
 
 export const analyticsAPI = {
   get: (period = 'month') => apiFetch(`/analytics?period=${period}`),
+  monthlyReport: (month, year) => apiFetch(`/reports/monthly?month=${month || ''}&year=${year || ''}`),
 };
 
 // ===== Calendar API =====
@@ -286,15 +293,40 @@ export const notificationsAPI = {
   delete: (id) => apiFetch(`/notifications/${id}`, { method: 'DELETE' }),
 };
 
-// ===== AI API =====
+// ===== AI Advisor & Predictive API =====
 
 export const aiAPI = {
   chat: (message) => apiFetch('/ai/chat', { method: 'POST', body: JSON.stringify({ message }) }),
   history: () => apiFetch('/ai/history'),
   clearHistory: () => apiFetch('/ai/history', { method: 'DELETE' }),
   snapshot: () => apiFetch('/ai/snapshot'),
+  healthScore: () => apiFetch('/ai/financial-health'),
+  cashFlow: (days = 30) => apiFetch(`/ai/cash-flow?days=${days}`),
+  anomalies: () => apiFetch('/ai/anomalies'),
+  submitAnomalyFeedback: (id, feedback) => apiFetch(`/ai/anomalies/${id}/feedback`, { method: 'PATCH', body: JSON.stringify({ feedback }) }),
+  budgetOptimize: (method = '50/30/20') => apiFetch(`/ai/budget-optimize?method=${method}`),
+  riskRadar: () => apiFetch('/ai/risk-radar'),
+  simulate: (data) => apiFetch('/ai/simulate', { method: 'POST', body: JSON.stringify(data) }),
+  simulationHistory: () => apiFetch('/ai/simulations/history'),
+  retirementPlan: (data) => apiFetch('/ai/retirement-plan', { method: 'POST', body: JSON.stringify(data) }),
+  goalForecast: (id) => apiFetch(`/ai/goals/${id}/forecast`),
   investmentAnalysis: () => apiFetch('/ai/investment-analysis'),
   insuranceReview: () => apiFetch('/ai/insurance-review'),
+  recommendations: () => apiFetch('/ai/recommendations'),
+  submitRecommendationFeedback: (id, data) => apiFetch(`/ai/recommendations/${id}/feedback`, { method: 'POST', body: JSON.stringify(data) }),
+  voiceIntent: (speechText) => apiFetch('/ai/voice-intent', { method: 'POST', body: JSON.stringify({ speechText }) }),
+};
+
+// ===== Receipts OCR & Bank Statement Import API =====
+
+export const receiptsAPI = {
+  scan: (data) => apiFetch('/receipts/scan', { method: 'POST', body: JSON.stringify(data) }),
+  confirm: (data) => apiFetch('/receipts/confirm', { method: 'POST', body: JSON.stringify(data) }),
+};
+
+export const importAPI = {
+  bankStatement: (csvContent) => apiFetch('/import/bank-statement', { method: 'POST', body: JSON.stringify({ csvContent }) }),
+  confirm: (data) => apiFetch('/import/confirm', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 // ===== Export API =====
@@ -378,6 +410,8 @@ export default {
   calendarAPI,
   notificationsAPI,
   aiAPI,
+  receiptsAPI,
+  importAPI,
   exportAPI,
   formatINR,
   formatINRFull,
