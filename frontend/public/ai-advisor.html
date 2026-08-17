@@ -440,11 +440,11 @@ How can I assist you today? You can ask about your spending, run a what-if finan
       const res = await api.aiAPI.snapshot();
       if (res?.success) {
         const d = res.data;
-        document.getElementById('snapBalance').textContent = d.formattedBalance;
-        document.getElementById('snapIncome').textContent = formatINR(d.savingsThisMonth + d.totalDebt * 0.05 + 50000);
-        document.getElementById('snapExpense').textContent = formatINR(d.totalDebt * 0.05 + 20000);
-        document.getElementById('snapScore').textContent = `${d.healthScore}/100`;
-        document.getElementById('snapNetWorth').textContent = d.formattedNetWorth;
+        document.getElementById('snapBalance').textContent = d.formattedBalance || '₹0';
+        document.getElementById('snapIncome').textContent = d.formattedIncome || '₹0';
+        document.getElementById('snapExpense').textContent = d.formattedExpenses || '₹0';
+        document.getElementById('snapScore').textContent = `${d.healthScore || 0}/100`;
+        document.getElementById('snapNetWorth').textContent = d.formattedNetWorth || '₹0';
       }
     };
 

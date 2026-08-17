@@ -85,6 +85,8 @@ router.get('/market/metals', investments.getMetals);
 router.get('/market/gold', investments.getGold);
 router.get('/market/silver', investments.getSilver);
 router.get('/market/popular', investments.getPopularStocks);
+router.get('/market/news', investments.getMarketNews);
+router.get('/market/profile', investments.getCompanyProfile);
 router.get('/market/watchlist', investments.getWatchlist);
 router.post('/market/watchlist', investments.addToWatchlist);
 router.delete('/market/watchlist/:symbol', investments.removeFromWatchlist);

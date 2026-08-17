@@ -70,7 +70,7 @@ function initSidebarUser() {
   
   if (el) el.textContent = fullName;
   if (roleEl) roleEl.textContent = user.isPremium ? '⭐ Premium' : 'Free User';
-  if (avatarEl) avatarEl.textContent = name[0].toUpperCase();
+  if (avatarEl) avatarEl.textContent = (name[0] || 'U').toUpperCase();
   
   const logoutBtn = document.getElementById('sidebarLogout');
   if (logoutBtn) {

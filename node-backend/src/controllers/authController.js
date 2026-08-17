@@ -55,17 +55,17 @@ const register = async (req, res, next) => {
  */
 const login = async (req, res, next) => {
   try {
-    const { email, username, password } = req.body;
-    const emailOrUsername = email || username;
+    const { email, username, emailOrUsername, password } = req.body;
+    const identifier = (emailOrUsername || email || username || '').trim();
 
-    if (!emailOrUsername || !password) {
+    if (!identifier || !password) {
       return res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'Email/username and password are required.' },
       });
     }
 
-    const result = await authService.login({ emailOrUsername, password });
+    const result = await authService.login({ emailOrUsername: identifier, password });
 
     // Audit Log
     await prisma.auditLog.create({

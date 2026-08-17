@@ -532,7 +532,7 @@
       const av = document.getElementById('sidebarAvatar');
       if(el) el.textContent = name+(user.lastName?' '+user.lastName:'');
       if(rl) rl.textContent = user.isPremium ? '⭐ Premium' : 'Free User';
-      if(av) av.textContent = name[0].toUpperCase();
+      if(av) av.textContent = (name[0] || 'U').toUpperCase();
       document.getElementById('sidebarLogout').onclick = async () => {
         const rt = localStorage.getItem('jf_refresh_token');
         try { await fetch(`${API_BASE}/auth/logout`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({refreshToken:rt})}); } catch{}

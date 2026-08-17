@@ -102,15 +102,25 @@ const fetchFromFinnhub = async (symbol) => {
     return null;
   }
 
-  const finnhubSymbol = SYMBOL_MAP[symbol] || `${symbol}:NSE`;
+  const finnhubSymbol = SYMBOL_MAP[symbol] || symbol;
 
   try {
-    const response = await axios.get('https://finnhub.io/api/v1/quote', {
+    let response = await axios.get('https://finnhub.io/api/v1/quote', {
       params: { symbol: finnhubSymbol, token: apiKey },
       timeout: 5000,
     });
 
-    const data = response.data;
+    let data = response.data;
+    if ((!data || data.c === 0) && !finnhubSymbol.includes(':')) {
+      const nseRes = await axios.get('https://finnhub.io/api/v1/quote', {
+        params: { symbol: `${symbol}:NSE`, token: apiKey },
+        timeout: 5000,
+      }).catch(() => null);
+      if (nseRes && nseRes.data && nseRes.data.c > 0) {
+        data = nseRes.data;
+      }
+    }
+
     if (!data || data.c === 0) return null;
 
     return {
@@ -394,6 +404,120 @@ const getPreciousMetals = async () => {
 };
 
 /**
+ * Get Market News from Finnhub
+ */
+const getMarketNews = async (category = 'general') => {
+  const apiKey = process.env.FINNHUB_API_KEY;
+  const cacheKey = `NEWS_${category}`;
+  const now = Date.now();
+
+  if (cache.has(cacheKey)) {
+    const cached = cache.get(cacheKey);
+    if (now - cached.timestamp < 10 * 60 * 1000) {
+      return cached.data;
+    }
+  }
+
+  if (apiKey && apiKey !== 'YOUR_FINNHUB_API_KEY') {
+    try {
+      const response = await axios.get('https://finnhub.io/api/v1/news', {
+        params: { category, token: apiKey },
+        timeout: 5000,
+      });
+      if (Array.isArray(response.data) && response.data.length > 0) {
+        const news = response.data.slice(0, 20).map(item => ({
+          id: item.id,
+          headline: item.headline,
+          summary: item.summary,
+          source: item.source,
+          url: item.url,
+          image: item.image,
+          category: item.category,
+          datetime: new Date(item.datetime * 1000).toISOString(),
+        }));
+        cache.set(cacheKey, { data: news, timestamp: now });
+        return news;
+      }
+    } catch (err) {
+      console.error('[MarketService] Finnhub news error:', err.message);
+    }
+  }
+
+  return [
+    {
+      id: 1,
+      headline: 'RBI Policy Stance: Focus on Inflation Alignment and Sustained Growth',
+      summary: 'Reserve Bank of India maintains steady stance to ensure balanced market liquidity and robust credit delivery.',
+      source: 'FinAI Wire',
+      category: 'general',
+      datetime: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      headline: 'India Bullion Update: 24K & 22K Gold Demand Steady Ahead of Festive Cycle',
+      summary: 'MCX Gold rates reflect strong retail sentiment and steady physical demand across key domestic hubs.',
+      source: 'Bullion Express',
+      category: 'commodities',
+      datetime: new Date().toISOString(),
+    },
+  ];
+};
+
+/**
+ * Get Company Profile & Industry Fundamentals from Finnhub
+ */
+const getCompanyProfile = async (symbol) => {
+  const upperSymbol = (symbol || 'AAPL').toUpperCase().trim();
+  const apiKey = process.env.FINNHUB_API_KEY;
+  const cacheKey = `PROFILE_${upperSymbol}`;
+  const now = Date.now();
+
+  if (cache.has(cacheKey)) {
+    const cached = cache.get(cacheKey);
+    if (now - cached.timestamp < 60 * 60 * 1000) {
+      return cached.data;
+    }
+  }
+
+  if (apiKey && apiKey !== 'YOUR_FINNHUB_API_KEY') {
+    try {
+      const response = await axios.get('https://finnhub.io/api/v1/stock/profile2', {
+        params: { symbol: upperSymbol, token: apiKey },
+        timeout: 5000,
+      });
+      if (response.data && response.data.name) {
+        const profile = {
+          name: response.data.name,
+          ticker: response.data.ticker,
+          country: response.data.country,
+          currency: response.data.currency,
+          exchange: response.data.exchange,
+          ipo: response.data.ipo,
+          marketCapitalization: response.data.marketCapitalization,
+          shareOutstanding: response.data.shareOutstanding,
+          weburl: response.data.weburl,
+          logo: response.data.logo,
+          finnhubIndustry: response.data.finnhubIndustry,
+        };
+        cache.set(cacheKey, { data: profile, timestamp: now });
+        return profile;
+      }
+    } catch (err) {
+      console.error('[MarketService] Finnhub profile error:', err.message);
+    }
+  }
+
+  const ref = REFERENCE_PRICES[upperSymbol];
+  return {
+    name: ref ? ref.name : upperSymbol,
+    ticker: upperSymbol,
+    exchange: ref ? ref.exchange : 'NSE',
+    currency: 'INR',
+    finnhubIndustry: 'Diversified',
+  };
+};
+
+/**
  * Get popular Indian stocks list
  */
 const getPopularStocks = () => {
@@ -415,6 +539,8 @@ module.exports = {
   searchStocks,
   getPreciousMetals,
   getPopularStocks,
+  getMarketNews,
+  getCompanyProfile,
   isMarketOpen,
   getISTTimestamp,
 };

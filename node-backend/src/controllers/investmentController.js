@@ -458,6 +458,32 @@ const deleteInvestment = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/v1/market/news
+ */
+const getMarketNews = async (req, res, next) => {
+  try {
+    const category = req.query.category || 'general';
+    const news = await marketService.getMarketNews(category);
+    return res.status(200).json({ success: true, count: news.length, data: news });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/market/profile
+ */
+const getCompanyProfile = async (req, res, next) => {
+  try {
+    const symbol = req.query.symbol || 'AAPL';
+    const profile = await marketService.getCompanyProfile(symbol);
+    return res.status(200).json({ success: true, data: profile });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getPortfolio,
   getInvestments,
@@ -474,4 +500,6 @@ module.exports = {
   getMetals,
   getGold,
   getSilver,
+  getMarketNews,
+  getCompanyProfile,
 };

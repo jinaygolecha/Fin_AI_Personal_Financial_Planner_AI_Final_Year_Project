@@ -41,12 +41,15 @@ const storeRefreshToken = async (userId, token) => {
  * Register a new user
  */
 const register = async ({ email, username, password, firstName = '', lastName = '', phone = '' }) => {
+  const normalizedEmail = (email || '').toLowerCase().trim();
+  const normalizedUsername = (username || '').trim();
+
   // Check for existing user
   const existingUser = await prisma.user.findFirst({
-    where: { OR: [{ email }, { username }] },
+    where: { OR: [{ email: normalizedEmail }, { username: normalizedUsername }] },
   });
   if (existingUser) {
-    if (existingUser.email === email) {
+    if (existingUser.email.toLowerCase() === normalizedEmail) {
       throw Object.assign(new Error('An account with this email already exists.'), { statusCode: 409, code: 'EMAIL_EXISTS' });
     }
     throw Object.assign(new Error('That username is already taken.'), { statusCode: 409, code: 'USERNAME_EXISTS' });
@@ -56,11 +59,11 @@ const register = async ({ email, username, password, firstName = '', lastName = 
 
   const user = await prisma.user.create({
     data: {
-      email: email.toLowerCase().trim(),
-      username: username.trim(),
+      email: normalizedEmail,
+      username: normalizedUsername,
       password: hashedPassword,
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
+      firstName: (firstName || '').trim(),
+      lastName: (lastName || '').trim(),
       phone: phone || null,
     },
   });

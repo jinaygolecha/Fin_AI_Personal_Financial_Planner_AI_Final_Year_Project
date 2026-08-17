@@ -211,12 +211,12 @@ const generateRuleBasedResponse = (userMessage, ctx) => {
 };
 
 const CANDIDATE_MODELS = [
-  process.env.AI_MODEL || 'gemini-3.7-flash',
-  'gemini-3.7-flash',
-  'gemini-3.5-flash',
-  'gemini-3-flash-preview',
-  'gemini-flash-latest',
-  'gemma-4-31b-it',
+  process.env.AI_MODEL || 'gemini-2.5-flash',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+  'gemini-pro',
 ];
 
 /**

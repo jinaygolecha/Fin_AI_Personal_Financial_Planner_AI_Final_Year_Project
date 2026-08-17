@@ -148,6 +148,28 @@ app.get('/api/v1/health/ai', (req, res) => {
   });
 });
 
+app.get('/api/v1/health/auth', async (req, res) => {
+  let dbStatus = 'disconnected';
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbStatus = 'healthy';
+  } catch {
+    dbStatus = 'error';
+  }
+
+  const jwtConfigured = !!(process.env.JWT_SECRET && process.env.JWT_SECRET !== 'YOUR_JWT_SECRET');
+  const googleConfigured = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com');
+
+  res.json({
+    success: true,
+    authentication: 'healthy',
+    database: dbStatus,
+    jwt: jwtConfigured ? 'configured' : 'missing_secret',
+    googleOAuth: googleConfigured ? 'configured' : 'not_configured',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ==================== API ROUTES ====================
 
 app.use('/api/v1/auth', authRoutes);
