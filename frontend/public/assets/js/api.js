@@ -234,6 +234,13 @@ export const investmentsAPI = {
   watchlist: () => apiFetch('/market/watchlist'),
   addWatch: (data) => apiFetch('/market/watchlist', { method: 'POST', body: JSON.stringify(data) }),
   removeWatch: (symbol) => apiFetch(`/market/watchlist/${symbol}`, { method: 'DELETE' }),
+  // Alpha Vantage extended
+  dashboard: () => apiFetch('/market/dashboard'),
+  technicals: (symbol) => apiFetch(`/market/technicals?symbol=${symbol}`),
+  companyOverview: (symbol) => apiFetch(`/market/overview?symbol=${symbol}`),
+  earnings: (symbol) => apiFetch(`/market/earnings?symbol=${symbol}`),
+  fxRate: (from = 'USD', to = 'INR') => apiFetch(`/market/fx?from=${from}&to=${to}`),
+  commodity: (type = 'WTI', interval = 'monthly') => apiFetch(`/market/commodity?type=${type}&interval=${interval}`),
 };
 
 // ===== Loans API =====

@@ -91,6 +91,14 @@ router.get('/market/watchlist', investments.getWatchlist);
 router.post('/market/watchlist', investments.addToWatchlist);
 router.delete('/market/watchlist/:symbol', investments.removeFromWatchlist);
 
+// Alpha Vantage — Advanced Market Data Routes
+router.get('/market/dashboard', investments.getMarketDashboard);
+router.get('/market/technicals', investments.getTechnicals);
+router.get('/market/overview', investments.getCompanyOverview);
+router.get('/market/earnings', investments.getEarnings);
+router.get('/market/fx', investments.getFXRate);
+router.get('/market/commodity', investments.getCommodity);
+
 // Loans & Prepayment Simulator
 router.get('/loans', loans.getLoans);
 router.post('/loans', loans.createLoan);

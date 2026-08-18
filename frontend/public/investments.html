@@ -4,31 +4,35 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Investments, Stocks & Precious Metals — Jinay Finance AI</title>
-  <meta name="description" content="Track Stocks, Mutual Funds, 24K/22K Gold, Silver, and Crypto with real-time valuation.">
+  <meta name="description" content="Track Stocks, Mutual Funds, 24K/22K Gold, Silver, and Crypto with real-time verified valuation.">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js" defer></script>
   <link rel="stylesheet" href="/assets/css/app.css">
   <style>
-    .metals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .metals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .metal-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 18px; position: relative; overflow: hidden; }
     .metal-card.gold { border-color: rgba(245, 158, 11, 0.3); background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), transparent); }
     .metal-card.silver { border-color: rgba(148, 163, 184, 0.3); background: linear-gradient(135deg, rgba(148, 163, 184, 0.05), transparent); }
     .metal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     .metal-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     .metal-rates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; }
-    .rate-item { background: rgba(0, 0, 0, 0.2); padding: 8px 10px; border-radius: 8px; }
-    .rate-val { font-size: 14px; font-weight: 700; color: #fff; margin-top: 2px; }
-    .status-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 9999px; text-transform: uppercase; }
+    .rate-item { background: rgba(0, 0, 0, 0.25); padding: 10px 12px; border-radius: 8px; }
+    .rate-val { font-size: 15px; font-weight: 700; color: #fff; margin-top: 2px; }
+    
+    .status-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 9999px; text-transform: uppercase; letter-spacing: .5px; }
     .status-live { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
-    .status-delayed { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+    .status-cached { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid #6366f1; }
+    .status-stale { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; }
+    .status-unavailable { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
     
     /* Stock Chart Card */
     .market-search-row { display: flex; gap: 10px; margin-bottom: 16px; }
     .timeframe-btns { display: flex; gap: 6px; }
     .tf-btn { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; }
     .tf-btn.active { background: rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.4); color: #a5b4fc; }
-    #stockChart { width: 100%; height: 260px; }
+    #stockChart { width: 100%; height: 280px; }
+    .chart-empty { display: flex; align-items: center; justify-content: center; height: 280px; color: #94a3b8; font-size: 13px; text-align: center; }
   </style>
 </head>
 <body>
@@ -37,7 +41,7 @@
     <div class="topbar">
       <div>
         <div class="topbar-title">Investments, Stocks & Precious Metals Hub</div>
-        <div class="topbar-sub">Real-Time Valuation with MCX Gold, Silver & NSE Stock Feeds</div>
+        <div class="topbar-sub">Verified Valuation with Real-Time NSE Equities, COMEX/MCX Futures & FX Feeds</div>
       </div>
       <div class="topbar-actions">
         <button class="btn btn-secondary" id="exportInvestBtn"><i class="ri-download-line"></i> Export CSV</button>
@@ -46,58 +50,58 @@
     </div>
     
     <div class="content">
-      <!-- Precious Metals Live Feed -->
+      <!-- Precious Metals Verified Feed -->
       <div class="metals-grid">
         <div class="metal-card gold">
           <div class="metal-header">
-            <div class="metal-title" style="color:#fbbf24"><i class="ri-copper-diamond-line"></i> 24K & 22K Gold (MCX India)</div>
-            <span class="status-badge status-live" id="goldStatus">LIVE</span>
+            <div class="metal-title" style="color:#fbbf24"><i class="ri-copper-diamond-line"></i> 24K & 22K Gold (COMEX / MCX Reference)</div>
+            <span class="status-badge status-cached" id="goldStatus">CHECKING...</span>
           </div>
           <div class="metal-rates">
             <div class="rate-item">
               <span style="color:#94a3b8">24K (per gram)</span>
-              <div class="rate-val" id="gold24kGram">₹7,480</div>
+              <div class="rate-val" id="gold24kGram">Loading...</div>
             </div>
             <div class="rate-item">
               <span style="color:#94a3b8">24K (10 grams)</span>
-              <div class="rate-val" id="gold24k10Gram">₹74,800</div>
+              <div class="rate-val" id="gold24k10Gram">Loading...</div>
             </div>
             <div class="rate-item">
               <span style="color:#94a3b8">22K (per gram)</span>
-              <div class="rate-val" id="gold22kGram">₹6,856</div>
+              <div class="rate-val" id="gold22kGram">Loading...</div>
             </div>
             <div class="rate-item">
               <span style="color:#94a3b8">24K (per oz)</span>
-              <div class="rate-val" id="gold24kOz">₹2,32,654</div>
+              <div class="rate-val" id="gold24kOz">Loading...</div>
             </div>
           </div>
-          <div style="margin-top:10px;font-size:10px;color:#64748b" id="goldUpdated">MCX Spot Rates · Updated IST</div>
+          <div style="margin-top:10px;font-size:11px;color:#94a3b8;" id="goldUpdated">Fetching verified spot rates...</div>
         </div>
 
         <div class="metal-card silver">
           <div class="metal-header">
-            <div class="metal-title" style="color:#cbd5e1"><i class="ri-coin-line"></i> Silver (MCX India)</div>
-            <span class="status-badge status-live" id="silverStatus">LIVE</span>
+            <div class="metal-title" style="color:#cbd5e1"><i class="ri-coin-line"></i> Silver (COMEX / MCX Reference)</div>
+            <span class="status-badge status-cached" id="silverStatus">CHECKING...</span>
           </div>
           <div class="metal-rates">
             <div class="rate-item">
               <span style="color:#94a3b8">Per Gram</span>
-              <div class="rate-val" id="silverGram">₹92.50</div>
+              <div class="rate-val" id="silverGram">Loading...</div>
             </div>
             <div class="rate-item">
-              <span style="color:#94a3b8">Per Kilogram</span>
-              <div class="rate-val" id="silverKg">₹92,500</div>
+              <span style="color:#94a3b8">Per Kilogram (1000g)</span>
+              <div class="rate-val" id="silverKg">Loading...</div>
             </div>
             <div class="rate-item">
               <span style="color:#94a3b8">Per Ounce (oz)</span>
-              <div class="rate-val" id="silverOz">₹2,877</div>
+              <div class="rate-val" id="silverOz">Loading...</div>
             </div>
             <div class="rate-item">
-              <span style="color:#94a3b8">Market</span>
-              <div class="rate-val" style="font-size:12px;padding-top:4px">MCX Spot</div>
+              <span style="color:#94a3b8">Unit Conversion</span>
+              <div class="rate-val" style="font-size:12px;padding-top:4px;color:#a5b4fc;">1 kg = 1000 g</div>
             </div>
           </div>
-          <div style="margin-top:10px;font-size:10px;color:#64748b" id="silverUpdated">MCX Spot Rates · Updated IST</div>
+          <div style="margin-top:10px;font-size:11px;color:#94a3b8;" id="silverUpdated">Fetching verified spot rates...</div>
         </div>
       </div>
 
@@ -105,36 +109,37 @@
       <div class="card" style="margin-bottom:24px;">
         <div class="card-header">
           <div style="display:flex;align-items:center;gap:12px;">
-            <span class="card-title" id="chartStockTitle">RELIANCE (NSE) - ₹2,985.30</span>
-            <span class="status-badge status-live" id="chartMarketStatus">LIVE</span>
+            <span class="card-title" id="chartStockTitle">RELIANCE — Real-Time Chart</span>
+            <span class="status-badge status-cached" id="chartMarketStatus">LOADING</span>
           </div>
-          <div class="timeframe-btns">
-            <button class="tf-btn" onclick="changeChartTf('1D')">1D</button>
-            <button class="tf-btn" onclick="changeChartTf('1W')">1W</button>
-            <button class="tf-btn active" onclick="changeChartTf('1M')">1M</button>
-            <button class="tf-btn" onclick="changeChartTf('3M')">3M</button>
-            <button class="tf-btn" onclick="changeChartTf('1Y')">1Y</button>
-            <button class="tf-btn" onclick="changeChartTf('5Y')">5Y</button>
+          <div class="timeframe-btns" id="chartTfBtns">
+            <button class="tf-btn" data-tf="1D">1D</button>
+            <button class="tf-btn" data-tf="1W">1W</button>
+            <button class="tf-btn active" data-tf="1M">1M</button>
+            <button class="tf-btn" data-tf="3M">3M</button>
+            <button class="tf-btn" data-tf="1Y">1Y</button>
+            <button class="tf-btn" data-tf="5Y">5Y</button>
           </div>
         </div>
         <div class="market-search-row">
-          <input type="text" id="stockSearchInput" class="form-input" placeholder="Search stock or metal (e.g. TCS, INFY, HDFCBANK, GOLD)..." style="max-width:320px;">
-          <button class="btn btn-secondary" id="searchStockBtn"><i class="ri-search-line"></i> Search</button>
+          <input type="text" id="stockSearchInput" class="form-input" placeholder="Search stock (e.g. RELIANCE, TCS, INFY, HDFCBANK, AAPL)..." style="max-width:340px;">
+          <button class="btn btn-secondary" id="searchStockBtn"><i class="ri-search-line"></i> Search Stock</button>
         </div>
         <div id="stockChart"></div>
+        <div style="margin-top:8px;font-size:11px;color:#6b7280;" id="chartMeta">Provider: Loading...</div>
       </div>
 
       <!-- Portfolio Summary -->
       <div class="metrics-grid">
-        <div class="metric-card"><div class="metric-icon mi-blue"><i class="ri-funds-line"></i></div><div class="metric-label">Portfolio Value</div><div class="metric-value" id="portfolioValue">...</div></div>
-        <div class="metric-card"><div class="metric-icon mi-green"><i class="ri-arrow-up-line"></i></div><div class="metric-label">Total Invested</div><div class="metric-value" id="totalInvested">...</div></div>
-        <div class="metric-card"><div class="metric-icon mi-amber"><i class="ri-percent-line"></i></div><div class="metric-label">Total P&L</div><div class="metric-value" id="totalPnl">...</div><div class="metric-sub" id="pnlPct">--</div></div>
-        <div class="metric-card"><div class="metric-icon mi-blue"><i class="ri-stock-line"></i></div><div class="metric-label">Holdings Count</div><div class="metric-value" id="holdingsCount">--</div></div>
+        <div class="metric-card"><div class="metric-icon mi-blue"><i class="ri-funds-line"></i></div><div class="metric-label">Portfolio Value</div><div class="metric-value" id="portfolioValue">₹ 0</div></div>
+        <div class="metric-card"><div class="metric-icon mi-green"><i class="ri-arrow-up-line"></i></div><div class="metric-label">Total Invested</div><div class="metric-value" id="totalInvested">₹ 0</div></div>
+        <div class="metric-card"><div class="metric-icon mi-amber"><i class="ri-percent-line"></i></div><div class="metric-label">Total P&L</div><div class="metric-value" id="totalPnl">₹ 0</div><div class="metric-sub" id="pnlPct">0.00%</div></div>
+        <div class="metric-card"><div class="metric-icon mi-blue"><i class="ri-stock-line"></i></div><div class="metric-label">Holdings Count</div><div class="metric-value" id="holdingsCount">0</div></div>
       </div>
 
       <!-- Holdings Table -->
       <div class="card">
-        <div class="card-header"><span class="card-title">Asset Holdings & Live P&L</span></div>
+        <div class="card-header"><span class="card-title">Asset Holdings & Live Valuation</span></div>
         <div class="table-wrapper">
           <table>
             <thead>
@@ -169,9 +174,9 @@
       <div class="form-group">
         <label class="form-label">Asset Type</label>
         <select id="investType" class="form-select">
-          <option value="STOCK">📈 Stock / Equity</option>
-          <option value="GOLD">🥇 Gold (24K/22K)</option>
-          <option value="SILVER">🥈 Silver</option>
+          <option value="STOCK">📈 Stock / Equity (NSE)</option>
+          <option value="GOLD">🥇 24K Physical Gold</option>
+          <option value="SILVER">🥈 Pure Silver</option>
           <option value="MUTUAL_FUND">📊 Mutual Fund</option>
           <option value="SIP">🔄 Systematic Investment (SIP)</option>
           <option value="CRYPTO">🪙 Crypto</option>
@@ -185,7 +190,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Symbol / Identifier</label>
-        <input type="text" id="investSymbol" class="form-input" placeholder="e.g. RELIANCE, GOLD24K, SILVER">
+        <input type="text" id="investSymbol" class="form-input" placeholder="e.g. RELIANCE, TCS, GOLD24K, SILVER">
       </div>
       <div class="form-group">
         <label class="form-label">Quantity / Weight (Units / Grams)</label>
@@ -193,7 +198,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Buy Price per Unit / Gram (₹)</label>
-        <input type="number" id="investPrice" class="form-input" placeholder="2500" min="1" step="0.01">
+        <input type="number" id="investPrice" class="form-input" placeholder="e.g. 1320" min="0.01" step="0.01">
       </div>
       <div id="investError" style="color:#fca5a5;font-size:12px;margin-bottom:8px;display:none;"></div>
       <button class="btn btn-primary" style="width:100%" id="saveInvestBtn"><i class="ri-check-line"></i> Save Holding</button>
@@ -212,26 +217,58 @@
     let stockChartInstance = null;
     let currentSymbol = 'RELIANCE';
     let currentTf = '1M';
+    let latestMetalsData = null;
+
+    const setBadge = (elId, status) => {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.textContent = status || 'UNAVAILABLE';
+      el.className = 'status-badge ' + (
+        status === 'LIVE' ? 'status-live' :
+        status === 'CACHED' ? 'status-cached' :
+        status === 'STALE' ? 'status-stale' : 'status-unavailable'
+      );
+    };
 
     // Load Metals
     const loadMetals = async () => {
       try {
         const res = await api.investmentsAPI.metals();
-        if (res?.success) {
+        if (res?.success && res.data) {
           const m = res.data;
-          document.getElementById('gold24kGram').textContent = formatINR(m.gold.karat24.perGram);
-          document.getElementById('gold24k10Gram').textContent = formatINR(m.gold.karat24.per10Gram);
-          document.getElementById('gold22kGram').textContent = formatINR(m.gold.karat22.perGram);
-          document.getElementById('gold24kOz').textContent = formatINR(m.gold.karat24.perOunce);
-          document.getElementById('goldStatus').textContent = m.marketStatus;
+          latestMetalsData = m;
+          const g24 = m.gold?.karat24;
+          const g22 = m.gold?.karat22;
+          const s = m.silver;
 
-          document.getElementById('silverGram').textContent = formatINR(m.silver.perGram);
-          document.getElementById('silverKg').textContent = formatINR(m.silver.perKg);
-          document.getElementById('silverOz').textContent = formatINR(m.silver.perOunce);
-          document.getElementById('silverStatus').textContent = m.marketStatus;
+          if (g24?.perGram) {
+            document.getElementById('gold24kGram').textContent = formatINR(g24.perGram);
+            document.getElementById('gold24k10Gram').textContent = formatINR(g24.per10Gram);
+            document.getElementById('gold22kGram').textContent = formatINR(g22?.perGram || g24.perGram * 0.916);
+            document.getElementById('gold24kOz').textContent = formatINR(g24.perOunce);
+            document.getElementById('goldUpdated').textContent = `Source: ${m.source || 'Spot'} · ${m.timestamp}`;
+            setBadge('goldStatus', m.data_status || 'LIVE');
+          } else {
+            document.getElementById('gold24kGram').textContent = 'Unavailable';
+            setBadge('goldStatus', 'UNAVAILABLE');
+          }
+
+          if (s?.perGram) {
+            document.getElementById('silverGram').textContent = formatINR(s.perGram);
+            document.getElementById('silverKg').textContent = formatINR(s.perKg);
+            document.getElementById('silverOz').textContent = formatINR(s.perOunce);
+            document.getElementById('silverUpdated').textContent = `Source: ${m.source || 'Spot'} · 1 kg = 1000g · ${m.timestamp}`;
+            setBadge('silverStatus', m.data_status || 'LIVE');
+          } else {
+            document.getElementById('silverGram').textContent = 'Unavailable';
+            setBadge('silverStatus', 'UNAVAILABLE');
+          }
         }
       } catch (err) {
-        console.error('Metals error:', err);
+        setBadge('goldStatus', 'UNAVAILABLE');
+        setBadge('silverStatus', 'UNAVAILABLE');
+        document.getElementById('goldUpdated').textContent = 'Market data temporarily unavailable.';
+        document.getElementById('silverUpdated').textContent = 'Market data temporarily unavailable.';
       }
     };
 
@@ -240,32 +277,55 @@
       currentSymbol = symbol;
       currentTf = tf;
 
+      document.querySelectorAll('#chartTfBtns .tf-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tf === tf);
+      });
+
       try {
         const [quoteRes, histRes] = await Promise.all([
           api.investmentsAPI.quote(symbol),
           api.investmentsAPI.history(symbol, tf),
         ]);
 
-        if (quoteRes?.success) {
+        if (quoteRes?.success && quoteRes.data?.price) {
           const q = quoteRes.data;
-          document.getElementById('chartStockTitle').textContent = `${q.name} (${q.symbol}) - ${formatINR(q.price)}`;
-          document.getElementById('chartMarketStatus').textContent = q.marketStatus;
+          const up = (q.changePercent || 0) >= 0;
+          document.getElementById('chartStockTitle').innerHTML =
+            `${q.name || q.symbol} (${q.symbol}) &mdash; ${formatINR(q.price)} <span style="font-size:12px;color:${up?'#10b981':'#ef4444'};">${up?'+':''}${q.changePercent?.toFixed(2)||'0'}%</span>`;
+          setBadge('chartMarketStatus', q.data_status || 'LIVE');
+          document.getElementById('chartMeta').textContent =
+            `Source: ${q.source} (${q.exchange || 'NSE'}) · Last Updated: ${q.timestamp}`;
+        } else {
+          document.getElementById('chartStockTitle').textContent = `${symbol} — Quote Unavailable`;
+          setBadge('chartMarketStatus', 'UNAVAILABLE');
+          document.getElementById('chartMeta').textContent = 'Market data currently unavailable from external providers.';
         }
 
-        if (histRes?.success) {
+        const chartDom = document.getElementById('stockChart');
+        if (histRes?.success && histRes.data?.points?.length > 0) {
           const points = histRes.data.points;
           if (!stockChartInstance) {
-            stockChartInstance = echarts.init(document.getElementById('stockChart'), 'dark');
+            stockChartInstance = echarts.init(chartDom, 'dark');
           }
+
+          const isUp = points[points.length - 1].price >= points[0].price;
+          const lineColor = isUp ? '#10b981' : '#ef4444';
+          const areaColor0 = isUp ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.2)';
 
           stockChartInstance.setOption({
             backgroundColor: 'transparent',
-            tooltip: { trigger: 'axis', formatter: (p) => `${p[0].name}<br>Price: ${formatINR(p[0].value)}` },
-            grid: { top: 20, right: 15, bottom: 30, left: 65 },
+            tooltip: {
+              trigger: 'axis',
+              formatter: (p) => {
+                const item = p[0];
+                return `<b>${item.name}</b><br>Price: <b>${formatINR(item.value)}</b>`;
+              },
+            },
+            grid: { top: 20, right: 15, bottom: 30, left: 70 },
             xAxis: {
               type: 'category',
-              data: points.map(p => p.date),
-              axisLabel: { color: '#6b7280', fontSize: 10 },
+              data: points.map(p => p.time ? `${p.date} ${p.time.slice(0,5)}` : p.date),
+              axisLabel: { color: '#6b7280', fontSize: 10, rotate: points.length > 40 ? 30 : 0 },
             },
             yAxis: {
               type: 'value',
@@ -277,31 +337,41 @@
               name: symbol,
               type: 'line',
               data: points.map(p => p.price),
-              lineStyle: { color: '#10b981', width: 2 },
+              lineStyle: { color: lineColor, width: 2 },
               areaStyle: {
                 color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                  { offset: 0, color: 'rgba(16,185,129,0.3)' },
-                  { offset: 1, color: 'rgba(16,185,129,0.0)' },
+                  { offset: 0, color: areaColor0 },
+                  { offset: 1, color: 'rgba(0,0,0,0)' },
                 ]),
               },
               smooth: true,
+              symbol: 'none',
             }],
           });
+        } else {
+          if (stockChartInstance) {
+            stockChartInstance.dispose();
+            stockChartInstance = null;
+          }
+          chartDom.innerHTML = '<div class="chart-empty"><i class="ri-information-line" style="font-size:20px;margin-right:8px;"></i> Historical market data unavailable for the selected timeframe.</div>';
         }
       } catch (err) {
         console.error('Stock chart error:', err);
+        setBadge('chartMarketStatus', 'UNAVAILABLE');
       }
     };
 
-    window.changeChartTf = (tf) => {
-      document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
-      loadStockChart(currentSymbol, tf);
-    };
+    document.getElementById('chartTfBtns').addEventListener('click', (e) => {
+      const btn = e.target.closest('.tf-btn');
+      if (btn) loadStockChart(currentSymbol, btn.dataset.tf);
+    });
 
     document.getElementById('searchStockBtn').addEventListener('click', () => {
       const q = document.getElementById('stockSearchInput').value.trim();
       if (q) loadStockChart(q, currentTf);
+    });
+    document.getElementById('stockSearchInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('searchStockBtn').click();
     });
 
     // Load Portfolio
@@ -348,21 +418,32 @@
       }
     };
 
-    // Add Modal Events
+    // Modal Dynamic Auto-Fill on Asset Selection
     document.getElementById('addInvestBtn').addEventListener('click', () => {
       document.getElementById('addInvestModal').classList.add('show');
     });
 
-    document.getElementById('investType').addEventListener('change', (e) => {
+    document.getElementById('investType').addEventListener('change', async (e) => {
       const type = e.target.value;
       if (type === 'GOLD') {
         document.getElementById('investName').value = '24K Physical Gold';
         document.getElementById('investSymbol').value = 'GOLD24K';
-        document.getElementById('investPrice').value = '7480';
+        if (latestMetalsData?.gold?.karat24?.perGram) {
+          document.getElementById('investPrice').value = latestMetalsData.gold.karat24.perGram;
+        }
       } else if (type === 'SILVER') {
-        document.getElementById('investName').value = 'Silver (99.9% Pure)';
+        document.getElementById('investName').value = 'Pure Silver';
         document.getElementById('investSymbol').value = 'SILVER';
-        document.getElementById('investPrice').value = '92.50';
+        if (latestMetalsData?.silver?.perGram) {
+          document.getElementById('investPrice').value = latestMetalsData.silver.perGram;
+        }
+      } else if (type === 'STOCK') {
+        document.getElementById('investName').value = 'Reliance Industries Ltd';
+        document.getElementById('investSymbol').value = 'RELIANCE';
+        try {
+          const q = await api.investmentsAPI.quote('RELIANCE');
+          if (q?.data?.price) document.getElementById('investPrice').value = q.data.price;
+        } catch {}
       }
     });
 
@@ -373,9 +454,9 @@
       const quantity = parseFloat(document.getElementById('investQty').value);
       const buyPrice = parseFloat(document.getElementById('investPrice').value);
 
-      if (!symbol || !quantity || !buyPrice) {
+      if (!symbol || isNaN(quantity) || quantity <= 0 || isNaN(buyPrice) || buyPrice <= 0) {
         document.getElementById('investError').style.display = 'block';
-        document.getElementById('investError').textContent = 'Please fill all required fields.';
+        document.getElementById('investError').textContent = 'Please fill all fields with valid positive numbers.';
         return;
       }
 
@@ -393,7 +474,7 @@
       api.exportAPI.investments();
     });
 
-    // Init
+    // Init Page
     loadMetals();
     loadStockChart('RELIANCE', '1M');
     loadPortfolio();

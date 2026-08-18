@@ -13,6 +13,7 @@ function renderSidebar(activePage = '') {
       { href: 'goals', icon: 'ri-flag-line', label: 'Goals' },
     ]},
     { section: 'Wealth & Protection', items: [
+      { href: 'market', icon: 'ri-candlestick-chart-line', label: 'Live Market Dashboard' },
       { href: 'investments', icon: 'ri-line-chart-line', label: 'Investments & Metals' },
       { href: 'loans', icon: 'ri-bank-card-line', label: 'Loans & EMI' },
       { href: 'insurance', icon: 'ri-shield-check-line', label: 'Insurance & Subs' },

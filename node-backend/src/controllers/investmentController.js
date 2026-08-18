@@ -476,9 +476,106 @@ const getMarketNews = async (req, res, next) => {
  */
 const getCompanyProfile = async (req, res, next) => {
   try {
-    const symbol = req.query.symbol || 'AAPL';
+    const symbol = req.query.symbol || 'RELIANCE';
     const profile = await marketService.getCompanyProfile(symbol);
     return res.status(200).json({ success: true, data: profile });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/market/dashboard
+ * Alpha Vantage — full real-time market dashboard (stocks + gold + FX + crude)
+ */
+const getMarketDashboard = async (req, res, next) => {
+  try {
+    const data = await marketService.getMarketDashboard();
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/market/technicals?symbol=RELIANCE
+ * Alpha Vantage — SMA, EMA, RSI, MACD, Bollinger Bands
+ */
+const getTechnicals = async (req, res, next) => {
+  try {
+    const symbol = req.query.symbol || 'RELIANCE';
+    const data = await marketService.getTechnicalIndicators(symbol);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/market/overview?symbol=RELIANCE
+ * Alpha Vantage — Company Overview with fundamentals
+ */
+const getCompanyOverview = async (req, res, next) => {
+  try {
+    const symbol = req.query.symbol || 'RELIANCE';
+    const data = await marketService.fetchCompanyOverview(symbol);
+    if (!data) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Company overview not available for this symbol.' } });
+    }
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/market/earnings?symbol=RELIANCE
+ * Alpha Vantage — Quarterly EPS Earnings
+ */
+const getEarnings = async (req, res, next) => {
+  try {
+    const symbol = req.query.symbol || 'RELIANCE';
+    const data = await marketService.fetchEarnings(symbol);
+    if (!data) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Earnings data not available for this symbol.' } });
+    }
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/market/fx?from=USD&to=INR
+ * Alpha Vantage — Forex Exchange Rate
+ */
+const getFXRate = async (req, res, next) => {
+  try {
+    const from = req.query.from || 'USD';
+    const to   = req.query.to   || 'INR';
+    const data = await marketService.fetchFXRate(from, to);
+    if (!data) {
+      return res.status(503).json({ success: false, error: { code: 'SERVICE_UNAVAILABLE', message: 'FX rate unavailable.' } });
+    }
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/market/commodity?type=WTI
+ * Alpha Vantage — Commodity (WTI, BRENT, NATURAL_GAS, COPPER, WHEAT, CORN, GLOBAL_PRICE_OF_GOLD, etc.)
+ */
+const getCommodity = async (req, res, next) => {
+  try {
+    const type     = (req.query.type || 'WTI').toUpperCase();
+    const interval = req.query.interval || 'monthly';
+    const data = await marketService.fetchCommodity(type, interval);
+    if (!data) {
+      return res.status(503).json({ success: false, error: { code: 'SERVICE_UNAVAILABLE', message: 'Commodity data unavailable.' } });
+    }
+    return res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);
   }
@@ -502,4 +599,12 @@ module.exports = {
   getSilver,
   getMarketNews,
   getCompanyProfile,
+  // Alpha Vantage enhanced
+  getMarketDashboard,
+  getTechnicals,
+  getCompanyOverview,
+  getEarnings,
+  getFXRate,
+  getCommodity,
 };
+

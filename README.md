@@ -3,7 +3,7 @@
 > **Final-Year Engineering Project**  
 > **Author & Maintainer**: Jinay Golecha (`jinay_golecha`)  
 > **Canonical Repository**: [jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project](https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project)  
-> **Technology Stack**: Node.js v22 LTS, Express.js 4, Prisma ORM, PostgreSQL 17, Google Gemini AI, Finnhub API, Web Speech API, Chart.js / ECharts, Vanilla HTML5 / Modern CSS3  
+> **Technology Stack**: Node.js v20+ LTS, Express.js 4, Prisma ORM 5.22, PostgreSQL 17, Google Gemini AI, Alpha Vantage API, Finnhub API, Web Speech API, ECharts, Vanilla HTML5 / Modern CSS3  
 > **License**: MIT  
 
 ---
@@ -12,7 +12,7 @@
 
 Managing personal cash flows, multi-asset investments (Equities, Mutual Funds, SIP, MCX Gold, Silver, Crypto), liabilities, insurance coverage, and recurring subscriptions across fragmented platforms leads to poor visibility and financial leakages.
 
-**Jinay Finance AI** is a personal finance management and investment advisory platform tailored specifically for the Indian financial ecosystem (**INR - ₹ / Asia/Kolkata**). Built with a PostgreSQL schema, Prisma ORM, and Express REST API server, the system provides real-time portfolio valuation, multi-asset allocation insights, automated budget thresholds, loan prepayment simulations, insurance gap analysis, and voice-assisted expense entry.
+**Jinay Finance AI** is a comprehensive personal finance management and investment advisory platform tailored specifically for the Indian financial ecosystem (**INR - ₹ / Asia/Kolkata**). Built with a PostgreSQL schema, Prisma ORM, and Express REST API server, the system provides real-time portfolio valuation, multi-asset allocation insights, automated budget thresholds, loan prepayment simulations, insurance gap analysis, voice-assisted expense entry, OCR receipt extraction, and live market intelligence.
 
 ---
 
@@ -21,20 +21,21 @@ Managing personal cash flows, multi-asset investments (Equities, Mutual Funds, S
 ```
 ┌────────────────────────────────────────────────────────────┐
 │                    FRONTEND WEB CLIENT                     │
-│  HTML5 + Modern Vanilla CSS + Chart.js + Web Speech API    │
+│   HTML5 + Modern Vanilla CSS + ECharts + Web Speech API    │
 └─────────────────────────────┬──────────────────────────────┘
                               │ HTTP/JSON + JWT Bearer Auth
                               ▼
 ┌────────────────────────────────────────────────────────────┐
 │                EXPRESS REST API SERVER (v1)                │
-│    Routes, Controllers, Middleware & Financial Engines    │
+│    Routes, Controllers, Middleware & Financial Engines     │
 ├─────────────────────────────┼──────────────────────────────┤
 │  • Auth (JWT & Refresh)     │  • Loans & EMI Simulation    │
 │  • Financial Onboarding     │  • Insurance & Subscriptions │
-│  • Account Atomicity        │  • Precious Metals (MCX)     │
-│  • Transactions & Reversals │  • AI Advisor (Gemini/Rules) │
-│  • Budgets (50/30/20)       │  • Voice Natural Language    │
-│  • Savings Goals            │  • Authenticated CSV Exports │
+│  • Account Atomicity        │  • Alpha Vantage Market Data │
+│  • Transactions & Reversals │  • 24K/22K Gold & Silver     │
+│  • Budgets (50/30/20)       │  • AI Advisor (Gemini/Rules) │
+│  • Savings Goals            │  • Voice Natural Language    │
+│  • Portfolio Valuation      │  • Authenticated CSV Exports │
 └─────────────────────────────┬──────────────────────────────┘
                               │ Prisma Queries
                               ▼
@@ -50,256 +51,122 @@ Managing personal cash flows, multi-asset investments (Equities, Mutual Funds, S
 
 1. **Centralized Authentication & Security**:
    - Secure registration, password hashing with `bcrypt` (10 rounds), JWT access (60m) and refresh tokens (7d).
-   - Graceful fallback for unconfigured Google OAuth.
+   - Multi-tenant data isolation preventing cross-user data leakage.
 
-2. **Financial Onboarding & 50/30/20 Planning**:
+2. **Live Market Dashboard (`market.html`)**:
+   - Real-time stock quotes powered by **Alpha Vantage** with Finnhub fallback.
+   - 24K & 22K Gold and Silver spot prices in INR per gram, 10g, and troy ounce.
+   - Interactive 7-timeframe chart (1D intraday to 5Y) using Apache ECharts.
+   - Technical Indicators: RSI(14), MACD, SMA 20/50, and Bollinger Bands.
+   - Live USD/INR FX conversion and WTI Crude Oil in INR.
+   - Global commodities strip (Brent, Natural Gas, Copper, Wheat, Coffee).
+
+3. **Financial Onboarding & 50/30/20 Planning**:
    - 3-step onboarding questionnaire evaluating income, baseline expenses, savings, and debt to generate Financial Health Score (0-100).
 
-3. **Multi-Account Deposit Atomicity**:
+4. **Multi-Account Deposit Atomicity**:
    - Add money / deposit flows executed inside database transactions ensuring account balance increments and categorized `INCOME` records stay synchronized.
 
-4. **Expense Management & Balance Reversals**:
-   - Tracking categorized expenses.
-   - Deleting any transaction automatically triggers an atomic balance reversal (`+₹20,000` upon deleting an expense).
+5. **Transactions Ledger & Dynamic Balance Sync**:
+   - Record income/expense transactions with automatic account balance updates.
+   - Deleting a transaction automatically reverses its balance impact.
 
-5. **Budgeting Engine (50/30/20 & Custom)**:
-   - Monthly category budget limits with live spending correlation and percentage utilized alerts.
+6. **Category Budgeting & AI Optimizer**:
+   - 50/30/20 budget framework with real-time spending progress bars.
+   - AI Budget Optimizer calculating suggested budget amounts based on historical habits.
 
-6. **Savings Goals & Milestone Tracker**:
-   - Target tracking for Emergency Funds, Home, Vehicle, Education, and Retirement with monthly contribution allocation.
+7. **Financial Goals & Milestone Forecaster**:
+   - Track targets for Emergency Fund, Home Down Payment, Car, Education, Retirement.
+   - Forecasting engine projecting completion dates and acceleration scenarios.
 
-7. **Multi-Asset Investment & Precious Metals Hub**:
-   - Equities, Mutual Funds, SIP, Crypto, and MCX Gold (24K/22K per gram/10g/oz) and Silver rates.
-   - Portfolio valuation with overall P&L.
+8. **Multi-Asset Investments & P&L**:
+   - Track Stocks, 24K/22K Gold, Silver, Mutual Funds, SIPs, and Crypto.
+   - Real-time valuation and profit/loss computation.
 
-8. **Loans & Prepayment Simulator**:
-   - EMI calculation and prepayment simulator computing interest and tenure savings.
+9. **Loans, Reducing-Balance EMI & Prepayment Simulator**:
+   - Track debt obligations, calculate monthly EMIs, and simulate interest savings on prepayment.
 
-9. **Insurance Policies & Subscriptions**:
-   - Tracking Life, Health, Vehicle, and Home insurance policies with renewal alerts.
-   - Active subscription tracking (Netflix, Spotify, Cloud) and monthly recurring expense analytics.
+10. **Insurance & Subscription Manager**:
+    - Policy coverage tracking, renewal alerts, and recurring subscription cost monitoring.
 
-10. **Voice Assistant (Natural Language Parser)**:
-    - Web Speech API integration with natural language parsing (`"I spent 500 rupees on food"`) and confirmation modal.
+11. **AI Financial Advisor & Gemini Chat**:
+    - Google Gemini AI advisory engine grounded in real user database figures.
+    - Deterministic rule-based expert system fallback.
+    - Conversational history persisted to database.
 
-11. **Contextual AI Financial Advisor**:
-    - Real-time user net worth, cash flow, debt, and portfolio integration with Google Gemini / rule-based advisory engine.
+12. **Voice Assistant & Intent Recognition**:
+    - Web Speech API integration with natural language intent classification.
+    - Safety confirmation gate before committing expense creations.
 
-12. **Multi-Format CSV Data Exports**:
-    - Authenticated CSV exports for Transactions, Accounts, Budgets, Goals, Investments, Loans, Insurance, Subscriptions, and Comprehensive Summary.
+13. **OCR Receipt Scanner & Statement CSV Importer**:
+    - Parse receipts and bank statements with user confirmation modal before persistence.
 
-13. **Multi-User Data Isolation**:
-    - Strict tenant isolation ensuring User A cannot view, edit, or delete any record belonging to User B.
-
----
-
-## 🛠️ 4. Technology Stack
-
-| Layer | Technologies |
-|---|---|
-| **Runtime & Backend** | Node.js v22 LTS, Express.js 4.21 |
-| **ORM & Database** | Prisma 5.22, PostgreSQL 17 |
-| **Authentication & Security** | JSON Web Tokens (`jsonwebtoken`), `bcryptjs`, `helmet`, `cors`, `express-rate-limit` |
-| **Artificial Intelligence** | Google Gemini 1.5 Flash (`@google/generative-ai`) + Rule-Based Advisory Engine |
-| **Market Data** | Finnhub Stock API & Spot Precious Metals Engine |
-| **Frontend UI** | HTML5, Vanilla CSS3, Remix Icon, Chart.js, ECharts, Web Speech API |
-| **Containerization** | Docker, Docker Compose |
-| **Testing** | Node test runner, Supertest, 47-assertion acceptance suite |
+14. **Authenticated CSV Data Exports**:
+    - Download verified CSV reports across 9 financial categories with JWT authorization.
 
 ---
 
-## ⚡ 5. Quick Start Guide
+## 🛠️ 4. Quick Start & Installation
 
 ### Prerequisites
-- Node.js (v20+ or v22 LTS)
-- PostgreSQL 17 (local service or Docker)
+- Node.js v20+ LTS
+- PostgreSQL 17
+- npm v10+
 
----
-
-### Option A: Local Development (Windows / macOS / Linux)
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project.git
-   cd Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project
-   ```
-
-2. **Configure Environment Variables**:
-   ```bash
-   # Windows PowerShell
-   Copy-Item .env.example .env
-
-   # macOS / Linux
-   cp .env.example .env
-   ```
-
-3. **Install Dependencies & Generate Prisma Client**:
-   ```bash
-   npm run setup
-   ```
-
-4. **Seed Sample Data (Optional)**:
-   ```bash
-   npm run db:seed
-   ```
-
-5. **Start Application**:
-   ```bash
-   npm run dev
-   ```
-   Open `http://127.0.0.1:5000/` in your browser.
-
----
-
-### Option B: Docker Compose (One-Command Setup)
-
+### Setup Commands
 ```bash
+# 1. Clone repository
 git clone https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project.git
 cd Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project
 
-docker compose up --build -d
+# 2. Configure environment
+cp .env.example .env
+cp node-backend/.env.example node-backend/.env
+
+# 3. Install backend dependencies & initialize Prisma
+cd node-backend
+npm install
+npx prisma generate
+npx prisma db push
+
+# 4. Start the application
+npm start
 ```
-Open `http://127.0.0.1:5000/` in your browser.
+Access the application at `http://127.0.0.1:5000/`.
 
 ---
 
-## 🔑 6. Demo Account Credentials
+## 🧪 5. Testing & Quality Assurance
 
-A pre-populated demo account is available when running `npm run db:seed`:
-
-- **Email**: `demo@example.com`
-- **Password**: `DemoPassword123!`
-
-*(You can also register a new account on `/signup.html`)*
-
----
-
-## ⚙️ 7. Environment Configuration (.env)
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `NODE_ENV` | Yes | `development` | Runtime environment (`development` / `production`) |
-| `PORT` | Yes | `5000` | Port for the Express server |
-| `DATABASE_URL` | Yes | — | PostgreSQL connection string |
-| `JWT_SECRET` | Yes | — | Cryptographic secret for access tokens |
-| `JWT_REFRESH_SECRET`| Yes | — | Cryptographic secret for refresh tokens |
-| `FRONTEND_URL` | No | `http://127.0.0.1:5000` | Origin URL for CORS and frontend redirects |
-| `GEMINI_API_KEY` | No | — | Google Gemini API key (falls back to rule engine) |
-| `FINNHUB_API_KEY` | No | — | Finnhub API key (falls back to delayed reference) |
-| `GOOGLE_CLIENT_ID` | No | — | Google OAuth 2.0 Client ID |
-| `GOOGLE_CLIENT_SECRET`| No | — | Google OAuth 2.0 Client Secret |
-
----
-
-## 📡 8. REST API Endpoint Reference
-
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| `GET` | `/api/v1/health` | System health & DB connection status | Public |
-| `GET` | `/api/v1/health/database` | PostgreSQL connection test | Public |
-| `GET` | `/api/v1/health/ai` | Gemini AI provider health | Public |
-| `GET` | `/api/v1/health/market` | Market API provider health | Public |
-| `POST` | `/api/v1/auth/register` | Register user & initialize profiles | Public |
-| `POST` | `/api/v1/auth/login` | Authenticate user & issue JWT tokens | Public |
-| `POST` | `/api/v1/auth/refresh` | Issue new access token via refresh token | Public |
-| `GET` | `/api/v1/auth/me` | Return authenticated user details | Bearer |
-| `POST` | `/api/v1/onboarding` | Submit financial onboarding profile | Bearer |
-| `GET` | `/api/v1/onboarding/status` | Check onboarding completion status | Bearer |
-| `GET` | `/api/v1/dashboard` | Aggregated real-time financial metrics | Bearer |
-| `GET` | `/api/v1/accounts` | List user financial accounts | Bearer |
-| `POST` | `/api/v1/accounts` | Create financial account | Bearer |
-| `POST` | `/api/v1/accounts/:id/deposit` | Deposit funds atomically with income entry | Bearer |
-| `GET` | `/api/v1/transactions` | Filterable transaction history | Bearer |
-| `POST` | `/api/v1/transactions` | Create income/expense with anomaly check | Bearer |
-| `DELETE`| `/api/v1/transactions/:id` | Delete transaction & reverse balance | Bearer |
-| `POST` | `/api/v1/transactions/voice` | Parse voice entry natural language text | Bearer |
-| `GET` | `/api/v1/budgets` | Category budget tracking (50/30/20) | Bearer |
-| `POST` | `/api/v1/budgets` | Create / update category budget limit | Bearer |
-| `GET` | `/api/v1/goals` | List savings goals & progress | Bearer |
-| `POST` | `/api/v1/goals` | Create new savings goal | Bearer |
-| `PATCH`| `/api/v1/goals/:id/contribute` | Allocate savings contribution to goal | Bearer |
-| `GET` | `/api/v1/investments/portfolio`| Aggregated portfolio valuation & P&L | Bearer |
-| `POST` | `/api/v1/investments/buy` | Record equity/fund/crypto/gold holding | Bearer |
-| `GET` | `/api/v1/market/metals` | Live Gold (24K/22K) & Silver rates in INR | Bearer |
-| `POST` | `/api/v1/loans/calculate-emi` | Standard loan EMI calculator | Bearer |
-| `POST` | `/api/v1/loans/prepayment-simulate`| Prepayment interest & tenure simulation | Bearer |
-| `GET` | `/api/v1/insurance` | Insurance policies & coverage summary | Bearer |
-| `POST` | `/api/v1/insurance` | Create insurance policy | Bearer |
-| `GET` | `/api/v1/subscriptions` | Recurring subscriptions & spend analytics | Bearer |
-| `POST` | `/api/v1/subscriptions` | Create recurring subscription | Bearer |
-| `POST` | `/api/v1/ai/chat` | Contextual AI financial advisor conversation | Bearer |
-| `GET` | `/api/v1/ai/investment-analysis`| AI asset allocation & risk diversification | Bearer |
-| `GET` | `/api/v1/ai/insurance-review` | AI insurance gap & liability review | Bearer |
-| `GET` | `/api/v1/export/transactions.csv` | Export transactions CSV (Bearer or ?token=) | Bearer |
-| `GET` | `/api/v1/export/accounts.csv` | Export accounts CSV | Bearer |
-| `GET` | `/api/v1/export/budgets.csv` | Export budgets CSV | Bearer |
-| `GET` | `/api/v1/export/goals.csv` | Export goals CSV | Bearer |
-| `GET` | `/api/v1/export/investments.csv`| Export investments CSV | Bearer |
-| `GET` | `/api/v1/export/loans.csv` | Export loans CSV | Bearer |
-| `GET` | `/api/v1/export/insurance.csv` | Export insurance CSV | Bearer |
-| `GET` | `/api/v1/export/subscriptions.csv`| Export subscriptions CSV | Bearer |
-| `GET` | `/api/v1/export/summary.csv` | Export comprehensive financial summary | Bearer |
-
----
-
-## 🧪 9. Automated Testing
-
-The repository contains an end-to-end integration test suite covering 15 critical test groups:
-
+Run the comprehensive test suites:
 ```bash
-npm test
+# Master 66-point integration suite
+node run-all-tests.js
+
+# 40-point security & auth audit suite
+node test-auth-comprehensive.js
+
+# Live external market API suite
+node test-market-live.js
 ```
 
-### Test Suite Coverage:
-- System Diagnostics & PostgreSQL connectivity
-- User Registration, duplicate prevention, and Login
-- Financial Onboarding & Health Score calculations
-- Multi-Account atomic balance updates on deposit
-- Real-time Dashboard aggregations from database
-- Expense logging, Anomaly detection, and balance reversal upon deletion
-- 50/30/20 Category Budget tracking
-- Savings Goals and contribution increments
-- Multi-Asset Investments & MCX Precious Metals rates in INR
-- Loan EMI & Prepayment simulations
-- Insurance & Subscription tracking
-- Contextual AI Advisor, Investment Analysis, and Insurance Review
-- Natural Language Voice Parser
-- Authenticated CSV Exports (via Bearer header and query token)
-- Strict Multi-Tenant Data Isolation (User A vs User B)
+---
+
+## 📚 6. Documentation Index
+
+Detailed architectural and QA documents are located in the `docs/` folder:
+- [System Architecture](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/ARCHITECTURE.md) (`docs/ARCHITECTURE.md`)
+- [REST API Specification](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/API.md) (`docs/API.md`)
+- [PostgreSQL Database Design](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/DATABASE.md) (`docs/DATABASE.md`)
+- [Automated Testing & QA Guide](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/TESTING.md) (`docs/TESTING.md`)
+- [Deployment & Setup Guide](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/DEPLOYMENT.md) (`docs/DEPLOYMENT.md`)
+- [Known Limitations & API Quotas](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/KNOWN_LIMITATIONS.md) (`docs/KNOWN_LIMITATIONS.md`)
+- [Master QA & Production Hardening Report](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/FINAL_QA_REPORT.md) (`docs/FINAL_QA_REPORT.md`)
+- [Project Audit Matrix](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/PROJECT_AUDIT.md) (`docs/PROJECT_AUDIT.md`)
 
 ---
 
-## 🚀 10. Deployment Instructions
-
-### Deploy to Render / Railway / Cloud VM
-
-1. **Set Environment Variables**:
-   Configure `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `NODE_ENV=production`, `PORT=5000`.
-2. **Build Command**:
-   ```bash
-   npm run setup
-   ```
-3. **Start Command**:
-   ```bash
-   npm start
-   ```
-4. **Health Check Path**:
-   `/api/v1/health`
-
----
-
-## 🔒 11. Security & Hygiene
-
-- **No Secrets in Repository**: All configuration templates use placeholders.
-- **Password Protection**: Salted `bcrypt` encryption.
-- **Tenant Isolation**: Database queries strictly filter by authenticated `req.user.id`.
-- **Export Security**: File downloads require valid JWT authentication.
-
----
-
-## 👨‍💻 Author & Project Owner
+## 👨‍💻 Author
 
 **Jinay Golecha**  
-*Final Year Engineering Student*  
-GitHub: [@jinaygolecha](https://github.com/jinaygolecha)  
-Repository: [Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project](https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project)
+*Final-Year Engineering Project — AI-Powered Personal Finance & Investment Advisor*
