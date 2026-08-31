@@ -41,7 +41,7 @@
     <div class="topbar">
       <div>
         <div class="topbar-title">Investments, Stocks & Precious Metals Hub</div>
-        <div class="topbar-sub">Verified Valuation with Real-Time NSE Equities, COMEX/MCX Futures & FX Feeds</div>
+        <div class="topbar-sub">Verified Valuation with Real-Time NSE Equities, COMEX Continuous Futures & Interbank FX Feeds</div>
       </div>
       <div class="topbar-actions">
         <button class="btn btn-secondary" id="exportInvestBtn"><i class="ri-download-line"></i> Export CSV</button>
@@ -54,7 +54,7 @@
       <div class="metals-grid">
         <div class="metal-card gold">
           <div class="metal-header">
-            <div class="metal-title" style="color:#fbbf24"><i class="ri-copper-diamond-line"></i> 24K & 22K Gold (COMEX / MCX Reference)</div>
+            <div class="metal-title" style="color:#fbbf24"><i class="ri-copper-diamond-line"></i> 24K & 22K Gold (COMEX Continuous Futures · INR Converted)</div>
             <span class="status-badge status-cached" id="goldStatus">CHECKING...</span>
           </div>
           <div class="metal-rates">
@@ -75,17 +75,20 @@
               <div class="rate-val" id="gold24kOz">Loading...</div>
             </div>
           </div>
-          <div style="margin-top:10px;font-size:11px;color:#94a3b8;" id="goldUpdated">Fetching verified spot rates...</div>
+          <div style="margin-top:8px;font-size:11px;color:#fcd34d;background:rgba(245,158,11,0.08);padding:6px 10px;border-radius:6px;border:1px solid rgba(245,158,11,0.2);">
+            <strong>Provenance Distinction:</strong> International COMEX Futures (GC=F) converted at live USD/INR FX. Domestic Indian retail jewellery rates typically include ~6% basic customs duties + 3% GST.
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:#94a3b8;" id="goldUpdated">Fetching verified spot rates...</div>
         </div>
 
         <div class="metal-card silver">
           <div class="metal-header">
-            <div class="metal-title" style="color:#cbd5e1"><i class="ri-coin-line"></i> Silver (COMEX / MCX Reference)</div>
+            <div class="metal-title" style="color:#cbd5e1"><i class="ri-coin-line"></i> Silver (COMEX Continuous Futures · INR Converted)</div>
             <span class="status-badge status-cached" id="silverStatus">CHECKING...</span>
           </div>
           <div class="metal-rates">
             <div class="rate-item">
-              <span style="color:#94a3b8">Per Gram</span>
+              <span style="color:#94a3b8">Per Gram (g)</span>
               <div class="rate-val" id="silverGram">Loading...</div>
             </div>
             <div class="rate-item">
@@ -98,10 +101,13 @@
             </div>
             <div class="rate-item">
               <span style="color:#94a3b8">Unit Conversion</span>
-              <div class="rate-val" style="font-size:12px;padding-top:4px;color:#a5b4fc;">1 kg = 1000 g</div>
+              <div class="rate-val" style="font-size:12px;padding-top:4px;color:#a5b4fc;">1 kg = 1000 g | 1 oz = 31.1035g</div>
             </div>
           </div>
-          <div style="margin-top:10px;font-size:11px;color:#94a3b8;" id="silverUpdated">Fetching verified spot rates...</div>
+          <div style="margin-top:8px;font-size:11px;color:#cbd5e1;background:rgba(148,163,184,0.08);padding:6px 10px;border-radius:6px;border:1px solid rgba(148,163,184,0.2);">
+            <strong>Provenance Distinction:</strong> International COMEX Continuous Futures (SI=F in USD/oz) converted at live FX. Units: 1 kg = 1000 g | 1 troy oz = 31.1035 g.
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:#94a3b8;" id="silverUpdated">Fetching verified spot rates...</div>
         </div>
       </div>
 
@@ -293,12 +299,12 @@
           document.getElementById('chartStockTitle').innerHTML =
             `${q.name || q.symbol} (${q.symbol}) &mdash; ${formatINR(q.price)} <span style="font-size:12px;color:${up?'#10b981':'#ef4444'};">${up?'+':''}${q.changePercent?.toFixed(2)||'0'}%</span>`;
           setBadge('chartMarketStatus', q.data_status || 'LIVE');
-          document.getElementById('chartMeta').textContent =
-            `Source: ${q.source} (${q.exchange || 'NSE'}) · Last Updated: ${q.timestamp}`;
+          document.getElementById('chartMeta').innerHTML =
+            `<b>Provider:</b> ${q.provider || q.source} &middot; <b>Instrument:</b> ${q.provider_symbol || q.symbol} &middot; <b>Exchange:</b> ${q.exchange || 'NSE'} &middot; <b>Currency:</b> ${q.currency || 'INR'} &middot; <b>Market:</b> ${q.market_status || q.marketStatus || 'CLOSED'} &middot; <b>Data:</b> ${q.data_status || 'LIVE'} &middot; <b>Fetched:</b> ${q.fetched_at ? new Date(q.fetched_at).toLocaleTimeString('en-IN') : '-'}`;
         } else {
-          document.getElementById('chartStockTitle').textContent = `${symbol} — Quote Unavailable`;
+          document.getElementById('chartStockTitle').textContent = `${symbol} — Market data unavailable`;
           setBadge('chartMarketStatus', 'UNAVAILABLE');
-          document.getElementById('chartMeta').textContent = 'Market data currently unavailable from external providers.';
+          document.getElementById('chartMeta').textContent = 'Market data unavailable from external provider.';
         }
 
         const chartDom = document.getElementById('stockChart');

@@ -19,9 +19,10 @@ function renderSidebar(activePage = '') {
       { href: 'insurance', icon: 'ri-shield-check-line', label: 'Insurance & Subs' },
     ]},
     { section: 'Intelligence & Tools', items: [
-      { href: 'calendar', icon: 'ri-calendar-event-line', label: 'Financial Calendar' },
-      { href: 'analytics', icon: 'ri-bar-chart-box-line', label: 'Analytics & Reports' },
       { href: 'ai-advisor', icon: 'ri-robot-2-line', label: 'AI Advisor & Simulator' },
+      { href: 'training', icon: 'ri-brain-line', label: 'AI Training & ML Studio' },
+      { href: 'analytics', icon: 'ri-bar-chart-box-line', label: 'Analytics & Reports' },
+      { href: 'calendar', icon: 'ri-calendar-event-line', label: 'Financial Calendar' },
     ]},
   ];
 

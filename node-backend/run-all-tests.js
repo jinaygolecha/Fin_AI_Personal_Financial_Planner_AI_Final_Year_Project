@@ -436,6 +436,206 @@ async function runTests() {
     const bAccessAGoal = await request(app).delete(`/api/v1/goals/${goalAId}`).set('Authorization', `Bearer ${tokenB}`);
     assert(bAccessAGoal.status === 404, 'User B cannot delete User A goal (404 Not Found)');
 
+    // 21. Data Integrity & Training Data / ML Studio
+    console.log('\n👉 [21/21] Testing Data Integrity & Real ML Training Studio...');
+
+    // D1: Transaction update balance sync
+    const accBeforeTx = await prisma.financialAccount.findUnique({ where: { id: accountAId } });
+    const balBeforeTx = parseFloat(accBeforeTx.balance);
+
+    const testExp = await request(app)
+      .post('/api/v1/transactions')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ accountId: accountAId, amount: 5000, transactionType: 'EXPENSE', description: 'Test Integrity Exp' });
+    const testExpId = testExp.body.data.id;
+
+    // Update expense from 5000 to 8000 (balance should drop by additional 3000)
+    await request(app)
+      .patch(`/api/v1/transactions/${testExpId}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ amount: 8000 });
+
+    const accAfterUpdate = await prisma.financialAccount.findUnique({ where: { id: accountAId } });
+    const balAfterUpdate = parseFloat(accAfterUpdate.balance);
+    assert(balBeforeTx - balAfterUpdate === 8000, 'PATCH /api/v1/transactions/:id atomically synchronizes account balance upon amount update');
+
+    // D3: Loan Prepayment without fake defaults
+    const badPrepay = await request(app)
+      .post('/api/v1/loans/prepayment-simulate')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ prepaymentAmount: 10000 });
+    assert(badPrepay.status === 400, 'POST /api/v1/loans/prepayment-simulate rejects missing loanId/params without fake fallbacks');
+
+    const explicitPrepay = await request(app)
+      .post('/api/v1/loans/prepayment-simulate')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ principalAmount: 500000, interestRate: 9.0, tenureMonths: 60, prepaymentAmount: 50000 });
+    assert(explicitPrepay.status === 200 && explicitPrepay.body.data.monthsSaved > 0, 'POST /api/v1/loans/prepayment-simulate supports explicit loan parameters');
+
+    // Phase 15, 16, 17: Training Data Bot & ML Studio
+    const sampleCsv = `salary,expenses,debt,credit_score,savings,approved\n50000,25000,100000,750,150000,1\n30000,22000,400000,620,20000,0\n80000,35000,50000,780,400000,1\n40000,30000,350000,640,30000,0\n100000,40000,0,810,800000,1\n25000,22000,500000,590,10000,0\n60000,30000,180000,710,200000,1\n45000,28000,200000,690,100000,1\n35000,26000,380000,630,25000,0\n90000,36000,80000,770,500000,1`;
+
+    const uploadRes = await request(app)
+      .post('/api/v1/training/datasets/upload')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ name: 'Risk_Training_Data', description: 'Credit scoring records', csvContent: sampleCsv });
+    assert(uploadRes.status === 201 && uploadRes.body.data.rowCount === 10, 'POST /api/v1/training/datasets/upload parses CSV and creates v1 with column stats');
+    const datasetId = uploadRes.body.data.id;
+
+    // Safe Versioning
+    const verRes = await request(app)
+      .post(`/api/v1/training/datasets/${datasetId}/version`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ action: 'REMOVE_DUPLICATES', changeLog: 'Removed duplicates' });
+    assert(verRes.status === 201 && verRes.body.data.versionNumber === 2, 'POST /api/v1/training/datasets/:id/version creates immutable v2 preserving original data');
+
+    // Real ML Training
+    const trainRes = await request(app)
+      .post('/api/v1/training/train')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        datasetId,
+        taskType: 'REGRESSION',
+        targetColumn: 'savings',
+        featureColumns: ['salary', 'expenses', 'debt', 'credit_score'],
+        algorithm: 'LINEAR_REGRESSION',
+        hyperparameters: { l2Lambda: 0.01, epochs: 400 }
+      });
+    assert(trainRes.status === 201 && trainRes.body.data.metrics?.r2 !== undefined, 'POST /api/v1/training/train computes true mathematical validation metrics (R², MAE, RMSE)');
+    const trainingRunId = trainRes.body.data.id;
+
+    // Real Prediction
+    const predRes = await request(app)
+      .post('/api/v1/training/predict')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        trainingRunId,
+        inputs: { salary: 70000, expenses: 32000, debt: 100000, credit_score: 740 }
+      });
+    assert(predRes.status === 200 && predRes.body.data.numericPrediction !== null && predRes.body.data.disclaimer, 'POST /api/v1/training/predict generates normalized inference with transparency disclaimer');
+
+    // Tenant Isolation on Datasets
+    const bAccessDataset = await request(app)
+      .get(`/api/v1/training/datasets/${datasetId}`)
+      .set('Authorization', `Bearer ${tokenB}`);
+    assert(bAccessDataset.status === 404, 'User B cannot access User A training dataset (404 Tenant Isolation)');
+
+    // ================================================================
+    // 👉 [22/25] Testing Card Management & Utilization (Phase 26)...
+    // ================================================================
+    console.log('\n👉 [22/25] Testing Card Management & Security (Phase 26)...');
+
+    // Security test: Rejection of CVV / PIN in payload
+    const cvvReject = await request(app)
+      .post('/api/v1/cards')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        cardNickname: 'HDFC Regalia',
+        issuer: 'HDFC Bank',
+        lastFourDigits: '4321',
+        cvv: '123',
+      });
+    assert(cvvReject.status === 400 && cvvReject.body.error.code === 'SECURITY_VIOLATION', 'POST /api/v1/cards rejects CVV submission with SECURITY_VIOLATION');
+
+    // Security test: Rejection of full PAN number
+    const panReject = await request(app)
+      .post('/api/v1/cards')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        cardNickname: 'HDFC Regalia',
+        issuer: 'HDFC Bank',
+        lastFourDigits: '4111222233334321',
+      });
+    assert(panReject.status === 400, 'POST /api/v1/cards rejects full PAN numbers (requires strictly last 4 digits)');
+
+    // Valid card creation
+    const cardCreate = await request(app)
+      .post('/api/v1/cards')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        cardNickname: 'HDFC Regalia Gold',
+        cardType: 'CREDIT',
+        issuer: 'HDFC Bank',
+        lastFourDigits: '4321',
+        creditLimit: 200000,
+        outstandingAmount: 40000,
+        minimumDue: 2000,
+        billingCycleDay: 15,
+      });
+    assert(cardCreate.status === 201 && cardCreate.body.data.lastFourDigits === '4321', 'POST /api/v1/cards creates masked payment card');
+    const cardId = cardCreate.body.data.id;
+
+    // List cards with utilization calculation
+    const cardsList = await request(app)
+      .get('/api/v1/cards')
+      .set('Authorization', `Bearer ${tokenA}`);
+    assert(cardsList.status === 200 && cardsList.body.data.summary.overallUtilizationPct === 20, 'GET /api/v1/cards calculates exact credit utilization ratio (20%)');
+
+    // User B cannot access User A's card
+    const bCardAccess = await request(app)
+      .get(`/api/v1/cards/${cardId}`)
+      .set('Authorization', `Bearer ${tokenB}`);
+    assert(bCardAccess.status === 404, 'User B cannot access User A payment card (404 Tenant Isolation)');
+
+    // ================================================================
+    // 👉 [23/25] Testing Financial Tasks & To-Do Reminders (Phase 29)...
+    // ================================================================
+    console.log('\n👉 [23/25] Testing Financial Tasks & To-Do Reminders (Phase 29)...');
+
+    const taskCreate = await request(app)
+      .post('/api/v1/tasks')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({
+        title: 'Pay HDFC Credit Card Bill',
+        category: 'CREDIT_CARD',
+        dueDate: '2026-09-05',
+        priority: 'HIGH',
+        notes: 'Pay in full to avoid finance charges',
+      });
+    assert(taskCreate.status === 201 && taskCreate.body.data.priority === 'HIGH', 'POST /api/v1/tasks creates financial task');
+    const taskId = taskCreate.body.data.id;
+
+    // Complete task
+    const taskUpdate = await request(app)
+      .patch(`/api/v1/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ isCompleted: true });
+    assert(taskUpdate.status === 200 && taskUpdate.body.data.isCompleted === true && taskUpdate.body.data.completedAt !== null, 'PATCH /api/v1/tasks/:id marks task completed with timestamp');
+
+    // User B cannot delete User A task
+    const bTaskDelete = await request(app)
+      .delete(`/api/v1/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${tokenB}`);
+    assert(bTaskDelete.status === 404, 'User B cannot delete User A financial task (404 Tenant Isolation)');
+
+    // ================================================================
+    // 👉 [24/25] Testing Credit Health Educational Assessment (Phase 25)...
+    // ================================================================
+    console.log('\n👉 [24/25] Testing Credit Health Educational Assessment (Phase 25)...');
+
+    const creditHealthRes = await request(app)
+      .get('/api/v1/ai/credit-health')
+      .set('Authorization', `Bearer ${tokenA}`);
+    assert(creditHealthRes.status === 200, 'GET /api/v1/ai/credit-health responds with 200 OK');
+    assert(creditHealthRes.body.data.isBureauScore === false, 'Credit Health explicitly marks isBureauScore: false');
+    assert(creditHealthRes.body.data.disclaimer.includes('educational'), 'Credit Health includes honest educational assessment disclaimer');
+    assert(creditHealthRes.body.data.summary.creditUtilizationPct !== undefined, 'Credit Health includes credit utilization metric');
+
+    // ================================================================
+    // 👉 [25/25] Testing Financial News Service & Health (Phase 30 & 31 & 40)...
+    // ================================================================
+    console.log('\n👉 [25/25] Testing Financial News Service & Health (Phase 30, 31, 40)...');
+
+    const newsHealth = await request(app).get('/api/v1/health/news');
+    assert(newsHealth.status === 200 && newsHealth.body.success === true, 'GET /api/v1/health/news reports news service health');
+
+    const newsList = await request(app)
+      .get('/api/v1/news?category=general&limit=5')
+      .set('Authorization', `Bearer ${tokenA}`);
+    assert(newsList.status === 200 && Array.isArray(newsList.body.data.articles), 'GET /api/v1/news delivers structured financial headlines');
+    assert(newsList.body.data.articles.length > 0 && newsList.body.data.articles[0].headline, 'News article includes headline, source and publication time');
+
+
   } catch (err) {
     console.error('\n❌ UNEXPECTED ERROR DURING SUITE:', err);
     failedCount++;

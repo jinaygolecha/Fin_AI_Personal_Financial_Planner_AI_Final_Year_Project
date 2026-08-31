@@ -308,6 +308,7 @@ export const aiAPI = {
   clearHistory: () => apiFetch('/ai/history', { method: 'DELETE' }),
   snapshot: () => apiFetch('/ai/snapshot'),
   healthScore: () => apiFetch('/ai/financial-health'),
+  creditHealth: () => apiFetch('/ai/credit-health'),
   cashFlow: (days = 30) => apiFetch(`/ai/cash-flow?days=${days}`),
   anomalies: () => apiFetch('/ai/anomalies'),
   submitAnomalyFeedback: (id, feedback) => apiFetch(`/ai/anomalies/${id}/feedback`, { method: 'PATCH', body: JSON.stringify({ feedback }) }),
@@ -324,6 +325,38 @@ export const aiAPI = {
   voiceIntent: (speechText) => apiFetch('/ai/voice-intent', { method: 'POST', body: JSON.stringify({ speechText }) }),
 };
 
+// ===== Cards API (Phase 26) =====
+
+export const cardsAPI = {
+  list: () => apiFetch('/cards'),
+  create: (data) => apiFetch('/cards', { method: 'POST', body: JSON.stringify(data) }),
+  get: (id) => apiFetch(`/cards/${id}`),
+  update: (id, data) => apiFetch(`/cards/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/cards/${id}`, { method: 'DELETE' }),
+};
+
+// ===== Financial Tasks API (Phase 29) =====
+
+export const tasksAPI = {
+  list: (params = '') => apiFetch(`/tasks${params ? '?' + params : ''}`),
+  create: (data) => apiFetch('/tasks', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => apiFetch(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: (id) => apiFetch(`/tasks/${id}`, { method: 'DELETE' }),
+};
+
+// ===== Financial News API (Phase 30 & 31) =====
+
+export const newsAPI = {
+  get: ({ search = '', category = 'general', symbols = '', limit = 10 } = {}) => {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (category) params.append('category', category);
+    if (symbols) params.append('symbols', symbols);
+    if (limit) params.append('limit', limit);
+    return apiFetch(`/news?${params.toString()}`);
+  },
+};
+
 // ===== Receipts OCR & Bank Statement Import API =====
 
 export const receiptsAPI = {
@@ -334,6 +367,20 @@ export const receiptsAPI = {
 export const importAPI = {
   bankStatement: (csvContent) => apiFetch('/import/bank-statement', { method: 'POST', body: JSON.stringify({ csvContent }) }),
   confirm: (data) => apiFetch('/import/confirm', { method: 'POST', body: JSON.stringify(data) }),
+};
+
+// ===== Training Data Bot & ML Studio API =====
+
+export const trainingAPI = {
+  uploadDataset: (data) => apiFetch('/training/datasets/upload', { method: 'POST', body: JSON.stringify(data) }),
+  getDatasets: () => apiFetch('/training/datasets'),
+  getDataset: (id) => apiFetch(`/training/datasets/${id}`),
+  createVersion: (id, data) => apiFetch(`/training/datasets/${id}/version`, { method: 'POST', body: JSON.stringify(data) }),
+  deleteDataset: (id) => apiFetch(`/training/datasets/${id}`, { method: 'DELETE' }),
+  trainModel: (data) => apiFetch('/training/train', { method: 'POST', body: JSON.stringify(data) }),
+  getRuns: (datasetId) => apiFetch(`/training/runs${datasetId ? '?datasetId=' + datasetId : ''}`),
+  predict: (data) => apiFetch('/training/predict', { method: 'POST', body: JSON.stringify(data) }),
+  getPredictions: () => apiFetch('/training/predictions'),
 };
 
 // ===== Export API =====
@@ -387,7 +434,10 @@ export const redirectIfAuth = (redirectTo = '/dashboard.html') => {
 };
 
 export const handleGoogleCallback = () => {
-  const params = new URLSearchParams(window.location.search);
+  // Support URL hash fragment (secure) or query params (legacy)
+  const hashString = window.location.hash ? window.location.hash.substring(1) : '';
+  const searchString = window.location.search ? window.location.search.substring(1) : '';
+  const params = new URLSearchParams(hashString || searchString);
   const accessToken = params.get('access_token');
   const refreshToken = params.get('refresh_token');
   if (accessToken) {
@@ -413,10 +463,14 @@ export default {
   loansAPI,
   insuranceAPI,
   subscriptionsAPI,
+  cardsAPI,
+  tasksAPI,
+  newsAPI,
   analyticsAPI,
   calendarAPI,
   notificationsAPI,
   aiAPI,
+  trainingAPI,
   receiptsAPI,
   importAPI,
   exportAPI,

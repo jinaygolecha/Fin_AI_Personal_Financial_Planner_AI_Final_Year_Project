@@ -63,6 +63,11 @@ model User {
   recommendationFeedback AIRecommendationFeedback[]
   categoryCorrections TransactionCategoryCorrection[]
   receiptScans       ReceiptScan[]
+  trainingDatasets   TrainingDataset[]
+  trainingRuns       TrainingRun[]
+  mlPredictions      MLPrediction[]
+  cards              Card[]
+  financialTasks     FinancialTask[]
 
   @@index([email])
   @@index([googleId])
@@ -366,6 +371,8 @@ enum AssetType {
   MUTUAL_FUND
   SIP
   GOLD
+  SILVER
+  FIXED_DEPOSIT
   CRYPTO
   BOND
   ETF
@@ -436,6 +443,8 @@ model InsurancePolicy {
   policyName     String
   insurer        String?
   policyType     String   @default("LIFE")
+  policyNumber   String?
+  beneficiary    String?
   coverageAmount Decimal  @db.Decimal(15, 2)
   premium        Decimal  @db.Decimal(15, 2)
   premiumCycle   String   @default("ANNUAL")
@@ -741,4 +750,147 @@ model AuditLog {
   @@index([userId])
   @@map("audit_logs")
 }
+
+// ============================================================
+// TRAINING DATA BOT & ML PIPELINE
+// ============================================================
+
+model TrainingDataset {
+  id             String           @id @default(uuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?
+  fileName       String?
+  rowCount       Int              @default(0)
+  columnCount    Int              @default(0)
+  columns        Json             @default("[]")
+  currentVersion Int              @default(1)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  versions       DatasetVersion[]
+  trainingRuns   TrainingRun[]
+
+  @@index([userId])
+  @@map("training_datasets")
+}
+
+model DatasetVersion {
+  id            String          @id @default(uuid())
+  datasetId     String
+  dataset       TrainingDataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  versionNumber Int             @default(1)
+  changeLog     String          @default("Initial upload")
+  rowCount      Int             @default(0)
+  columnCount   Int             @default(0)
+  columns       Json            @default("[]")
+  data          Json            @default("[]")
+  createdAt     DateTime        @default(now())
+
+  trainingRuns  TrainingRun[]
+
+  @@unique([datasetId, versionNumber])
+  @@map("dataset_versions")
+}
+
+model TrainingRun {
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  datasetId        String
+  dataset          TrainingDataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  datasetVersionId String?
+  datasetVersion   DatasetVersion? @relation(fields: [datasetVersionId], references: [id], onDelete: SetNull)
+  taskType         String          // REGRESSION | CLASSIFICATION
+  targetColumn     String
+  featureColumns   String[]
+  algorithm        String          // LINEAR_REGRESSION | RIDGE | DECISION_TREE | LOGISTIC_REGRESSION | NAIVE_BAYES
+  hyperparameters  Json            @default("{}")
+  metrics          Json            // Regression: { mae, mse, rmse, r2 } | Classification: { accuracy, precision, recall, f1 }
+  modelVersion     String          @default("v1.0.0")
+  status           String          @default("COMPLETED")
+  errorMessage     String?
+  modelWeights     Json?
+  featureStats     Json?
+  createdAt        DateTime        @default(now())
+
+  predictions      MLPrediction[]
+
+  @@index([userId])
+  @@index([datasetId])
+  @@map("training_runs")
+}
+
+model MLPrediction {
+  id                 String      @id @default(uuid())
+  userId             String
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trainingRunId      String
+  trainingRun        TrainingRun @relation(fields: [trainingRunId], references: [id], onDelete: Cascade)
+  modelVersion       String
+  algorithm          String
+  inputValues        Json
+  predictedValue     String
+  numericPrediction  Float?
+  confidenceScore    Float?
+  performanceSummary Json?
+  createdAt          DateTime    @default(now())
+
+  @@index([userId])
+  @@index([trainingRunId])
+  @@map("ml_predictions")
+}
+
+// ============================================================
+// CARDS & FINANCIAL TASKS (Phase 26 & Phase 29)
+// ============================================================
+
+model Card {
+  id                 String    @id @default(uuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardNickname       String
+  cardType           CardType  @default(CREDIT)
+  issuer             String    // HDFC, SBI, ICICI, Axis, etc.
+  lastFourDigits     String    // e.g. "4321" (NEVER store full PAN, CVV, or PIN)
+  creditLimit        Decimal?  @db.Decimal(15, 2)
+  outstandingAmount  Decimal   @default(0) @db.Decimal(15, 2)
+  minimumDue         Decimal?  @db.Decimal(15, 2)
+  billingCycleDay    Int?      // e.g. 15
+  dueDate            DateTime? @db.Date
+  rewardCategory     String?   // Dining, Travel, Fuel, Cashback
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("payment_cards")
+}
+
+enum CardType {
+  CREDIT
+  DEBIT
+}
+
+model FinancialTask {
+  id           String       @id @default(uuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  category     String       @default("GENERAL") // EMI, CREDIT_CARD, SIP, INSURANCE, SUBSCRIPTION, TAX, BUDGET
+  dueDate      DateTime     @db.Date
+  priority     Priority     @default(MEDIUM)
+  isCompleted  Boolean      @default(false)
+  completedAt  DateTime?
+  reminderTime DateTime?
+  notes        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([userId, isCompleted])
+  @@map("financial_tasks")
+}
+
 

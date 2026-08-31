@@ -17,6 +17,10 @@ const simulations = require('../controllers/simulationController');
 const ocrImport = require('../controllers/ocrImportController');
 const onboarding = require('../controllers/onboardingController');
 const exports_ = require('../controllers/exportController');
+const training = require('../controllers/trainingController');
+const cards = require('../controllers/cardController');
+const tasks = require('../controllers/taskController');
+const news = require('../controllers/newsController');
 
 // Apply auth to all routes below
 router.use(authenticate);
@@ -121,6 +125,22 @@ router.post('/subscriptions', subscriptions.createSubscription);
 router.patch('/subscriptions/:id', subscriptions.updateSubscription);
 router.delete('/subscriptions/:id', subscriptions.deleteSubscription);
 
+// Card Management (Phase 26)
+router.get('/cards', cards.getCards);
+router.post('/cards', cards.createCard);
+router.get('/cards/:id', cards.getCard);
+router.patch('/cards/:id', cards.updateCard);
+router.delete('/cards/:id', cards.deleteCard);
+
+// Financial Tasks & Reminders (Phase 29)
+router.get('/tasks', tasks.getTasks);
+router.post('/tasks', tasks.createTask);
+router.patch('/tasks/:id', tasks.updateTask);
+router.delete('/tasks/:id', tasks.deleteTask);
+
+// Financial News (Phase 30 & 31)
+router.get('/news', news.getNews);
+
 // Analytics & Reports
 router.get('/analytics', analytics.getAnalytics);
 router.get('/reports/monthly', analytics.getMonthlyFinancialReport);
@@ -144,6 +164,7 @@ router.get('/ai/history', ai.getChatHistory);
 router.delete('/ai/history', ai.clearChatHistory);
 router.get('/ai/snapshot', ai.getFinancialSnapshot);
 router.get('/ai/financial-health', analytics.getFinancialHealth);
+router.get('/ai/credit-health', analytics.getCreditHealth);
 router.get('/ai/cash-flow', analytics.getCashFlowPrediction);
 router.get('/ai/anomalies', analytics.getExpenseAnomalies);
 router.patch('/ai/anomalies/:id/feedback', analytics.submitAnomalyFeedback);
@@ -177,5 +198,16 @@ router.get('/export/loans.csv', exports_.exportLoansCSV);
 router.get('/export/insurance.csv', exports_.exportInsuranceCSV);
 router.get('/export/subscriptions.csv', exports_.exportSubscriptionsCSV);
 router.get('/export/summary.csv', exports_.exportSummaryCSV);
+
+// Training Data Bot & ML Studio (Phases 15, 16, 17)
+router.post('/training/datasets/upload', training.uploadDataset);
+router.get('/training/datasets', training.getDatasets);
+router.get('/training/datasets/:id', training.getDataset);
+router.post('/training/datasets/:id/version', training.createDatasetVersion);
+router.delete('/training/datasets/:id', training.deleteDataset);
+router.post('/training/train', training.trainModel);
+router.get('/training/runs', training.getTrainingRuns);
+router.post('/training/predict', training.predict);
+router.get('/training/predictions', training.getPredictionHistory);
 
 module.exports = router;

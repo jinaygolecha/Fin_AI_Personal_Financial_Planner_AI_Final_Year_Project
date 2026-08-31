@@ -7,6 +7,7 @@ router.post('/login', auth.login);
 router.post('/refresh', auth.refresh);
 router.post('/logout', auth.logout);
 router.get('/me', require('../middleware/auth').authenticate, auth.getMe);
+router.get('/providers', auth.getAuthProviders);
 router.get('/google', auth.googleAuthRedirect);
 router.get('/google/callback', auth.googleAuthCallback);
 router.post('/google/token', auth.googleAuthWithToken);

@@ -1,7 +1,7 @@
 {
-  "name": "jinay-finance-ai-backend",
+  "name": "finpro-backend",
   "version": "1.0.0",
-  "description": "AI-Powered Personal Finance & Investment Advisor — Backend API (Jinay Golecha)",
+  "description": "FinPro — Personal Finance & Investment Decision Support Platform | Created by Students of VU (Node.js Backend)",
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",

@@ -184,6 +184,30 @@ const getMe = async (req, res, next) => {
 };
 
 /**
+ * GET /api/v1/auth/providers
+ * Returns authentication providers configuration status
+ */
+const getAuthProviders = (req, res) => {
+  const googleConfigured = !!(
+    process.env.GOOGLE_CLIENT_ID &&
+    process.env.GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com' &&
+    process.env.GOOGLE_CLIENT_SECRET &&
+    process.env.GOOGLE_CLIENT_SECRET !== 'YOUR_GOOGLE_CLIENT_SECRET'
+  );
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      password: true,
+      google: {
+        enabled: googleConfigured,
+        clientId: googleConfigured ? process.env.GOOGLE_CLIENT_ID : null,
+      },
+    },
+  });
+};
+
+/**
  * GET /api/v1/auth/google
  * Redirects to Google OAuth
  */
@@ -201,21 +225,25 @@ const googleAuthRedirect = (req, res, next) => {
  * Handles Google OAuth callback with code exchange
  */
 const googleAuthCallback = async (req, res, next) => {
+  const host = req.get('host') || '127.0.0.1:5000';
+  const protocol = req.protocol || 'http';
+  const frontendUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes(':3000'))
+    ? process.env.FRONTEND_URL
+    : `${protocol}://${host}`;
+
   try {
     const { code } = req.query;
     if (!code) {
-      return res.redirect(`${process.env.FRONTEND_URL}/login.html?error=google_auth_failed`);
+      return res.redirect(`${frontendUrl}/login.html?error=google_auth_failed`);
     }
 
     const result = await authService.handleGoogleCallback(code);
     const { accessToken, refreshToken } = result;
 
-    // Redirect to frontend with tokens in query (use hash for security)
-    const frontendUrl = process.env.FRONTEND_URL || 'http://127.0.0.1:3000';
-    return res.redirect(`${frontendUrl}/onboarding.html?access_token=${accessToken}&refresh_token=${refreshToken}&google=true`);
+    // Redirect to frontend with tokens in URL hash fragment for security (never exposed to server/logs)
+    return res.redirect(`${frontendUrl}/dashboard.html#access_token=${accessToken}&refresh_token=${refreshToken}&google=true`);
   } catch (error) {
     console.error('Google callback error:', error.message);
-    const frontendUrl = process.env.FRONTEND_URL || 'http://127.0.0.1:3000';
     return res.redirect(`${frontendUrl}/login.html?error=google_auth_failed`);
   }
 };
@@ -250,4 +278,4 @@ const googleAuthWithToken = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, refresh, logout, getMe, googleAuthRedirect, googleAuthCallback, googleAuthWithToken };
+module.exports = { register, login, refresh, logout, getMe, getAuthProviders, googleAuthRedirect, googleAuthCallback, googleAuthWithToken };

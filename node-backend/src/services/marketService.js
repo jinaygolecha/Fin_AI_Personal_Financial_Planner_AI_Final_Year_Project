@@ -252,7 +252,9 @@ const getQuote = async (symbol) => {
         server_timestamp  : serverTimestamp,
         cache_age_seconds : 0,
         market_status     : isMarketOpen() ? 'OPEN' : 'CLOSED',
+        marketStatus      : isMarketOpen() ? 'OPEN' : 'CLOSED',
         data_status       : 'LIVE',
+        dataStatus        : 'LIVE',
         error_status      : null,
       };
 
@@ -314,7 +316,9 @@ const getQuote = async (symbol) => {
           server_timestamp  : serverTimestamp,
           cache_age_seconds : 0,
           market_status     : isMarketOpen() ? 'OPEN' : 'CLOSED',
+          marketStatus      : isMarketOpen() ? 'OPEN' : 'CLOSED',
           data_status       : 'LIVE',
+          dataStatus        : 'LIVE',
           error_status      : null,
         };
 
@@ -369,7 +373,9 @@ const getQuote = async (symbol) => {
           server_timestamp  : serverTimestamp,
           cache_age_seconds : 0,
           market_status     : 'OPEN',
+          marketStatus      : 'OPEN',
           data_status       : 'LIVE',
+          dataStatus        : 'LIVE',
           error_status      : null,
         };
 
@@ -418,7 +424,9 @@ const getQuote = async (symbol) => {
           server_timestamp  : serverTimestamp,
           cache_age_seconds : ageSec,
           market_status     : 'CLOSED',
+          marketStatus      : 'CLOSED',
           data_status       : dataStatus,
+          dataStatus        : dataStatus,
           error_status      : null,
         };
       }
@@ -451,7 +459,9 @@ const getQuote = async (symbol) => {
     server_timestamp  : serverTimestamp,
     cache_age_seconds : null,
     market_status     : 'UNAVAILABLE',
+    marketStatus      : 'UNAVAILABLE',
     data_status       : 'UNAVAILABLE',
+    dataStatus        : 'UNAVAILABLE',
     error_status      : 'Market data currently unavailable from external providers.',
   };
 };
@@ -690,6 +700,12 @@ const getPreciousMetals = async () => {
               instrument: '22K Standard Hallmark (91.6% purity)',
             },
             source_specification: 'International Gold Futures (COMEX: GC=F) converted to INR at live FX',
+            distinctions: {
+              international_spot: 'COMEX Gold Continuous Futures (GC=F in USD/troy oz)',
+              comex_futures: 'COMEX Continuous Contract (USD/oz converted at interbank FX)',
+              mcx_domestic_futures: 'Multi Commodity Exchange (MCX India domestic contracts; distinct domestic pricing)',
+              indian_retail_bullion: 'Domestic retail gold carries basic customs duties (~6%) + 3% GST over raw converted spot'
+            },
           },
           silver: {
             perGram  : silverGram,
@@ -697,13 +713,20 @@ const getPreciousMetals = async () => {
             perOunce : Math.round(silverGram * 31.1035 * 100) / 100,
             currency : 'INR',
             instrument: 'COMEX Silver Continuous Futures (SI=F) -> INR',
+            unit_formula: '1 kg = 1000 grams exact; 1 troy oz = 31.1035 grams',
             source_specification: 'International Silver Futures (COMEX: SI=F) converted to INR at live FX',
+            distinctions: {
+              international_spot: 'COMEX Silver Continuous Futures (SI=F in USD/troy oz)',
+              unit: 'Troy Ounce (31.1035g), Metric Gram, Metric Kilogram (1000g)'
+            },
           },
           usdToInr,
           marketStatus      : 'CLOSED',
+          market_status     : 'CLOSED',
           source            : `${dbGold.provider} (DB Cache)`,
           provider          : dbGold.provider,
           data_status       : ageSec < 15 * 60 ? 'CACHED' : 'STALE',
+          dataStatus        : ageSec < 15 * 60 ? 'CACHED' : 'STALE',
           provider_timestamp: new Date(dbGold.timestamp).toISOString(),
           fetched_at        : new Date(dbGold.timestamp).toISOString(),
           server_timestamp  : serverTimestamp,
@@ -750,6 +773,12 @@ const getPreciousMetals = async () => {
         },
         purity: '99.9% (24K) / 91.6% (22K)',
         source_specification: 'International Gold Futures (COMEX: GC=F) converted to INR at live FX',
+        distinctions: {
+          international_spot: 'COMEX Gold Continuous Futures (GC=F in USD/troy oz)',
+          comex_futures: 'COMEX Continuous Contract (USD/oz converted at interbank FX)',
+          mcx_domestic_futures: 'Multi Commodity Exchange (MCX India domestic contracts; distinct domestic pricing)',
+          indian_retail_bullion: 'Domestic retail gold carries basic customs duties (~6%) + 3% GST over raw converted spot'
+        },
       },
       silver: {
         perGram  : silverGram,
@@ -758,14 +787,20 @@ const getPreciousMetals = async () => {
         currency : 'INR',
         instrument: 'COMEX Silver Continuous Futures (SI=F) -> INR',
         original_provider_price: `$${silverUSDPerOz.toFixed(2)} / troy oz`,
-        unit_formula: '1 kg = 1000 grams',
+        unit_formula: '1 kg = 1000 grams exact; 1 troy oz = 31.1035 grams',
         source_specification: 'International Silver Futures (COMEX: SI=F) converted to INR at live FX',
+        distinctions: {
+          international_spot: 'COMEX Silver Continuous Futures (SI=F in USD/troy oz)',
+          unit: 'Troy Ounce (31.1035g), Metric Gram, Metric Kilogram (1000g)'
+        },
       },
       usdToInr,
       marketStatus      : isMarketOpen() ? 'OPEN' : 'CLOSED',
+      market_status     : isMarketOpen() ? 'OPEN' : 'CLOSED',
       source,
       provider          : source,
       data_status       : dataStatus,
+      dataStatus        : dataStatus,
       provider_timestamp: providerTimestamp,
       fetched_at        : serverTimestamp,
       server_timestamp  : serverTimestamp,
@@ -784,16 +819,28 @@ const getPreciousMetals = async () => {
       karat24: { perGram: null, per10Gram: null, perOunce: null, currency: 'INR' },
       karat22: { perGram: null, per10Gram: null, perOunce: null, currency: 'INR' },
       source_specification: 'Gold data unavailable',
+      distinctions: {
+        international_spot: 'Unavailable',
+        comex_futures: 'Unavailable',
+        mcx_domestic_futures: 'Unavailable',
+        indian_retail_bullion: 'Unavailable'
+      },
     },
     silver: {
       perGram: null, perKg: null, perOunce: null, currency: 'INR',
       source_specification: 'Silver data unavailable',
+      distinctions: {
+        international_spot: 'Unavailable',
+        unit: 'Troy Ounce (31.1035g), Metric Gram, Metric Kilogram (1000g)'
+      },
     },
     usdToInr,
     marketStatus      : 'UNAVAILABLE',
+    market_status     : 'UNAVAILABLE',
     source            : 'None',
     provider          : 'None',
     data_status       : 'UNAVAILABLE',
+    dataStatus        : 'UNAVAILABLE',
     provider_timestamp: null,
     fetched_at        : serverTimestamp,
     server_timestamp  : serverTimestamp,

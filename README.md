@@ -1,172 +1,217 @@
-# 🎓 Jinay Finance AI — Personal Finance & Investment Advisor
+# FinPro — Personal Finance & Investment Decision Support Platform
 
-> **Final-Year Engineering Project**  
-> **Author & Maintainer**: Jinay Golecha (`jinay_golecha`)  
-> **Canonical Repository**: [jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project](https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project)  
-> **Technology Stack**: Node.js v20+ LTS, Express.js 4, Prisma ORM 5.22, PostgreSQL 17, Google Gemini AI, Alpha Vantage API, Finnhub API, Web Speech API, ECharts, Vanilla HTML5 / Modern CSS3  
-> **License**: MIT  
+[![CI / Build & Test](https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project/actions/workflows/ci.yml/badge.svg)](https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project/actions/workflows/ci.yml)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Database](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
+[![ORM](https://img.shields.io/badge/Prisma-5.22-darkblue.svg)](https://www.prisma.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
-
-## 📘 1. Executive Summary & Problem Statement
-
-Managing personal cash flows, multi-asset investments (Equities, Mutual Funds, SIP, MCX Gold, Silver, Crypto), liabilities, insurance coverage, and recurring subscriptions across fragmented platforms leads to poor visibility and financial leakages.
-
-**Jinay Finance AI** is a comprehensive personal finance management and investment advisory platform tailored specifically for the Indian financial ecosystem (**INR - ₹ / Asia/Kolkata**). Built with a PostgreSQL schema, Prisma ORM, and Express REST API server, the system provides real-time portfolio valuation, multi-asset allocation insights, automated budget thresholds, loan prepayment simulations, insurance gap analysis, voice-assisted expense entry, OCR receipt extraction, and live market intelligence.
+> **FinPro**  
+> **Created by Students of VU**  
+> **Project Lead:** Jinay Golecha  
+> **Local Project:** `E:\FINAL_YEAR_PROJECT\Minor Project\Final-Year-Project`  
+> **Repository:** [jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project](https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project)
 
 ---
 
-## 🏗️ 2. System Architecture
+## 1. Problem Statement & Solution
+
+### The Problem
+Modern personal finance is fractured. Individuals navigate separate applications for bank accounting, equity investments, bullion tracking, loan amortization, credit card due dates, and insurance policies. Many platforms use generic or fabricated metrics, leaving users with disjointed financial visibility and delayed market information.
+
+### The FinPro Solution
+FinPro is an integrated, full-stack personal finance and investment decision support platform engineered specifically for the Indian financial ecosystem (INR / ₹ / `en-IN` / `Asia/Kolkata`). FinPro unifies:
+- **Canonical Architecture:** A single Node.js/Express backend backed by PostgreSQL 17 via Prisma ORM.
+- **Audited Market Data Engine:** Real-time stock quotes (NSE/BSE) and COMEX continuous precious metals (Gold 24K/22K & Silver) converted to INR at live interbank FX rates with zero fake or synthetic curves.
+- **AI Decision Support:** Powered by Google Gemini 1.5 Flash grounded strictly in authenticated user database records (10-factor financial health score, 30/90-day cash flow projections, what-if simulators, and budget optimization).
+- **Comprehensive Obligation Tracking:** Card management, loan prepayment simulators, insurance renewals, and financial to-do tasks.
+
+---
+
+## 2. System Architecture
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│                    FRONTEND WEB CLIENT                     │
-│   HTML5 + Modern Vanilla CSS + ECharts + Web Speech API    │
-└─────────────────────────────┬──────────────────────────────┘
-                              │ HTTP/JSON + JWT Bearer Auth
-                              ▼
-┌────────────────────────────────────────────────────────────┐
-│                EXPRESS REST API SERVER (v1)                │
-│    Routes, Controllers, Middleware & Financial Engines     │
-├─────────────────────────────┼──────────────────────────────┤
-│  • Auth (JWT & Refresh)     │  • Loans & EMI Simulation    │
-│  • Financial Onboarding     │  • Insurance & Subscriptions │
-│  • Account Atomicity        │  • Alpha Vantage Market Data │
-│  • Transactions & Reversals │  • 24K/22K Gold & Silver     │
-│  • Budgets (50/30/20)       │  • AI Advisor (Gemini/Rules) │
-│  • Savings Goals            │  • Voice Natural Language    │
-│  • Portfolio Valuation      │  • Authenticated CSV Exports │
-└─────────────────────────────┬──────────────────────────────┘
-                              │ Prisma Queries
-                              ▼
-┌────────────────────────────────────────────────────────────┐
-│               POSTGRESQL DATABASE (finance_jinay)          │
-│  Users, Accounts, Transactions, Budgets, Goals, Portfolio  │
-└────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    FRONTEND CLIENT (SPA)                    │
+│   Vanilla JS (ES6 Modules) + CSS3 Custom Properties         │
+│   Served statically by Node.js Express at port 5000         │
+└──────────────────────────────▲──────────────────────────────┘
+                               │
+                       HTTPS / REST / JSON
+                               │
+┌──────────────────────────────▼──────────────────────────────┐
+│                  CENTRAL API CLIENT & AUTH                  │
+│   frontend/public/assets/js/api.js                          │
+│   - Bearer JWT token propagation & refresh logic            │
+│   - Unified error handling (401/403/404/422/500)            │
+└──────────────────────────────▲──────────────────────────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────────┐
+│                 NODE.JS / EXPRESS 4 BACKEND                 │
+│   node-backend/src/server.js  |  node-backend/src/app.js    │
+│   - Middleware: Helmet, CORS, Rate Limiters, Morgan         │
+│   - JWT Auth & Google OAuth 2.0 Identity Providers          │
+│   - Controllers: Accounts, Tx, Budgets, Goals, AI, Market   │
+└──────────────▲──────────────────────────────▲───────────────┘
+               │                              │
+┌──────────────▼──────────────┐┌──────────────▼───────────────┐
+│        PRISMA ORM 5.22      ││     EXTERNAL SERVICE LAYER   │
+│   postgresql://.../finance  ││  - Google Gemini 1.5 Flash   │
+│   - 28 Persistent Models    ││  - Live Market Feed Engine   │
+│   - Multi-Tenant Isolation  ││  - Marketaux Financial News  │
+│   - Atomic Rollback Tx      ││  - Tesseract OCR Engine      │
+└─────────────────────────────┘└──────────────────────────────┘
 ```
 
 ---
 
-## 🚀 3. Core Feature Modules
+## 3. Core Features & Capabilities
 
-1. **Centralized Authentication & Security**:
-   - Secure registration, password hashing with `bcrypt` (10 rounds), JWT access (60m) and refresh tokens (7d).
-   - Multi-tenant data isolation preventing cross-user data leakage.
+### 🏦 Accounts & Transactions
+- **Multi-Account Support:** Bank accounts, cash wallets, credit cards, savings, and investments.
+- **Atomic Balance Synchronization:** Every transaction creation, modification, or deletion atomically updates the associated account balance.
+- **Automated Anomaly Detection:** Flags unusual expenditures exceeding dynamic category baselines.
 
-2. **Live Market Dashboard (`market.html`)**:
-   - Real-time stock quotes powered by **Alpha Vantage** with Finnhub fallback.
-   - 24K & 22K Gold and Silver spot prices in INR per gram, 10g, and troy ounce.
-   - Interactive 7-timeframe chart (1D intraday to 5Y) using Apache ECharts.
-   - Technical Indicators: RSI(14), MACD, SMA 20/50, and Bollinger Bands.
-   - Live USD/INR FX conversion and WTI Crude Oil in INR.
-   - Global commodities strip (Brent, Natural Gas, Copper, Wheat, Coffee).
+### 📈 Verified Market & Commodity Engine
+- **Stocks:** Real-time quote and historical chart engine supporting NSE/BSE symbols (e.g. `RELIANCE.NS`, `TCS.NS`, `INFY.NS`).
+- **Precious Metals:** Live COMEX continuous futures (`GC=F` Gold, `SI=F` Silver) converted to INR via interbank FX (`USDINR=X`). Clearly disclaimed against domestic MCX contracts and retail Indian bullion (6% import duty + 3% GST).
+- **Silver Formulas:** Standardized conversion: `1 kg = 1000 grams exact; 1 troy oz = 31.1035 grams`.
+- **Zero Fake Data Guarantee:** Provider status explicitly labeled: `LIVE`, `CACHED`, `STALE`, or `UNAVAILABLE`. Zero synthetic chart candles.
 
-3. **Financial Onboarding & 50/30/20 Planning**:
-   - 3-step onboarding questionnaire evaluating income, baseline expenses, savings, and debt to generate Financial Health Score (0-100).
+### 💳 Credit & Debit Card Management
+- **Safe Card Tracking:** Stores card nickname, issuer, masked last 4 digits (`•••• •••• •••• 4321`), credit limit, outstanding balance, minimum due, and billing day.
+- **Strict PCI Security:** Explicit rejection of full 16-digit PANs, CVV, CVC, and PIN codes.
+- **Utilization Alerts:** Real-time credit utilization monitoring (`<30%` Healthy, `30-50%` Moderate, `>50%` High Risk).
 
-4. **Multi-Account Deposit Atomicity**:
-   - Add money / deposit flows executed inside database transactions ensuring account balance increments and categorized `INCOME` records stay synchronized.
+### 🤖 Grounded AI Financial Advisor
+- **Context-Aware Insights:** Gemini 1.5 Flash answers questions based on real database records (income, expenses, budgets, debts, and holdings).
+- **10-Factor Health Score:** Comprehensive 0–100 score analyzing savings rate, debt-to-income, emergency fund adequacy, liquidity, and investment diversity with positive and attention reasons.
+- **Educational Credit Assessment:** Transparent educational assessment (not fake bureau scores) derived from recorded credit utilization and DTI.
 
-5. **Transactions Ledger & Dynamic Balance Sync**:
-   - Record income/expense transactions with automatic account balance updates.
-   - Deleting a transaction automatically reverses its balance impact.
+### 📋 Financial Tasks & Smart Reminders
+- **Actionable To-Do:** Task management for EMI payments, credit card dues, SIP investments, and tax filing.
+- **Completion Tracking:** Timestamps completed tasks to prevent repetitive alerts.
 
-6. **Category Budgeting & AI Optimizer**:
-   - 50/30/20 budget framework with real-time spending progress bars.
-   - AI Budget Optimizer calculating suggested budget amounts based on historical habits.
+### 📰 Financial News Service
+- **Marketaux Integration:** Real-time financial headlines, sentiment analysis, and search filters with 10-minute server-side caching.
+- **Fallback Resilience:** Automatic fallback to Finnhub and curated Market Desk briefings.
 
-7. **Financial Goals & Milestone Forecaster**:
-   - Track targets for Emergency Fund, Home Down Payment, Car, Education, Retirement.
-   - Forecasting engine projecting completion dates and acceleration scenarios.
-
-8. **Multi-Asset Investments & P&L**:
-   - Track Stocks, 24K/22K Gold, Silver, Mutual Funds, SIPs, and Crypto.
-   - Real-time valuation and profit/loss computation.
-
-9. **Loans, Reducing-Balance EMI & Prepayment Simulator**:
-   - Track debt obligations, calculate monthly EMIs, and simulate interest savings on prepayment.
-
-10. **Insurance & Subscription Manager**:
-    - Policy coverage tracking, renewal alerts, and recurring subscription cost monitoring.
-
-11. **AI Financial Advisor & Gemini Chat**:
-    - Google Gemini AI advisory engine grounded in real user database figures.
-    - Deterministic rule-based expert system fallback.
-    - Conversational history persisted to database.
-
-12. **Voice Assistant & Intent Recognition**:
-    - Web Speech API integration with natural language intent classification.
-    - Safety confirmation gate before committing expense creations.
-
-13. **OCR Receipt Scanner & Statement CSV Importer**:
-    - Parse receipts and bank statements with user confirmation modal before persistence.
-
-14. **Authenticated CSV Data Exports**:
-    - Download verified CSV reports across 9 financial categories with JWT authorization.
+### 🎙️ Voice Assistant & OCR
+- **Voice Assistant:** Web Speech API integration with intent parsing. Strictly requires user confirmation before executing any financial mutation (`ADD_EXPENSE`, `ADD_INCOME`).
+- **Receipt OCR:** Extracts merchant, amount, date, and category into a preview confirmation dialog prior to database commit.
 
 ---
 
-## 🛠️ 4. Quick Start & Installation
+## 4. Technology Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Backend Runtime** | Node.js 22 LTS, Express 4.21 |
+| **Database & ORM** | PostgreSQL 17, Prisma ORM 5.22 |
+| **Frontend** | Vanilla JavaScript (ES6+), HTML5, CSS3 Custom Design System |
+| **Security & Auth** | JWT (`jsonwebtoken`), `bcryptjs` (salt rounds 10), Google OAuth 2.0 |
+| **AI / Machine Learning**| Google Gemini 1.5 Flash (`@google/generative-ai`), custom ML regression/classification engine |
+| **Market Data Feeds** | Live Market Feed Engine, Alpha Vantage, Finnhub, Marketaux |
+| **Testing & CI/CD** | Supertest, Jest, GitHub Actions, Docker Compose |
+
+---
+
+## 5. Quick Start Guide
 
 ### Prerequisites
-- Node.js v20+ LTS
-- PostgreSQL 17
-- npm v10+
+- **Node.js:** `>= 20.0.0` (Recommended: Node.js 22 LTS)
+- **PostgreSQL:** `>= 15` (Running locally or via Docker on port 5432)
+- **npm:** `>= 10.0.0`
 
-### Setup Commands
+### 1. Clone & Configure
 ```bash
-# 1. Clone repository
 git clone https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project.git
 cd Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project
 
-# 2. Configure environment
+# Copy environment template
 cp .env.example .env
-cp node-backend/.env.example node-backend/.env
-
-# 3. Install backend dependencies & initialize Prisma
-cd node-backend
-npm install
-npx prisma generate
-npx prisma db push
-
-# 4. Start the application
-npm start
 ```
-Access the application at `http://127.0.0.1:5000/`.
 
----
+### 2. Configure Database in `.env`
+Ensure your PostgreSQL credentials match in `.env`:
+```env
+DATABASE_URL="postgresql://postgres:your_password@127.0.0.1:5432/finance_jinay"
+JWT_SECRET="your_secure_random_jwt_secret_key_min_32_chars"
+```
 
-## 🧪 5. Testing & Quality Assurance
-
-Run the comprehensive test suites:
+### 3. One-Command Setup
 ```bash
-# Master 66-point integration suite
-node run-all-tests.js
-
-# 40-point security & auth audit suite
-node test-auth-comprehensive.js
-
-# Live external market API suite
-node test-market-live.js
+npm run setup
 ```
+*This installs all dependencies in `node-backend` and pushes the Prisma schema to your PostgreSQL database.*
+
+### 4. Run Development Server
+```bash
+npm run dev
+```
+Open **http://127.0.0.1:5000** in your browser.
 
 ---
 
-## 📚 6. Documentation Index
+## 6. Docker Deployment
 
-Detailed architectural and QA documents are located in the `docs/` folder:
-- [System Architecture](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/ARCHITECTURE.md) (`docs/ARCHITECTURE.md`)
-- [REST API Specification](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/API.md) (`docs/API.md`)
-- [PostgreSQL Database Design](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/DATABASE.md) (`docs/DATABASE.md`)
-- [Automated Testing & QA Guide](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/TESTING.md) (`docs/TESTING.md`)
-- [Deployment & Setup Guide](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/DEPLOYMENT.md) (`docs/DEPLOYMENT.md`)
-- [Known Limitations & API Quotas](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/KNOWN_LIMITATIONS.md) (`docs/KNOWN_LIMITATIONS.md`)
-- [Master QA & Production Hardening Report](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/FINAL_QA_REPORT.md) (`docs/FINAL_QA_REPORT.md`)
-- [Project Audit Matrix](file:///e:/FINAL_YEAR_PROJECT/Minor%20Project/Final-Year-Project/docs/PROJECT_AUDIT.md) (`docs/PROJECT_AUDIT.md`)
+To launch FinPro and PostgreSQL inside isolated containers:
+```bash
+docker compose up --build
+```
+The application will be accessible at `http://localhost:5000`.
 
 ---
 
-## 👨‍💻 Author
+## 7. Verification & Testing
 
-**Jinay Golecha**  
-*Final-Year Engineering Project — AI-Powered Personal Finance & Investment Advisor*
+FinPro contains a comprehensive 25-phase automated integration test suite and a 10-scenario market resilience suite:
+
+### Run All Integration Tests
+```bash
+npm test
+```
+*Runs all 89 acceptance tests across authentication, core finance, AI, loans, cards, tasks, news, and multi-tenant isolation.*
+
+### Run Market Resilience Suite
+```bash
+cd node-backend
+node test-market-10-scenarios.js
+```
+*Verifies system resilience against timeouts, rate limits, closed markets, and invalid symbols.*
+
+---
+
+## 8. Service Diagnostic Endpoints
+
+The backend exposes authenticated and unauthenticated diagnostic endpoints:
+
+| Endpoint | Purpose | Expected Status |
+| :--- | :--- | :--- |
+| `GET /api/v1/health` | System & DB connectivity | `status: 'ok', database: 'connected'` |
+| `GET /api/v1/health/database` | Database query latency | `status: 'connected', latencyMs: <10` |
+| `GET /api/v1/health/market` | Market feed provider status | `provider: 'Finnhub', status: 'live'` |
+| `GET /api/v1/health/ai` | Gemini AI engine status | `provider: 'Google Gemini', status: 'configured'` |
+| `GET /api/v1/health/news` | Marketaux news service status | `provider: 'Marketaux', status: 'healthy'` |
+
+---
+
+## 9. Security & Data Protection
+
+1. **Authentication & Identity:** Bcrypt password hashing (10 salt rounds). JWT access tokens expire in 60 minutes; refresh tokens stored in DB with one-device rotation.
+2. **User Data Isolation:** Every database operation strictly enforces tenant scoping via `req.user.id`. User B cannot read or modify User A's data.
+3. **Financial Privacy:** Card security codes (CVV/PIN) and full card numbers are strictly prohibited and never accepted or stored.
+4. **Environment Isolation:** Zero credentials, passwords, or secret keys committed to Git.
+
+---
+
+## 10. Contributors & Project Metadata
+
+- **Project Name:** FinPro
+- **Subtitle:** Personal Finance & Investment Decision Support Platform
+- **Branding:** FinPro — Created by Students of VU
+- **Project Lead:** Jinay Golecha
+- **Academic Year:** 2025–2026
+
+For contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).  
+For detailed architectural audits, see [docs/system-audit.md](docs/system-audit.md) and [docs/final-qa-report.md](docs/final-qa-report.md).

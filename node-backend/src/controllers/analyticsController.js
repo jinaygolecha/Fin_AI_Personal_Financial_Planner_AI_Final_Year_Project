@@ -572,9 +572,136 @@ const deleteNotification = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/v1/ai/credit-health (Phase 25)
+ * Educational credit health assessment based on user-entered cards, loans, and DTI.
+ * Strictly avoids fabricating real bureau credit scores (CIBIL/Experian).
+ */
+const getCreditHealth = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const [profile, cards, loans] = await Promise.all([
+      prisma.financialProfile.findUnique({ where: { userId } }),
+      prisma.card.findMany({ where: { userId, isActive: true } }),
+      prisma.loan.findMany({ where: { userId, status: 'ACTIVE' } }),
+    ]);
+
+    const monthlySalary = profile ? parseFloat(profile.monthlySalary || 0) : 0;
+    const totalDebt = profile ? parseFloat(profile.totalDebt || 0) : 0;
+
+    // Credit cards utilization
+    let totalCreditLimit = 0;
+    let totalCardOutstanding = 0;
+    cards.forEach(c => {
+      if (c.cardType === 'CREDIT') {
+        totalCreditLimit += c.creditLimit ? parseFloat(c.creditLimit) : 0;
+        totalCardOutstanding += parseFloat(c.outstandingAmount || 0);
+      }
+    });
+
+    const utilizationPct = totalCreditLimit > 0
+      ? Math.round((totalCardOutstanding / totalCreditLimit) * 10000) / 100
+      : 0;
+
+    // Loan EMIs
+    let totalMonthlyEMI = 0;
+    let totalLoanOutstanding = 0;
+    loans.forEach(l => {
+      totalMonthlyEMI += l.emiAmount ? parseFloat(l.emiAmount) : 0;
+      totalLoanOutstanding += parseFloat(l.outstandingBalance || 0);
+    });
+
+    // Debt to Income
+    const dtiPct = monthlySalary > 0
+      ? Math.round((totalMonthlyEMI / monthlySalary) * 10000) / 100
+      : 0;
+
+    // Evaluate Credit Health Indicators
+    const indicators = [];
+    let healthTier = 'GOOD';
+
+    if (totalCreditLimit > 0) {
+      if (utilizationPct < 30) {
+        indicators.push({ factor: 'Credit Card Utilization', status: 'HEALTHY', detail: `${utilizationPct}% utilization (Optimal under 30%)` });
+      } else if (utilizationPct <= 50) {
+        indicators.push({ factor: 'Credit Card Utilization', status: 'MODERATE', detail: `${utilizationPct}% utilization (Target < 30% for best profile)` });
+        if (healthTier === 'EXCELLENT') healthTier = 'GOOD';
+      } else {
+        indicators.push({ factor: 'Credit Card Utilization', status: 'HIGH_RISK', detail: `${utilizationPct}% utilization exceeds recommended 50% threshold` });
+        healthTier = 'NEEDS_ATTENTION';
+      }
+    } else {
+      indicators.push({ factor: 'Credit Card Utilization', status: 'NOT_APPLICABLE', detail: 'No credit cards tracked yet.' });
+    }
+
+    if (monthlySalary > 0) {
+      if (dtiPct < 25) {
+        indicators.push({ factor: 'Debt-to-Income (DTI)', status: 'HEALTHY', detail: `EMI is ${dtiPct}% of monthly income (Comfortable buffer)` });
+      } else if (dtiPct <= 45) {
+        indicators.push({ factor: 'Debt-to-Income (DTI)', status: 'MODERATE', detail: `EMI is ${dtiPct}% of monthly income (Manageable)` });
+        if (healthTier === 'EXCELLENT') healthTier = 'GOOD';
+      } else {
+        indicators.push({ factor: 'Debt-to-Income (DTI)', status: 'HIGH_RISK', detail: `EMI is ${dtiPct}% of monthly income (Heavy debt burden)` });
+        healthTier = 'NEEDS_ATTENTION';
+      }
+    }
+
+    const creditMix = [];
+    if (cards.length > 0) creditMix.push('Revolving Credit (Cards)');
+    if (loans.length > 0) creditMix.push('Installment Loans (Personal/Home/Auto)');
+    indicators.push({
+      factor: 'Credit Mix',
+      status: creditMix.length > 1 ? 'DIVERSIFIED' : 'MODERATE',
+      detail: creditMix.length > 0 ? creditMix.join(', ') : 'No credit lines active',
+    });
+
+    const recommendations = [];
+    if (utilizationPct > 30) {
+      recommendations.push('Pay down credit card balances to keep utilization strictly under 30% before the billing cycle closing date.');
+    }
+    if (dtiPct > 40) {
+      recommendations.push('Prioritize prepayment or restructuring on high-interest loans to lower your monthly debt servicing ratio below 35%.');
+    }
+    if (cards.length === 0 && loans.length === 0) {
+      recommendations.push('Consider establishing a modest credit card with automatic full monthly payments to build a disciplined credit history.');
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        assessmentType: 'Estimated / Educational Credit Health Assessment',
+        isBureauScore: false,
+        healthTier, // EXCELLENT | GOOD | FAIR | NEEDS_ATTENTION
+        summary: {
+          activeCreditCards: cards.filter(c => c.cardType === 'CREDIT').length,
+          activeLoans: loans.length,
+          totalCreditLimit,
+          formattedTotalCreditLimit: formatINR(totalCreditLimit),
+          totalCardOutstanding,
+          formattedTotalCardOutstanding: formatINR(totalCardOutstanding),
+          creditUtilizationPct: utilizationPct,
+          totalLoanOutstanding,
+          formattedTotalLoanOutstanding: formatINR(totalLoanOutstanding),
+          monthlyEMIBurden: totalMonthlyEMI,
+          formattedMonthlyEMIBurden: formatINR(totalMonthlyEMI),
+          debtToIncomePct: dtiPct,
+        },
+        indicators,
+        recommendations,
+        disclaimer: 'This is an estimated educational credit health assessment derived from your recorded debts, cards, and income. It is NOT an official CIBIL/Experian bureau credit score.',
+        updatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAnalytics,
   getFinancialHealth,
+  getCreditHealth,
   getCashFlowPrediction,
   getExpenseAnomalies,
   submitAnomalyFeedback,
@@ -591,3 +718,4 @@ module.exports = {
   markAllNotificationsRead,
   deleteNotification,
 };
+

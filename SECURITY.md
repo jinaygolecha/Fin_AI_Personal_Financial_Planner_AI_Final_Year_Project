@@ -1,17 +1,17 @@
-# 🔒 Security Policy — Jinay Finance AI
+# 🔒 Security Policy — FinPro
 
 ## 1. Supported Versions
 
 | Version | Supported          | Status |
 | ------- | ------------------ | ------ |
-| 1.0.x   | :white_check_mark: | Active production release |
+| 1.0.x   | :white_check_mark: | Active release |
 | < 1.0   | :x:                | Deprecated |
 
 ---
 
 ## 2. Reporting a Vulnerability
 
-The Jinay Finance AI team takes security and user privacy seriously. If you discover a security vulnerability, please follow responsible disclosure practices:
+The FinPro engineering team takes security, user privacy, and PCI-DSS data hygiene seriously. If you discover a security vulnerability, please follow responsible disclosure practices:
 
 1. **Do NOT open a public GitHub issue** with sensitive vulnerability details.
 2. Email the project maintainer directly at **jinaygolecha.dev@gmail.com** (or open a private security advisory on GitHub).

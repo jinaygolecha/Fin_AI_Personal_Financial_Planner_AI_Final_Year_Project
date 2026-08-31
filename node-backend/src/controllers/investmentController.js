@@ -173,6 +173,9 @@ const buyInvestment = async (req, res, next) => {
       });
     }
 
+    // Auto-sync portfolio totals
+    await syncPortfolioTotals(portfolio.id);
+
     return res.status(201).json({
       success: true,
       data: {
@@ -185,6 +188,157 @@ const buyInvestment = async (req, res, next) => {
         formattedTotalCost: formatINR(qty * price),
         message: `Successfully bought ${qty} units of ${symbolUpper} at ${formatINR(price)}/unit!`,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Helper to sync portfolio totalInvested from all holding costs
+ */
+const syncPortfolioTotals = async (portfolioId) => {
+  try {
+    const holdings = await prisma.investment.findMany({
+      where: { portfolioId },
+    });
+    const totalInvested = holdings.reduce(
+      (sum, h) => sum + (parseFloat(h.quantity) * parseFloat(h.averageBuyPrice)),
+      0
+    );
+    await prisma.portfolio.update({
+      where: { id: portfolioId },
+      data: { totalInvested },
+    });
+  } catch (e) {
+    console.debug('[PortfolioSync] Notice:', e.message);
+  }
+};
+
+/**
+ * GET /api/v1/investments
+ */
+const getInvestments = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const portfolio = await prisma.portfolio.findUnique({
+      where: { userId },
+      include: { investments: true },
+    });
+
+    if (!portfolio || !portfolio.investments.length) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+      });
+    }
+
+    const formatted = portfolio.investments.map((inv) => {
+      const qty = parseFloat(inv.quantity);
+      const buyPrice = parseFloat(inv.averageBuyPrice);
+      const totalCost = qty * buyPrice;
+      return {
+        id: inv.id,
+        symbol: inv.symbol,
+        name: inv.name || inv.symbol,
+        assetType: inv.assetType,
+        quantity: qty,
+        averageBuyPrice: buyPrice,
+        formattedBuyPrice: formatINR(buyPrice),
+        totalCost,
+        formattedTotalCost: formatINR(totalCost),
+        createdAt: inv.createdAt,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: formatted,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PATCH /api/v1/investments/:id
+ */
+const updateInvestment = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const portfolio = await prisma.portfolio.findUnique({ where: { userId } });
+    if (!portfolio) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Portfolio not found.' } });
+    }
+
+    const investment = await prisma.investment.findFirst({
+      where: { id: req.params.id, portfolioId: portfolio.id },
+    });
+    if (!investment) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Investment not found.' } });
+    }
+
+    const { quantity, averageBuyPrice, name } = req.body;
+    const newQty = quantity !== undefined ? parseFloat(quantity) : undefined;
+    const newPrice = averageBuyPrice !== undefined ? parseFloat(averageBuyPrice) : undefined;
+
+    if ((newQty !== undefined && newQty <= 0) || (newPrice !== undefined && newPrice <= 0)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Quantity and average buy price must be positive numbers.' },
+      });
+    }
+
+    const updated = await prisma.investment.update({
+      where: { id: investment.id },
+      data: {
+        ...(newQty !== undefined && { quantity: newQty }),
+        ...(newPrice !== undefined && { averageBuyPrice: newPrice }),
+        ...(name && { name: name.trim() }),
+      },
+    });
+
+    await syncPortfolioTotals(portfolio.id);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...updated,
+        quantity: parseFloat(updated.quantity),
+        averageBuyPrice: parseFloat(updated.averageBuyPrice),
+        formattedBuyPrice: formatINR(updated.averageBuyPrice),
+        message: 'Investment updated successfully.',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/v1/investments/:id
+ */
+const deleteInvestment = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const portfolio = await prisma.portfolio.findUnique({ where: { userId } });
+    if (!portfolio) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Portfolio not found.' } });
+    }
+
+    const investment = await prisma.investment.findFirst({
+      where: { id: req.params.id, portfolioId: portfolio.id },
+    });
+    if (!investment) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Investment not found.' } });
+    }
+
+    await prisma.investment.delete({ where: { id: investment.id } });
+    await syncPortfolioTotals(portfolio.id);
+
+    return res.status(200).json({
+      success: true,
+      data: { message: `Investment ${investment.symbol} removed and portfolio totals updated.` },
     });
   } catch (error) {
     next(error);
@@ -278,9 +432,15 @@ const getGold = async (req, res, next) => {
       data: {
         ...metals.gold,
         marketStatus: metals.marketStatus,
+        market_status: metals.market_status,
+        data_status: metals.data_status,
+        dataStatus: metals.dataStatus,
         source: metals.source,
         timestamp: metals.timestamp,
         provider: metals.provider,
+        provider_timestamp: metals.provider_timestamp,
+        fetched_at: metals.fetched_at,
+        usdToInr: metals.usdToInr,
       },
     });
   } catch (error) {
@@ -299,9 +459,15 @@ const getSilver = async (req, res, next) => {
       data: {
         ...metals.silver,
         marketStatus: metals.marketStatus,
+        market_status: metals.market_status,
+        data_status: metals.data_status,
+        dataStatus: metals.dataStatus,
         source: metals.source,
         timestamp: metals.timestamp,
         provider: metals.provider,
+        provider_timestamp: metals.provider_timestamp,
+        fetched_at: metals.fetched_at,
+        usdToInr: metals.usdToInr,
       },
     });
   } catch (error) {
@@ -378,85 +544,6 @@ const removeFromWatchlist = async (req, res, next) => {
   }
 };
 
-/**
- * GET /api/v1/investments
- */
-const getInvestments = async (req, res, next) => {
-  return getPortfolio(req, res, next);
-};
-
-/**
- * PATCH /api/v1/investments/:id
- */
-const updateInvestment = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const portfolio = await prisma.portfolio.findUnique({ where: { userId } });
-    if (!portfolio) {
-      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Portfolio not found.' } });
-    }
-
-    const investment = await prisma.investment.findFirst({
-      where: { id: req.params.id, portfolioId: portfolio.id },
-    });
-
-    if (!investment) {
-      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Investment not found.' } });
-    }
-
-    const { quantity, averageBuyPrice, name, assetType } = req.body;
-    const updated = await prisma.investment.update({
-      where: { id: req.params.id },
-      data: {
-        ...(quantity !== undefined && { quantity: parseFloat(quantity) }),
-        ...(averageBuyPrice !== undefined && { averageBuyPrice: parseFloat(averageBuyPrice) }),
-        ...(name && { name: name.trim() }),
-        ...(assetType && { assetType }),
-      },
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        ...updated,
-        formattedBuyPrice: formatINR(updated.averageBuyPrice),
-        message: 'Investment updated successfully.',
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * DELETE /api/v1/investments/:id
- */
-const deleteInvestment = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const portfolio = await prisma.portfolio.findUnique({ where: { userId } });
-    if (!portfolio) {
-      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Portfolio not found.' } });
-    }
-
-    const investment = await prisma.investment.findFirst({
-      where: { id: req.params.id, portfolioId: portfolio.id },
-    });
-
-    if (!investment) {
-      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Investment not found.' } });
-    }
-
-    await prisma.investment.delete({ where: { id: req.params.id } });
-
-    return res.status(200).json({
-      success: true,
-      data: { message: `Investment in ${investment.symbol} sold/deleted.` },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 /**
  * GET /api/v1/market/news

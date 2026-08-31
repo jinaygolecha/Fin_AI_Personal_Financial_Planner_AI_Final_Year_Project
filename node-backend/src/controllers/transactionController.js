@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { formatINR } = require('../utils/inr');
 const financialTwin = require('../services/financialTwinService');
+const notificationService = require('../services/notificationService');
 
 /**
  * Transactions Controller with Anomaly Detection & ML Categorization
@@ -204,6 +205,9 @@ const createTransaction = async (req, res, next) => {
           },
         }).catch(() => {});
       }
+
+      // Check budget thresholds and alert user if >= 90% or >= 100%
+      notificationService.checkBudgetThresholds(userId, transaction).catch(() => {});
     }
 
     // Audit log
@@ -309,16 +313,36 @@ const updateTransaction = async (req, res, next) => {
       categoryId = cat.id;
     }
 
-    const updated = await prisma.transaction.update({
-      where: { id: req.params.id },
-      data: {
-        ...(amount !== undefined && { amount: parseFloat(amount) }),
-        ...(description !== undefined && { description: description?.trim() || null }),
-        ...(merchant !== undefined && { merchant: merchant?.trim() || null }),
-        ...(notes !== undefined && { notes: notes?.trim() || null }),
-        ...(categoryId && { categoryId }),
-      },
-      include: { category: true, account: true },
+    const newAmountNum = amount !== undefined ? parseFloat(amount) : parseFloat(existing.amount);
+    const oldAmountNum = parseFloat(existing.amount);
+    const amountChanged = amount !== undefined && !isNaN(newAmountNum) && newAmountNum !== oldAmountNum;
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const t = await tx.transaction.update({
+        where: { id: req.params.id },
+        data: {
+          ...(amount !== undefined && { amount: newAmountNum }),
+          ...(description !== undefined && { description: description?.trim() || null }),
+          ...(merchant !== undefined && { merchant: merchant?.trim() || null }),
+          ...(notes !== undefined && { notes: notes?.trim() || null }),
+          ...(categoryId && { categoryId }),
+        },
+        include: { category: true, account: true },
+      });
+
+      // Atomically adjust account balance if amount changed
+      if (amountChanged && existing.accountId) {
+        const delta = existing.transactionType === 'INCOME'
+          ? (newAmountNum - oldAmountNum)
+          : (oldAmountNum - newAmountNum);
+
+        await tx.financialAccount.update({
+          where: { id: existing.accountId },
+          data: { balance: { increment: delta } },
+        });
+      }
+
+      return t;
     });
 
     return res.status(200).json({

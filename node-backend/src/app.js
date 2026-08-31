@@ -17,20 +17,25 @@ const path = require('path');
 const authRoutes = require('./routes/authRoutes');
 const apiRoutes = require('./routes/index');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+const requestLogger = require('./middleware/requestLogger');
 const prisma = require('./config/database');
 
 const app = express();
 
 // ==================== SECURITY MIDDLEWARE ====================
 
+app.use(requestLogger);
+
 app.use(helmet({
-  crossOriginEmbedderPolicy: false, // Allow embedding for dev
-  contentSecurityPolicy: false, // Disabled for now; configure for production
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: false,
 }));
 
 // CORS — allow frontend origin
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://127.0.0.1:3000',
+  'http://127.0.0.1:5000',
+  'http://localhost:5000',
   'http://127.0.0.1:5500',   // VS Code Live Server
   'http://localhost:5500',
   'http://127.0.0.1:3000',
@@ -40,15 +45,21 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'test') {
       callback(null, true);
+    } else if (process.env.NODE_ENV !== 'production') {
+      // In development allow local loopback origins
+      if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS blocked for origin: ${origin}`));
     } else {
-      callback(null, true); // In development, allow all origins
+      callback(new Error(`CORS blocked for origin: ${origin}`));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-Id'],
 }));
 
 // Rate limiting (disabled in test mode)
@@ -168,6 +179,16 @@ app.get('/api/v1/health/auth', async (req, res) => {
     googleOAuth: googleConfigured ? 'configured' : 'not_configured',
     timestamp: new Date().toISOString(),
   });
+});
+
+app.get('/api/v1/health/news', async (req, res) => {
+  try {
+    const newsService = require('./services/newsService');
+    const health = await newsService.checkNewsHealth();
+    res.json({ success: true, ...health });
+  } catch (err) {
+    res.status(500).json({ success: false, status: 'error', message: err.message });
+  }
 });
 
 // ==================== API ROUTES ====================

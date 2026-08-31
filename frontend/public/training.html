@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Training & ML Studio — Jinay Finance AI</title>
+  <meta name="description" content="Professional Machine Learning and Financial Dataset Training Studio. Upload datasets, inspect distributions, train real models, and run predictions.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-subtle: #f1f5f9;
+      --border: #e2e8f0;
+      --border-focus: #4f46e5;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #eef2ff;
+      --success: #059669;
+      --success-light: #ecfdf5;
+      --warning: #d97706;
+      --warning-light: #fffbeb;
+      --danger: #dc2626;
+      --danger-light: #fef2f2;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+      --radius: 8px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      color: #fff;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .nav-list {
+      padding: 16px 12px;
+      list-style: none;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .nav-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-light);
+      padding: 8px 12px 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius);
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 2px;
+      transition: all 0.15s ease;
+    }
+
+    .nav-item:hover {
+      background: var(--surface-subtle);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .nav-item i {
+      font-size: 16px;
+      width: 20px;
+    }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .user-role {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .logout-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 6px;
+      border-radius: var(--radius);
+      transition: color 0.15s;
+    }
+
+    .logout-btn:hover {
+      color: var(--danger);
+      background: var(--danger-light);
+    }
+
+    /* ===== MAIN CONTENT ===== */
+    .main {
+      margin-left: 260px;
+      flex: 1;
+      padding: 32px 40px;
+      max-width: 1300px;
+    }
+
+    .header-section {
+      margin-bottom: 28px;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .page-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* ===== TABS ===== */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+
+    .tab-btn {
+      padding: 10px 16px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* ===== CARDS & GRID ===== */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    /* ===== FORMS ===== */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--text);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .form-textarea {
+      font-family: monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface-subtle);
+    }
+
+    .btn-danger {
+      background: var(--danger-light);
+      color: var(--danger);
+      border-color: #fca5a5;
+    }
+
+    .btn-danger:hover {
+      background: #fee2e2;
+    }
+
+    /* ===== TABLES ===== */
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    .data-table th {
+      background: var(--surface-subtle);
+      padding: 10px 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .data-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .data-table tr:hover td {
+      background: #f8fafc;
+    }
+
+    /* ===== STATS BADGES ===== */
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-number {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    .badge-string {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .badge-success {
+      background: var(--success-light);
+      color: var(--success);
+    }
+
+    /* ===== METRICS DISPLAY ===== */
+    .metric-box {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .metric-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: var(--text-light);
+      margin-top: 2px;
+    }
+
+    .disclaimer-banner {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 12px;
+      color: #92400e;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon"><i class="ri-line-chart-fill"></i></div>
+      <div>
+        <div class="brand-title">Jinay Finance AI</div>
+        <div class="brand-sub">Financial Planner & ML Studio</div>
+      </div>
+    </div>
+
+    <ul class="nav-list">
+      <li class="nav-label">Core Dashboard</li>
+      <li><a href="/dashboard.html" class="nav-item"><i class="ri-dashboard-line"></i> Dashboard</a></li>
+      <li><a href="/transactions.html" class="nav-item"><i class="ri-exchange-dollar-line"></i> Transactions</a></li>
+      <li><a href="/budget.html" class="nav-item"><i class="ri-pie-chart-line"></i> Budgets</a></li>
+      <li><a href="/goals.html" class="nav-item"><i class="ri-flag-line"></i> Financial Goals</a></li>
+
+      <li class="nav-label">Wealth & Intelligence</li>
+      <li><a href="/investments.html" class="nav-item"><i class="ri-funds-line"></i> Investments & Gold</a></li>
+      <li><a href="/market.html" class="nav-item"><i class="ri-stock-line"></i> Live Market Feeds</a></li>
+      <li><a href="/loans.html" class="nav-item"><i class="ri-bank-card-line"></i> Loans & Prepayment</a></li>
+      <li><a href="/insurance.html" class="nav-item"><i class="ri-shield-check-line"></i> Insurance Policies</a></li>
+      <li><a href="/ai-advisor.html" class="nav-item"><i class="ri-robot-2-line"></i> AI Financial Advisor</a></li>
+      <li><a href="/training.html" class="nav-item active"><i class="ri-brain-line"></i> AI Training & ML Studio</a></li>
+      <li><a href="/calendar.html" class="nav-item"><i class="ri-calendar-line"></i> Financial Calendar</a></li>
+      <li><a href="/analytics.html" class="nav-item"><i class="ri-bar-chart-box-line"></i> Analytics & Reports</a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="user-pill">
+        <div class="user-avatar" id="avatarLetter">J</div>
+        <div class="user-details">
+          <div class="user-name" id="userNameText">Jinay Golecha</div>
+          <div class="user-role" id="userRoleText">Primary User</div>
+        </div>
+      </div>
+      <button class="logout-btn" id="logoutBtn" title="Logout"><i class="ri-logout-box-r-line"></i></button>
+    </div>
+  </aside>
+
+  <!-- MAIN VIEW -->
+  <main class="main">
+    <div class="header-section">
+      <h1 class="page-title">AI Dataset & ML Studio</h1>
+      <p class="page-desc">Production Machine Learning Pipeline. Upload financial datasets, version and preprocess data safely, train real statistical regression and classification models, and run transparent predictions.</p>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('datasetsTab')"><i class="ri-database-2-line"></i> Datasets</button>
+      <button class="tab-btn" onclick="switchTab('uploadTab')"><i class="ri-upload-cloud-line"></i> Upload & Preprocess</button>
+      <button class="tab-btn" onclick="switchTab('trainingTab')"><i class="ri-cpu-line"></i> Train Model</button>
+      <button class="tab-btn" onclick="switchTab('predictTab')"><i class="ri-magic-line"></i> Run Prediction</button>
+      <button class="tab-btn" onclick="switchTab('historyTab')"><i class="ri-history-line"></i> Models & History</button>
+    </div>
+
+    <!-- TAB 1: DATASETS -->
+    <div id="datasetsTab" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>Active Datasets</span>
+          <button class="btn btn-primary" onclick="switchTab('uploadTab')"><i class="ri-add-line"></i> New Dataset</button>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Dataset Name</th>
+                <th>Rows</th>
+                <th>Columns</th>
+                <th>Version</th>
+                <th>Trained Models</th>
+                <th>Last Updated</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="datasetsTableBody">
+              <tr><td colspan="7" style="text-align:center;color:var(--text-muted);">Loading datasets...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Dataset Detail View (Hidden until selected) -->
+      <div id="datasetDetailSection" class="card" style="display: none;">
+        <div class="card-title">
+          <span id="selectedDatasetTitle">Dataset Schema & Preview</span>
+          <button class="btn btn-secondary" onclick="loadSelectedDatasetVersions()"><i class="ri-git-branch-line"></i> Manage Versions</button>
+        </div>
+        <div id="columnsSummaryGrid" class="grid-3" style="margin-bottom: 20px;"></div>
+        <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Data Preview (Top Rows)</h4>
+        <div class="table-container" id="previewTableContainer"></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: UPLOAD & SAFE VERSIONING -->
+    <div id="uploadTab" class="tab-content" style="display: none;">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Upload New Dataset</div>
+          <form id="uploadDatasetForm">
+            <div class="form-group">
+              <label class="form-label">Dataset Name</label>
+              <input type="text" id="datasetName" class="form-input" placeholder="e.g. Loan_Default_Historical_Data" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description (Optional)</label>
+              <input type="text" id="datasetDesc" class="form-input" placeholder="Historical borrower records for credit scoring model">
+            </div>
+            <div class="form-group">
+              <label class="form-label">CSV Data / Upload Text</label>
+              <textarea id="datasetCSV" class="form-textarea" rows="12" placeholder="Paste CSV text with headers, or click 'Load Sample Financial Dataset' below..." required></textarea>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button type="submit" class="btn btn-primary"><i class="ri-check-line"></i> Parse & Save Dataset</button>
+              <button type="button" class="btn btn-secondary" onclick="loadSampleFinancialDataset()"><i class="ri-file-list-3-line"></i> Load Sample Financial CSV</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Safe Dataset Preprocessing (Phase 16)</div>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+            Every cleaning action creates a new immutable version (e.g. v1 &rarr; v2). Original training data is never destroyed.
+          </p>
+          <div class="form-group">
+            <label class="form-label">Select Target Dataset</label>
+            <select id="preprocessDatasetSelect" class="form-select" onchange="onPreprocessDatasetChange()"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Transformation Action</label>
+            <select id="preprocessAction" class="form-select">
+              <option value="REMOVE_DUPLICATES">Remove Duplicate Rows</option>
+              <option value="DROP_NULLS">Drop Rows with Missing/Null Values</option>
+              <option value="RENAME_COLUMN">Rename Column</option>
+            </select>
+          </div>
+          <div id="renameFields" style="display:none;" class="form-group">
+            <input type="text" id="renameOld" class="form-input" placeholder="Old Column Name" style="margin-bottom:8px;">
+            <input type="text" id="renameNew" class="form-input" placeholder="New Column Name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Version Change Log Note</label>
+            <input type="text" id="changeLogInput" class="form-input" placeholder="e.g. Removed duplicates and cleaned null salary values">
+          </div>
+          <button class="btn btn-primary" onclick="applyPreprocessing()"><i class="ri-shield-flash-line"></i> Create Cleaned Version</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: MODEL TRAINING -->
+    <div id="trainingTab" class="tab-content" style="display: none;">
+      <div class="card">
+        <div class="card-title">Train Machine Learning Model</div>
+        <div class="grid-2">
+          <div>
+            <div class="form-group">
+              <label class="form-label">1. Select Dataset</label>
+              <select id="trainDatasetSelect" class="form-select" onchange="onTrainDatasetSelect()"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">2. Prediction Task Type</label>
+              <select id="taskTypeSelect" class="form-select" onchange="onTaskTypeChange()">
+                <option value="REGRESSION">Regression (Continuous: e.g. predict savings, expense amount, returns)</option>
+                <option value="CLASSIFICATION">Classification (Binary: e.g. approve/reject loan, fraud yes/no)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">3. Target Column (Y)</label>
+              <select id="targetColumnSelect" class="form-select"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">4. Feature Columns (X) - Multi-select</label>
+              <div id="featureCheckboxes" style="max-height: 160px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); padding: 8px;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="form-group">
+              <label class="form-label">5. Algorithm</label>
+              <select id="algorithmSelect" class="form-select">
+                <option value="LINEAR_REGRESSION">Multiple Linear Regression (OLS)</option>
+                <option value="RIDGE">Ridge Regression (L2 Regularized)</option>
+                <option value="LOGISTIC_REGRESSION">Logistic Regression (Sigmoid Classifier)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Regularization Lambda (&lambda;)</label>
+              <input type="number" id="l2LambdaInput" class="form-input" value="0.01" step="0.005" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Epochs / Iterations</label>
+              <input type="number" id="epochsInput" class="form-input" value="600" step="50" min="100">
+            </div>
+            <button class="btn btn-primary" style="width:100%; margin-top:20px;" onclick="startModelTraining()">
+              <i class="ri-play-fill"></i> Train & Evaluate Model
+            </button>
+          </div>
+        </div>
+
+        <!-- Training Results Container -->
+        <div id="trainingResultSection" style="display:none; margin-top: 28px; border-top: 1px solid var(--border); padding-top: 24px;">
+          <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px;" id="trainedModelHeadline">Model Evaluation Results</h3>
+          <div class="grid-3" id="metricsDisplayGrid"></div>
+          <div class="disclaimer-banner">
+            <i class="ri-information-line"></i>
+            <span>All evaluation metrics above are strictly calculated on an independent 20% validation split unseen during training.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: RUN PREDICTION -->
+    <div id="predictTab" class="tab-content" style="display: none;">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Run Inference on Trained Model</div>
+          <div class="form-group">
+            <label class="form-label">Select Trained Model</label>
+            <select id="predictModelSelect" class="form-select" onchange="onPredictModelChange()"></select>
+          </div>
+          <div id="dynamicInputFields"></div>
+          <button class="btn btn-primary" style="margin-top:16px;" onclick="executePrediction()"><i class="ri-magic-line"></i> Generate Prediction</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Prediction Result & Transparency</div>
+          <div id="predictionResultBox" style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+            <i class="ri-arrow-left-line" style="font-size: 32px; display:block; margin-bottom: 8px;"></i>
+            Select a model and provide inputs on the left to compute a prediction.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: HISTORY -->
+    <div id="historyTab" class="tab-content" style="display: none;">
+      <div class="card">
+        <div class="card-title">Model Version Registry</div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Model Version</th>
+                <th>Dataset</th>
+                <th>Task</th>
+                <th>Algorithm</th>
+                <th>Target Column</th>
+                <th>Evaluation Metrics</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody id="modelsRegistryBody">
+              <tr><td colspan="7" style="text-align:center;color:var(--text-muted);">Loading model registry...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { trainingAPI, requireAuth, getUser, logout } from './assets/js/api.js';
+
+    if (!requireAuth()) throw new Error('Unauthenticated');
+
+    const currentUser = getUser();
+    if (currentUser) {
+      document.getElementById('userNameText').textContent = (currentUser.firstName || currentUser.username) + (currentUser.lastName ? ' ' + currentUser.lastName : '');
+      document.getElementById('avatarLetter').textContent = (currentUser.firstName || currentUser.username || 'J')[0].toUpperCase();
+    }
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+
+    let allDatasets = [];
+    let selectedDataset = null;
+    let allTrainingRuns = [];
+
+    window.switchTab = (tabId) => {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).style.display = 'block';
+      event?.currentTarget?.classList?.add('active');
+
+      if (tabId === 'datasetsTab') loadDatasets();
+      if (tabId === 'trainingTab') populateTrainingDropdowns();
+      if (tabId === 'predictTab') populatePredictDropdowns();
+      if (tabId === 'historyTab') loadModelsRegistry();
+    };
+
+    async function loadDatasets() {
+      try {
+        const res = await trainingAPI.getDatasets();
+        allDatasets = res.data || [];
+        const tbody = document.getElementById('datasetsTableBody');
+        const preSelect = document.getElementById('preprocessDatasetSelect');
+        preSelect.innerHTML = '<option value="">-- Choose Dataset --</option>';
+
+        if (!allDatasets.length) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">No datasets uploaded yet. Click "New Dataset" or "Upload & Preprocess" to add your first dataset.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = allDatasets.map(d => `
+          <tr>
+            <td><strong>${d.name}</strong><div style="font-size:11px;color:var(--text-muted);">${d.description || 'No description'}</div></td>
+            <td>${d.rowCount.toLocaleString()}</td>
+            <td>${d.columnCount}</td>
+            <td><span class="badge badge-number">v${d.currentVersion}</span></td>
+            <td>${d.trainingRunsCount} model(s)</td>
+            <td>${new Date(d.updatedAt).toLocaleDateString('en-IN')}</td>
+            <td>
+              <button class="btn btn-secondary" style="padding:4px 8px;font-size:12px;" onclick="viewDatasetDetails('${d.id}')">View</button>
+              <button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="deleteDatasetItem('${d.id}')">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+
+        allDatasets.forEach(d => {
+          preSelect.innerHTML += `<option value="${d.id}">${d.name} (v${d.currentVersion})</option>`;
+        });
+      } catch (err) {
+        console.error('Load datasets error:', err);
+      }
+    }
+
+    window.viewDatasetDetails = async (datasetId) => {
+      try {
+        const res = await trainingAPI.getDataset(datasetId);
+        selectedDataset = res.data;
+        document.getElementById('datasetDetailSection').style.display = 'block';
+        document.getElementById('selectedDatasetTitle').textContent = `${selectedDataset.name} (v${selectedDataset.currentVersion}) — Schema & Distributions`;
+
+        const cols = Array.isArray(selectedDataset.columns) ? selectedDataset.columns : [];
+        const grid = document.getElementById('columnsSummaryGrid');
+        grid.innerHTML = cols.slice(0, 6).map(c => `
+          <div class="metric-box">
+            <div class="metric-label">${c.name} (${c.type})</div>
+            <div class="metric-value" style="font-size:16px;">
+              ${c.type === 'NUMBER' ? `Mean: ${c.stats?.mean ?? 'N/A'}` : `${c.stats?.uniqueCount ?? 0} Unique`}
+            </div>
+            <div class="metric-sub">Nulls: ${c.stats?.nullCount || 0} / ${selectedDataset.rowCount}</div>
+          </div>
+        `).join('');
+
+        const previewRows = selectedDataset.preview || [];
+        const prevContainer = document.getElementById('previewTableContainer');
+        if (previewRows.length && cols.length) {
+          prevContainer.innerHTML = `
+            <table class="data-table">
+              <thead>
+                <tr>${cols.map(c => `<th>${c.name}</th>`).join('')}</tr>
+              </thead>
+              <tbody>
+                ${previewRows.map(r => `<tr>${cols.map(c => `<td>${r[c.name] ?? '-'}</td>`).join('')}</tr>`).join('')}
+              </tbody>
+            </table>
+          `;
+        } else {
+          prevContainer.innerHTML = '<p style="padding:20px;text-align:center;color:var(--text-muted);">No preview rows available.</p>';
+        }
+      } catch (err) {
+        alert(err.message || 'Failed to fetch dataset');
+      }
+    };
+
+    window.deleteDatasetItem = async (datasetId) => {
+      if (!confirm('Are you sure you want to delete this dataset and all associated versions?')) return;
+      try {
+        await trainingAPI.deleteDataset(datasetId);
+        document.getElementById('datasetDetailSection').style.display = 'none';
+        loadDatasets();
+      } catch (err) {
+        alert(err.message || 'Delete failed');
+      }
+    };
+
+    document.getElementById('uploadDatasetForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('datasetName').value.trim();
+      const description = document.getElementById('datasetDesc').value.trim();
+      const csvContent = document.getElementById('datasetCSV').value.trim();
+
+      try {
+        const res = await trainingAPI.uploadDataset({ name, description, csvContent });
+        alert(res.data.message);
+        document.getElementById('uploadDatasetForm').reset();
+        switchTab('datasetsTab');
+      } catch (err) {
+        alert(err.message || 'Upload error');
+      }
+    });
+
+    window.loadSampleFinancialDataset = () => {
+      const sample = `monthly_salary,monthly_expenses,existing_debt,credit_score,savings_amount,approved
+55000,28000,120000,740,150000,1
+32000,22000,450000,610,30000,0
+85000,35000,50000,790,450000,1
+40000,31000,380000,630,20000,0
+120000,45000,0,820,900000,1
+28000,24000,600000,580,10000,0
+65000,32000,200000,720,220000,1
+48000,29000,180000,700,110000,1
+35000,28000,420000,620,25000,0
+95000,38000,80000,780,600000,1
+52000,30000,150000,710,140000,1
+29000,25000,510000,590,15000,0`;
+
+      document.getElementById('datasetName').value = 'Borrower_Credit_Risk_Assessment';
+      document.getElementById('datasetDesc').value = '12 historical applicant profiles with salary, liabilities, score, and approval status.';
+      document.getElementById('datasetCSV').value = sample;
+    };
+
+    window.applyPreprocessing = async () => {
+      const datasetId = document.getElementById('preprocessDatasetSelect').value;
+      const action = document.getElementById('preprocessAction').value;
+      const changeLog = document.getElementById('changeLogInput').value;
+
+      if (!datasetId) return alert('Please select a dataset');
+
+      try {
+        const res = await trainingAPI.createVersion(datasetId, { action, changeLog });
+        alert(res.data.message);
+        loadDatasets();
+      } catch (err) {
+        alert(err.message || 'Preprocessing error');
+      }
+    };
+
+    function populateTrainingDropdowns() {
+      const select = document.getElementById('trainDatasetSelect');
+      select.innerHTML = '<option value="">-- Choose Dataset --</option>' + allDatasets.map(d => `<option value="${d.id}">${d.name} (v${d.currentVersion})</option>`).join('');
+    }
+
+    window.onTrainDatasetSelect = async () => {
+      const datasetId = document.getElementById('trainDatasetSelect').value;
+      if (!datasetId) return;
+
+      const res = await trainingAPI.getDataset(datasetId);
+      const ds = res.data;
+      const cols = Array.isArray(ds.columns) ? ds.columns : [];
+
+      const targetSel = document.getElementById('targetColumnSelect');
+      targetSel.innerHTML = cols.map(c => `<option value="${c.name}">${c.name} (${c.type})</option>`).join('');
+
+      const featureBox = document.getElementById('featureCheckboxes');
+      featureBox.innerHTML = cols.map(c => `
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:4px;cursor:pointer;">
+          <input type="checkbox" name="trainFeatures" value="${c.name}"> ${c.name} <span style="color:var(--text-muted);font-size:10px;">(${c.type})</span>
+        </label>
+      `).join('');
+    };
+
+    window.startModelTraining = async () => {
+      const datasetId = document.getElementById('trainDatasetSelect').value;
+      const taskType = document.getElementById('taskTypeSelect').value;
+      const targetColumn = document.getElementById('targetColumnSelect').value;
+      const algorithm = document.getElementById('algorithmSelect').value;
+      const l2Lambda = parseFloat(document.getElementById('l2LambdaInput').value) || 0.01;
+      const epochs = parseInt(document.getElementById('epochsInput').value) || 600;
+
+      const featureCheckboxes = document.querySelectorAll('input[name="trainFeatures"]:checked');
+      const featureColumns = Array.from(featureCheckboxes).map(cb => cb.value).filter(f => f !== targetColumn);
+
+      if (!datasetId || !targetColumn || !featureColumns.length) {
+        return alert('Please select at least one feature column (excluding the target).');
+      }
+
+      try {
+        const res = await trainingAPI.trainModel({
+          datasetId,
+          taskType,
+          targetColumn,
+          featureColumns,
+          algorithm,
+          hyperparameters: { l2Lambda, epochs, learningRate: 0.05 }
+        });
+
+        const m = res.data;
+        document.getElementById('trainingResultSection').style.display = 'block';
+        document.getElementById('trainedModelHeadline').textContent = `Trained Model: ${m.modelVersion} (${m.algorithm}) on ${m.taskType}`;
+
+        const grid = document.getElementById('metricsDisplayGrid');
+        if (m.taskType === 'REGRESSION') {
+          grid.innerHTML = `
+            <div class="metric-box">
+              <div class="metric-label">R² Coefficient</div>
+              <div class="metric-value" style="color:var(--success);">${m.metrics?.r2 ?? 'N/A'}</div>
+              <div class="metric-sub">Explained Variance</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">MAE</div>
+              <div class="metric-value">${m.metrics?.mae ?? 'N/A'}</div>
+              <div class="metric-sub">Mean Absolute Error</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">RMSE</div>
+              <div class="metric-value">${m.metrics?.rmse ?? 'N/A'}</div>
+              <div class="metric-sub">Root Mean Squared Error</div>
+            </div>
+          `;
+        } else {
+          grid.innerHTML = `
+            <div class="metric-box">
+              <div class="metric-label">Accuracy</div>
+              <div class="metric-value" style="color:var(--success);">${(m.metrics?.accuracy * 100).toFixed(1)}%</div>
+              <div class="metric-sub">Validation Correctness</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">Precision</div>
+              <div class="metric-value">${m.metrics?.precision ?? 'N/A'}</div>
+              <div class="metric-sub">True Positives / Total Positives</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-label">F1 Score</div>
+              <div class="metric-value">${m.metrics?.f1 ?? 'N/A'}</div>
+              <div class="metric-sub">Harmonic Mean</div>
+            </div>
+          `;
+        }
+      } catch (err) {
+        alert(err.message || 'Training failed');
+      }
+    };
+
+    async function populatePredictDropdowns() {
+      const res = await trainingAPI.getRuns();
+      allTrainingRuns = res.data || [];
+      const sel = document.getElementById('predictModelSelect');
+      sel.innerHTML = '<option value="">-- Choose Model --</option>' + allTrainingRuns.map(r => `
+        <option value="${r.id}">${r.modelVersion} - ${r.algorithm} on ${r.datasetName} (${r.taskType})</option>
+      `).join('');
+    }
+
+    window.onPredictModelChange = () => {
+      const runId = document.getElementById('predictModelSelect').value;
+      const run = allTrainingRuns.find(r => r.id === runId);
+      const container = document.getElementById('dynamicInputFields');
+      if (!run) { container.innerHTML = ''; return; }
+
+      container.innerHTML = (run.featureColumns || []).map(f => `
+        <div class="form-group">
+          <label class="form-label">${f}</label>
+          <input type="number" step="any" class="form-input" data-feature="${f}" placeholder="Enter ${f} value" required>
+        </div>
+      `).join('');
+    };
+
+    window.executePrediction = async () => {
+      const runId = document.getElementById('predictModelSelect').value;
+      if (!runId) return alert('Select a trained model');
+
+      const inputs = {};
+      document.querySelectorAll('#dynamicInputFields input').forEach(input => {
+        inputs[input.dataset.feature] = parseFloat(input.value) || 0;
+      });
+
+      try {
+        const res = await trainingAPI.predict({ trainingRunId: runId, inputs });
+        const p = res.data;
+        const box = document.getElementById('predictionResultBox');
+        box.innerHTML = `
+          <div style="background:var(--success-light); border:1px solid #a7f3d0; border-radius:var(--radius); padding:20px; text-align:center;">
+            <div style="font-size:12px; font-weight:600; text-transform:uppercase; color:var(--success); margin-bottom:4px;">Predicted ${p.targetColumn}</div>
+            <div style="font-size:28px; font-weight:800; color:var(--text);">${p.predictedValue}</div>
+            ${p.confidenceScore !== null ? `<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">Confidence / R²: ${p.confidenceScore}</div>` : ''}
+          </div>
+          <div style="margin-top:16px; font-size:12px; color:var(--text-muted); text-align:left;">
+            <div><strong>Model Version:</strong> ${p.modelVersion} (${p.algorithm})</div>
+            <div><strong>Dataset:</strong> ${p.datasetName}</div>
+            <div><strong>Timestamp:</strong> ${new Date(p.timestamp).toLocaleString('en-IN')}</div>
+            <div style="margin-top:8px; font-style:italic;">${p.disclaimer}</div>
+          </div>
+        `;
+      } catch (err) {
+        alert(err.message || 'Prediction failed');
+      }
+    };
+
+    async function loadModelsRegistry() {
+      const res = await trainingAPI.getRuns();
+      const runs = res.data || [];
+      const tbody = document.getElementById('modelsRegistryBody');
+      if (!runs.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">No models trained yet. Go to "Train Model" to train your first ML model.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = runs.map(r => `
+        <tr>
+          <td><strong>${r.modelVersion}</strong></td>
+          <td>${r.datasetName}</td>
+          <td><span class="badge ${r.taskType === 'REGRESSION' ? 'badge-number' : 'badge-string'}">${r.taskType}</span></td>
+          <td>${r.algorithm}</td>
+          <td>${r.targetColumn}</td>
+          <td>${r.taskType === 'REGRESSION' ? `R²: ${r.metrics?.r2 ?? 'N/A'}, MAE: ${r.metrics?.mae ?? 'N/A'}` : `Acc: ${r.metrics?.accuracy ?? 'N/A'}, F1: ${r.metrics?.f1 ?? 'N/A'}`}</td>
+          <td>${new Date(r.createdAt).toLocaleDateString('en-IN')}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Load initial
+    loadDatasets();
+  </script>
+</body>
+</html>

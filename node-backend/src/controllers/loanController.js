@@ -125,10 +125,24 @@ const simulatePrepaymentHandler = async (req, res, next) => {
       rate = parseFloat(loan.interestRate);
       tenure = loan.tenureMonths;
     } else {
-      // Default simulation values (10 lakh @ 8.5% for 120 months)
-      principal = 1000000;
-      rate = 8.5;
-      tenure = 120;
+      const { principalAmount: p, interestRate: r, tenureMonths: t } = req.body;
+      const parsedP = parseFloat(p);
+      const parsedR = parseFloat(r);
+      const parsedT = parseInt(t);
+
+      if (!p || !r || !t || isNaN(parsedP) || isNaN(parsedR) || isNaN(parsedT) || parsedP <= 0 || parsedR <= 0 || parsedT <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Must provide either loanId or valid (principalAmount, interestRate, tenureMonths).',
+          },
+        });
+      }
+
+      principal = parsedP;
+      rate = parsedR;
+      tenure = parsedT;
     }
 
     const result = simulatePrepayment(principal, rate, tenure, prepayment);

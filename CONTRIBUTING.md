@@ -1,6 +1,6 @@
-# 🤝 Contributing to Jinay Finance AI
+# 🤝 Contributing to FinPro
 
-Thank you for your interest in contributing to **Jinay Finance AI**! This document outlines guidelines and workflows for developers.
+Thank you for your interest in contributing to **FinPro** (Personal Finance & Investment Decision Support Platform, Created by Students of VU)! This document outlines guidelines, branch strategies, and workflows for contributors.
 
 ---
 

@@ -12,70 +12,43 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     
     :root {
-      --primary: #6366f1;
-      --primary-dark: #4f46e5;
-      --primary-light: #a5b4fc;
-      --surface: rgba(255,255,255,0.05);
-      --surface-hover: rgba(255,255,255,0.08);
-      --border: rgba(255,255,255,0.12);
-      --text: #f1f5f9;
-      --text-muted: #94a3b8;
-      --error: #f87171;
-      --success: #34d399;
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --primary-light: #eef2ff;
+      --surface: #ffffff;
+      --surface-subtle: #f8fafc;
+      --border: #e2e8f0;
+      --border-focus: #4f46e5;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --error: #dc2626;
+      --success: #059669;
+      --radius: 8px;
     }
     
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       min-height: 100vh;
-      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      background: #f8fafc;
+      color: var(--text);
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
       position: relative;
-    }
-    
-    /* Animated background blobs */
-    body::before {
-      content: '';
-      position: fixed;
-      top: -50%;
-      left: -20%;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%);
-      animation: float 12s ease-in-out infinite;
-      pointer-events: none;
-    }
-    
-    body::after {
-      content: '';
-      position: fixed;
-      bottom: -30%;
-      right: -10%;
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%);
-      animation: float 10s ease-in-out infinite reverse;
-      pointer-events: none;
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(30px, -30px) scale(1.05); }
     }
     
     .auth-container {
       width: 100%;
-      max-width: 460px;
-      padding: 20px;
+      max-width: 440px;
+      padding: 24px;
       position: relative;
       z-index: 1;
     }
     
     .brand {
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 28px;
     }
     
     .brand-logo {
@@ -86,49 +59,48 @@
     }
     
     .brand-icon {
-      width: 44px;
-      height: 44px;
-      background: linear-gradient(135deg, var(--primary), #8b5cf6);
-      border-radius: 12px;
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      border-radius: var(--radius);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
+      font-size: 20px;
       color: white;
     }
     
     .brand-name {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
-      color: white;
+      color: var(--text);
     }
     
     .brand-tagline {
       color: var(--text-muted);
       font-size: 13px;
-      margin-top: 8px;
+      margin-top: 6px;
     }
     
     .card {
-      background: rgba(255,255,255,0.07);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 40px;
+      border-radius: 12px;
+      padding: 36px 32px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.04);
     }
     
     .card-title {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 700;
-      color: white;
-      margin-bottom: 8px;
+      color: var(--text);
+      margin-bottom: 6px;
     }
     
     .card-subtitle {
       color: var(--text-muted);
-      font-size: 14px;
-      margin-bottom: 28px;
+      font-size: 13px;
+      margin-bottom: 24px;
     }
     
     .form-group {
@@ -137,11 +109,10 @@
     
     .form-label {
       display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
       margin-bottom: 6px;
-      letter-spacing: 0.02em;
     }
     
     .input-wrapper {
@@ -150,40 +121,39 @@
     
     .input-icon {
       position: absolute;
-      left: 14px;
+      left: 12px;
       top: 50%;
       transform: translateY(-50%);
-      color: var(--text-muted);
+      color: var(--text-light);
       font-size: 16px;
       pointer-events: none;
     }
     
     .form-input {
       width: 100%;
-      padding: 13px 14px 13px 42px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: white;
-      font-size: 14px;
-      font-family: 'Inter', sans-serif;
-      transition: all 0.2s;
+      padding: 10px 14px 10px 38px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color 0.15s, box-shadow 0.15s;
       outline: none;
     }
     
     .form-input:focus {
       border-color: var(--primary);
-      background: rgba(99,102,241,0.1);
-      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
     }
     
-    .form-input::placeholder { color: rgba(255,255,255,0.3); }
+    .form-input::placeholder { color: var(--text-light); }
     
     .form-input.error { border-color: var(--error); }
     
     .toggle-password {
       position: absolute;
-      right: 14px;
+      right: 12px;
       top: 50%;
       transform: translateY(-50%);
       background: none;
@@ -192,16 +162,16 @@
       cursor: pointer;
       font-size: 16px;
       padding: 4px;
-      transition: color 0.2s;
+      transition: color 0.15s;
     }
-    .toggle-password:hover { color: white; }
+    .toggle-password:hover { color: var(--text); }
     
     .error-message {
       display: none;
       color: var(--error);
       font-size: 12px;
       margin-top: 4px;
-      padding-left: 4px;
+      padding-left: 2px;
     }
     .error-message.show { display: block; }
     
@@ -209,25 +179,26 @@
       display: block;
       text-align: right;
       font-size: 12px;
-      color: var(--primary-light);
+      color: var(--primary);
       text-decoration: none;
-      margin-top: 4px;
-      transition: color 0.2s;
+      margin-top: 6px;
+      font-weight: 500;
+      transition: color 0.15s;
     }
-    .forgot-link:hover { color: white; }
+    .forgot-link:hover { color: var(--primary-dark); }
     
     .btn-primary {
       width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, var(--primary), #8b5cf6);
-      border: none;
-      border-radius: 12px;
+      padding: 11px;
+      background: var(--primary);
+      border: 1px solid transparent;
+      border-radius: var(--radius);
       color: white;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
-      font-family: 'Inter', sans-serif;
+      font-family: inherit;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all 0.15s ease;
       margin-top: 8px;
       display: flex;
       align-items: center;
@@ -236,8 +207,8 @@
     }
     
     .btn-primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(99,102,241,0.4);
+      background: var(--primary-dark);
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
     }
     
     .btn-primary:disabled {
@@ -247,16 +218,16 @@
     
     .btn-google {
       width: 100%;
-      padding: 13px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: white;
-      font-size: 14px;
-      font-weight: 500;
-      font-family: 'Inter', sans-serif;
+      padding: 10px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.15s ease;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -266,8 +237,8 @@
     }
     
     .btn-google:hover {
-      background: rgba(255,255,255,0.12);
-      border-color: rgba(255,255,255,0.2);
+      background: #f8fafc;
+      border-color: #94a3b8;
     }
     
     .divider {
@@ -289,34 +260,34 @@
     .auth-footer {
       text-align: center;
       margin-top: 24px;
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-muted);
     }
     
     .auth-footer a {
-      color: var(--primary-light);
+      color: var(--primary);
       text-decoration: none;
-      font-weight: 500;
+      font-weight: 600;
     }
-    .auth-footer a:hover { color: white; }
+    .auth-footer a:hover { color: var(--primary-dark); }
     
     .alert {
-      padding: 12px 16px;
-      border-radius: 10px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
       font-size: 13px;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
       display: none;
       align-items: center;
       gap: 8px;
     }
     
     .alert.show { display: flex; }
-    .alert.error { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.3); color: #fca5a5; }
-    .alert.success { background: rgba(52,211,153,0.15); border: 1px solid rgba(52,211,153,0.3); color: #6ee7b7; }
+    .alert.error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    .alert.success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
     
     .spinner {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       border: 2px solid rgba(255,255,255,0.3);
       border-top-color: white;
       border-radius: 50%;
@@ -414,42 +385,49 @@
   <script>
     const API_BASE = window.location.origin.includes(':5000') ? '/api/v1' : 'http://127.0.0.1:5000/api/v1';
     
-    // Redirect if already logged in
-    if (localStorage.getItem('jf_access_token')) {
+    // Google callback & hash fragment token handling (secure OAuth transfer)
+    const hashParams = new URLSearchParams(window.location.hash ? window.location.hash.substring(1) : '');
+    const searchParams = new URLSearchParams(window.location.search);
+    const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
+
+    if (accessToken) {
+      localStorage.setItem('jf_access_token', accessToken);
+      if (refreshToken) localStorage.setItem('jf_refresh_token', refreshToken);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      window.location.href = '/dashboard.html';
+    } else if (localStorage.getItem('jf_access_token')) {
+      // Redirect if already logged in
       window.location.href = '/dashboard.html';
     }
     
     // Show session expired message
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('session_expired')) {
-      showAlert('error', 'Your session expired. Please sign in again.');
+    if (searchParams.get('session_expired')) {
+      showAlert('error', 'Your session has expired. Please sign in again.');
     }
-    
-    // Google callback handling
-    const accessTokenParam = params.get('access_token');
-    if (accessTokenParam) {
-      localStorage.setItem('jf_access_token', accessTokenParam);
-      const rt = params.get('refresh_token');
-      if (rt) localStorage.setItem('jf_refresh_token', rt);
-      window.location.href = '/dashboard.html';
+    if (searchParams.get('error') === 'google_auth_failed') {
+      showAlert('error', 'Google Sign-In failed or is not configured. Please use email and password.');
     }
 
-    if (params.get('error') === 'google_auth_failed') {
-      showAlert('error', 'Google Sign-In is not configured. Please use email/password or configure OAuth credentials.');
-    }
+    // Check auth providers status
+    let googleOAuthEnabled = false;
+    fetch(`${API_BASE}/auth/providers`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data?.google?.enabled) {
+          googleOAuthEnabled = true;
+        }
+      })
+      .catch(() => {});
 
     document.getElementById('googleLoginBtn').addEventListener('click', async (e) => {
       e.preventDefault();
-      try {
-        const res = await fetch(`${API_BASE}/auth/google`, { method: 'GET', redirect: 'manual' });
-        if (res.status === 503 || res.status === 400 || res.status >= 500) {
-          showAlert('error', 'Google Sign-In is not configured. Please use email/password or configure OAuth credentials.');
-        } else {
-          window.location.href = `${API_BASE}/auth/google`;
-        }
-      } catch {
-        showAlert('error', 'Google Sign-In is not configured. Please use email/password or configure OAuth credentials.');
+      if (!googleOAuthEnabled) {
+        showAlert('error', 'Google Sign-In is not configured. To enable Google OAuth, please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in node-backend/.env. Please sign in with your email and password.');
+        return;
       }
+      window.location.href = `${API_BASE}/auth/google`;
     });
     
     // Toggle password visibility

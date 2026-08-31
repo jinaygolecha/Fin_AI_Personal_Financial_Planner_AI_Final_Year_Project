@@ -1,7 +1,7 @@
 {
-  "name": "jinay-finance-ai",
+  "name": "finpro",
   "version": "1.0.0",
-  "description": "AI-Powered Personal Finance & Investment Advisor — Final Year Engineering Project",
+  "description": "FinPro — Personal Finance & Investment Decision Support Platform | Created by Students of VU | Project Lead: Jinay Golecha",
   "main": "node-backend/src/server.js",
   "scripts": {
     "setup": "npm --prefix node-backend install && npm --prefix node-backend run prisma:generate",
@@ -10,6 +10,7 @@
     "test": "npm --prefix node-backend test",
     "build": "npm --prefix node-backend run build",
     "lint": "npm --prefix node-backend run lint",
+    "db:push": "cd node-backend && npx prisma db push",
     "db:generate": "npm --prefix node-backend run prisma:generate",
     "db:migrate": "npm --prefix node-backend run prisma:migrate",
     "db:seed": "npm --prefix node-backend run seed",
