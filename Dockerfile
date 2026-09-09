@@ -5,6 +5,9 @@
 
 FROM node:22-alpine AS builder
 
+# Required by Prisma query engine on Alpine Linux
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
 # Copy root and backend dependency descriptors
@@ -27,6 +30,9 @@ COPY frontend/public ./frontend/public
 # Production Runner Stage
 # --------------------------------------------------------------------
 FROM node:22-alpine AS runner
+
+# Required by Prisma query engine on Alpine Linux
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
