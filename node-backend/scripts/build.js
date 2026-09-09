@@ -8,9 +8,14 @@ const fs = require('fs');
 
 const rootDir = path.resolve(__dirname, '..');
 
+// Ensure DATABASE_URL is available for Prisma schema validation during build
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/finance_jinay?schema=public';
+}
+
 console.log('[Build] Step 1/3: Validating Prisma Schema...');
 try {
-  execSync('npx prisma validate', { cwd: rootDir, stdio: 'inherit' });
+  execSync('npx prisma validate', { cwd: rootDir, stdio: 'inherit', env: process.env });
   console.log('  -> Prisma Schema is valid ✓');
 } catch (err) {
   console.error('❌ Prisma Schema validation failed:', err.message);
