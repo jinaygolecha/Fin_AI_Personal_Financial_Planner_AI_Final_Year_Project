@@ -73,6 +73,7 @@ jobs:
           echo '```text' >> $GITHUB_STEP_SUMMARY
           cat test-run.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No log recorded" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+          node -e "const fs=require('fs'); if(fs.existsSync('test-run.log')){const c=fs.readFileSync('test-run.log','utf8').slice(-3500); console.log('::error title=Test Failure Telemetry::'+c.replace(/%/g,'%25').replace(/\r/g,'%0D').replace(/\n/g,'%0A'));}"
 
       - name: Build Verification
         run: |
