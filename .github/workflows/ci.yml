@@ -63,17 +63,7 @@ jobs:
           JWT_SECRET: ci_test_jwt_secret_key_minimum_32_characters
           JWT_REFRESH_SECRET: ci_test_refresh_secret_key_minimum_32_characters
         run: |
-          set -o pipefail
-          cd node-backend && node run-all-tests.js 2>&1 | tee ../test-run.log
-
-      - name: Publish Test Summary
-        if: always()
-        run: |
-          echo "### Acceptance Test Execution Summary" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          cat test-run.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "No log recorded" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          node -e "const fs=require('fs'); if(fs.existsSync('test-run.log')){const c=fs.readFileSync('test-run.log','utf8').slice(-3500); console.log('::error title=Test Failure Telemetry::'+c.replace(/%/g,'%25').replace(/\r/g,'%0D').replace(/\n/g,'%0A'));}"
+          npm test
 
       - name: Build Verification
         run: |

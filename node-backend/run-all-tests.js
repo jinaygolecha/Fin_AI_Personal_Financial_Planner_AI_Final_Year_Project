@@ -657,11 +657,39 @@ async function runTests() {
     const newsHealth = await request(app).get('/api/v1/health/news');
     assert(newsHealth.status === 200 && newsHealth.body.success === true, 'GET /api/v1/health/news reports news service health');
 
+    // Test/service boundary mock for CI environments without external API keys
+    const newsService = require('./src/services/newsService');
+    const originalGetFinancialNews = newsService.getFinancialNews;
+    if (!process.env.MARKETAUX_API_KEY && (!process.env.FINNHUB_API_KEY || process.env.FINNHUB_API_KEY === 'YOUR_FINNHUB_API_KEY')) {
+      newsService.getFinancialNews = async () => ({
+        provider: 'Finnhub',
+        source: 'Finnhub Financial News API',
+        category: 'general',
+        searchQuery: '',
+        articles: [
+          {
+            id: 'test-news-1',
+            headline: 'RBI Keeps Repo Rate Steady Amid Balanced Inflation Trajectory',
+            description: 'The Monetary Policy Committee maintained the policy repo rate with focused stance on growth.',
+            source: 'Reuters Financial',
+            url: 'https://example.com/news/1',
+            publishedAt: new Date().toISOString(),
+            entities: ['RBI', 'INFLATION'],
+          },
+        ],
+        count: 1,
+        fetchedAt: new Date().toISOString(),
+        data_status: 'LIVE',
+      });
+    }
+
     const newsList = await request(app)
       .get('/api/v1/news?category=general&limit=5')
       .set('Authorization', `Bearer ${tokenA}`);
     assert(newsList.status === 200 && Array.isArray(newsList.body.data.articles), 'GET /api/v1/news delivers structured financial headlines');
     assert(newsList.body.data.articles.length > 0 && newsList.body.data.articles[0].headline, 'News article includes headline, source and publication time');
+
+    newsService.getFinancialNews = originalGetFinancialNews;
 
 
   } catch (err) {
