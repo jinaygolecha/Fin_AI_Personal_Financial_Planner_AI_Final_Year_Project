@@ -73,4 +73,10 @@ jobs:
 
       - name: Verify Docker Container Build
         run: |
-          docker build -t finpro:latest .
+          set -o pipefail
+          docker build -t finpro:latest . 2>&1 | tee docker-build.log
+
+      - name: Report Docker Build Failure
+        if: failure()
+        run: |
+          node -e "const fs=require('fs'); if(fs.existsSync('docker-build.log')){const c=fs.readFileSync('docker-build.log','utf8').slice(-3500); console.log('::error title=Docker Build Telemetry::'+c.replace(/%/g,'%25').replace(/\r/g,'%0D').replace(/\n/g,'%0A'));}"
