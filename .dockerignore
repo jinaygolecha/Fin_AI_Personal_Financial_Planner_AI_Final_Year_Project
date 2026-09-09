@@ -1,0 +1,32 @@
+# Dependencies
+node_modules
+*/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & Secrets
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+!.env.example
+
+# Git
+.git
+.gitignore
+.github
+
+# Legacy & Python Virtual Environments
+venv/
+__pycache__/
+legacy-django-backend/
+*.pyc
+
+# Local Logs & Documentation Artifacts
+logs/
+*.log
+docs/screenshots/
+.system_generated/
+scratch/

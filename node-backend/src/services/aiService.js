@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { formatINR } = require('../utils/inr');
 const { calculateHealthScore } = require('../utils/financialMath');
+const financialTwin = require('./financialTwinService');
 
 /**
  * AI Service — Gemini Integration with Financial Context
@@ -90,13 +91,22 @@ const getUserFinancialContext = async (userId) => {
   const investmentPnl = investmentValue - investedAmount;
   const netWorth = totalBalance + investmentValue - totalDebt;
 
-  const healthScore = calculateHealthScore({
-    monthlyIncome: incomeThisMonth,
-    monthlyExpenses: expensesThisMonth,
-    totalSavings: totalBalance,
-    totalDebt,
-    totalInvestments: investmentValue,
-  });
+  let healthScore = 50;
+  let healthBreakdown = null;
+  try {
+    const detailedHealth = await financialTwin.calculateDetailedHealthScore(userId);
+    healthScore = detailedHealth.overallScore;
+    healthBreakdown = detailedHealth.components;
+  } catch (err) {
+    console.warn('[AI] Failed to calculate 10-factor health score:', err.message);
+    healthScore = calculateHealthScore({
+      monthlyIncome: incomeThisMonth,
+      monthlyExpenses: expensesThisMonth,
+      totalSavings: totalBalance,
+      totalDebt,
+      totalInvestments: investmentValue,
+    });
+  }
 
   return {
     user,
@@ -123,7 +133,7 @@ const buildSystemPrompt = (ctx) => {
   const { user, totalBalance, incomeThisMonth, expensesThisMonth, savingsThisMonth, totalDebt, investmentValue, netWorth, healthScore, goals } = ctx;
   const name = user?.firstName || 'User';
 
-  return `You are Jinay Finance AI, a professional financial advisor for ${name}.
+  return `You are FinPro AI, a professional financial advisor for ${name}.
 
 CRITICAL RULES:
 - You ONLY discuss finances for ${name}. Never reveal or use data from any other user.

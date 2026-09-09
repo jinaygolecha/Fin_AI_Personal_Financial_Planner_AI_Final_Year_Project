@@ -28,6 +28,9 @@ const getCached = (key) => {
     memCache.delete(key);
     return null;
   }
+  if (Array.isArray(entry.data)) {
+    return entry.data;
+  }
   return { ...entry.data, cache_age_seconds: Math.round(ageMs / 1000), is_fresh: ageMs <= LIVE_TTL_MS };
 };
 

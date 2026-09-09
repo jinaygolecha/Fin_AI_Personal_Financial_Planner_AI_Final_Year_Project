@@ -1,0 +1,61 @@
+# ====================================================================
+# FinPro — Personal Finance & AI Platform
+# Render Blueprint Specification (render.yaml)
+# Production Deployment with Supabase PostgreSQL
+# ====================================================================
+
+services:
+  - type: web
+    name: finpro-finance-ai
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm --prefix node-backend install && npm --prefix node-backend run prisma:generate && cd node-backend && npx prisma migrate deploy
+    startCommand: npm --prefix node-backend start
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+
+    envVars:
+      # Server Runtime
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+
+      # Supabase PostgreSQL Database URL
+      # NOTE: For Supabase, use the pooled connection string (port 6543 or port 5432 with pgbouncer)
+      # e.g., postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
+      - key: DATABASE_URL
+        sync: false
+
+      # Authentication Secrets
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 60m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+
+      # Google Gemini Generative AI
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: gemini-2.5-flash
+
+      # Real Market Feeds
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: ALPHA_VANTAGE_API_KEY
+        sync: false
+
+      # Financial News Feeds
+      - key: MARKETAUX_API_KEY
+        sync: false
+      - key: MARKETAUX_BASE_URL
+        value: https://api.marketaux.com/v1
+
+      # CORS & Client Origin
+      - key: FRONTEND_URL
+        value: https://finpro-finance-ai.onrender.com

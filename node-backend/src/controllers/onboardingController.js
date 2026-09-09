@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { formatINR } = require('../utils/inr');
 const { calculateHealthScore } = require('../utils/financialMath');
+const financialTwin = require('../services/financialTwinService');
 
 /**
  * POST /api/v1/onboarding
@@ -53,19 +54,39 @@ const submitOnboarding = async (req, res, next) => {
       },
     });
 
-    // Generate FinancialPlan
+    // Ensure default account exists first so health score engine picks up initial savings
+    const existingAccount = await prisma.financialAccount.findFirst({ where: { userId } });
+    if (!existingAccount) {
+      await prisma.financialAccount.create({
+        data: { userId, name: 'Primary Account', accountType: 'BANK', balance: savings, currency: 'INR' },
+      });
+    } else if (savings > 0) {
+      await prisma.financialAccount.update({
+        where: { id: existingAccount.id },
+        data: { balance: savings },
+      });
+    }
+
+    // Generate FinancialPlan with unified 10-factor score
     const totalMonthlyIncome = salary + otherIncome;
     const savingsTarget = totalMonthlyIncome * 0.20; // 20% target
     const emergencyFundTarget = expenses * 6; // 6 months
     const investmentTarget = totalMonthlyIncome * 0.15; // 15% target
     const debtRepaymentTarget = debt > 0 ? debt * 0.05 : 0; // 5% of total debt/month
 
-    const healthScore = calculateHealthScore({
-      monthlyIncome: totalMonthlyIncome,
-      monthlyExpenses: expenses,
-      totalSavings: savings,
-      totalDebt: debt,
-    });
+    let healthScore = 50;
+    try {
+      const detailed = await financialTwin.calculateDetailedHealthScore(userId);
+      healthScore = detailed.overallScore;
+    } catch (err) {
+      console.warn('[Onboarding] 10-factor health score calculation error:', err.message);
+      healthScore = calculateHealthScore({
+        monthlyIncome: totalMonthlyIncome,
+        monthlyExpenses: expenses,
+        totalSavings: savings,
+        totalDebt: debt,
+      });
+    }
 
     const planSummary = `Based on your monthly income of ${formatINR(totalMonthlyIncome)}, aim to save ${formatINR(savingsTarget)}/month, build an emergency fund of ${formatINR(emergencyFundTarget)}, and invest ${formatINR(investmentTarget)}/month. Your current financial health score is ${healthScore}/100.`;
 
@@ -95,19 +116,6 @@ const submitOnboarding = async (req, res, next) => {
         planSummary,
       },
     });
-
-    // Ensure default account exists
-    const existingAccount = await prisma.financialAccount.findFirst({ where: { userId } });
-    if (!existingAccount) {
-      await prisma.financialAccount.create({
-        data: { userId, name: 'Primary Account', accountType: 'BANK', balance: savings, currency: 'INR' },
-      });
-    } else if (savings > 0) {
-      await prisma.financialAccount.update({
-        where: { id: existingAccount.id },
-        data: { balance: savings },
-      });
-    }
 
     return res.status(200).json({
       success: true,

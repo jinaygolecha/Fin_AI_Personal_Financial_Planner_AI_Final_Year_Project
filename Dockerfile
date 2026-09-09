@@ -1,5 +1,5 @@
 # ====================================================================
-# Jinay Finance AI — Production Dockerfile
+# FinPro — Production Dockerfile
 # Multi-stage build with Node.js 22 Alpine
 # ====================================================================
 

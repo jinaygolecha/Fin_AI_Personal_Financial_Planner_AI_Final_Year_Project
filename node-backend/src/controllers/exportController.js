@@ -163,7 +163,7 @@ const exportSummaryCSV = async (req, res, next) => {
     const netWorth = totalBalance + investmentValue - totalDebt;
 
     const rows = [
-      ['Summary Report - Jinay Finance AI'],
+      ['Summary Report - FinPro'],
       ['Generated', new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })],
       [],
       ['Metric', 'Value (INR)'],

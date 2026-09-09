@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transactions — Jinay Finance AI</title>
+  <title>Transactions — FinPro</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/app.css">
@@ -186,7 +186,8 @@
 
   <script src="/assets/js/sidebar.js"></script>
   <script>
-    const API_BASE = window.location.origin.includes(':5000') ? '/api/v1' : 'http://127.0.0.1:5000/api/v1';
+    const isDevLiveServer = window.location.port === '3000' || window.location.port === '5500' || window.location.protocol === 'file:';
+    const API_BASE = isDevLiveServer ? 'http://127.0.0.1:5000/api/v1' : '/api/v1';
     const token = localStorage.getItem('jf_access_token');
     if (!token) window.location.href = '/login.html';
 

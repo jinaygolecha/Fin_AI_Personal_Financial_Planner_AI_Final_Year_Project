@@ -45,11 +45,15 @@ jobs:
         run: |
           npm --prefix node-backend run prisma:generate
 
-      - name: Run Prisma Migrations
+      - name: Run Syntax & Code Quality Linter
+        run: |
+          npm run lint
+
+      - name: Run Prisma Migrations (Production Deploy Strategy)
         env:
           DATABASE_URL: postgresql://postgres:postgrespassword_ci_test@localhost:5432/finance_jinay_test?schema=public
         run: |
-          cd node-backend && npx prisma db push
+          cd node-backend && npx prisma migrate deploy
 
       - name: Run Acceptance Test Suite
         env:
@@ -64,3 +68,7 @@ jobs:
       - name: Build Verification
         run: |
           npm run build
+
+      - name: Verify Docker Container Build
+        run: |
+          docker build -t finpro:latest .

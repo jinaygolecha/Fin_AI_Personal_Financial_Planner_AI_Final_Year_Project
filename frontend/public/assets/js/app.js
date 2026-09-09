@@ -1,12 +1,13 @@
 /**
- * Jinay Finance AI — Shared App Utilities
- * Owner: Jinay Golecha (jinay_golecha)
+ * FinPro — Shared App Utilities
+ * FinPro — Personal Finance & Investment Decision Support Platform
  * All frontend pages include this file.
  */
 
-const API_BASE = window.location.origin.includes(':5000') 
-  ? '/api/v1' 
-  : 'http://127.0.0.1:5000/api/v1';
+const isDevLiveServer = window.location.port === '3000' || window.location.port === '5500' || window.location.protocol === 'file:';
+export const API_BASE = isDevLiveServer 
+  ? 'http://127.0.0.1:5000/api/v1' 
+  : '/api/v1';
 
 // ============ TOKEN MANAGEMENT ============
 export const getToken = () => localStorage.getItem('jf_access_token');

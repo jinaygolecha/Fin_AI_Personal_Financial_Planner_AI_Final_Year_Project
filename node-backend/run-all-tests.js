@@ -25,7 +25,7 @@ function assert(condition, message) {
 
 async function runTests() {
   console.log('\n====================================================================');
-  console.log('  JINAY FINANCE AI — MASTER COMPREHENSIVE INTEGRATION & ACCEPTANCE SUITE');
+  console.log('  FINPRO — MASTER COMPREHENSIVE INTEGRATION & ACCEPTANCE SUITE');
   console.log('====================================================================\n');
 
   let userA, tokenA, userB, tokenB;
@@ -65,27 +65,55 @@ async function runTests() {
     // 2. Authentication Flow
     console.log('\n👉 [2/20] Testing Centralized Authentication Flow...');
     const regA = await request(app).post('/api/v1/auth/register').send(testUserA);
-    assert(regA.status === 201 && regA.body.success === true, 'POST /api/v1/auth/register creates new user with profiles and primary account');
-    userA = regA.body.data.user;
-    tokenA = regA.body.data.accessToken;
+    assert(regA.status === 201 && regA.body?.success === true, 'POST /api/v1/auth/register creates new user with profiles and primary account');
+    userA = regA.body?.data?.user;
+    tokenA = regA.body?.data?.accessToken;
 
     const dupReg = await request(app).post('/api/v1/auth/register').send(testUserA);
     assert(dupReg.status === 409, 'POST /api/v1/auth/register rejects duplicate registration with 409');
 
     const loginA = await request(app).post('/api/v1/auth/login').send({ email: testUserA.email, password: testUserA.password });
-    assert(loginA.status === 200 && loginA.body.data.accessToken, 'POST /api/v1/auth/login succeeds with valid credentials');
-    tokenA = loginA.body.data.accessToken;
+    assert(loginA.status === 200 && loginA.body?.data?.accessToken, 'POST /api/v1/auth/login succeeds with valid credentials');
+    tokenA = loginA.body?.data?.accessToken || tokenA;
 
     const badLogin = await request(app).post('/api/v1/auth/login').send({ email: testUserA.email, password: 'WrongPassword!' });
     assert(badLogin.status === 401, 'POST /api/v1/auth/login returns 401 on wrong password');
 
     const meA = await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${tokenA}`);
-    assert(meA.status === 200 && meA.body.data.email === testUserA.email, 'GET /api/v1/auth/me returns authenticated user details');
+    assert(meA.status === 200 && meA.body?.data?.email === testUserA.email, 'GET /api/v1/auth/me returns authenticated user details');
+
+    // Unauthenticated access
+    const noAuth = await request(app).get('/api/v1/auth/me');
+    assert(noAuth.status === 401 && noAuth.body?.error?.code === 'UNAUTHORIZED', 'GET /api/v1/auth/me rejects unauthenticated request with 401 UNAUTHORIZED');
+
+    // Invalid token access
+    const invalidAuth = await request(app).get('/api/v1/auth/me').set('Authorization', 'Bearer invalid.jwt.token');
+    assert(invalidAuth.status === 401 && invalidAuth.body?.error?.code === 'INVALID_TOKEN', 'GET /api/v1/auth/me rejects invalid token with 401 INVALID_TOKEN');
+
+    // Expired token access
+    const jwt = require('jsonwebtoken');
+    const expiredToken = jwt.sign({ userId: userA?.id || 'temp', jti: 'exp-test' }, process.env.JWT_SECRET || 'secret', { expiresIn: '0s' });
+    const expiredAuth = await request(app).get('/api/v1/auth/me').set('Authorization', `Bearer ${expiredToken}`);
+    assert(expiredAuth.status === 401 && expiredAuth.body?.error?.code === 'TOKEN_EXPIRED', 'GET /api/v1/auth/me rejects expired token with 401 TOKEN_EXPIRED');
+
+    // Google OAuth provider status endpoint
+    const providersRes = await request(app).get('/api/v1/auth/providers');
+    assert(providersRes.status === 200 && providersRes.body?.data?.password === true, 'GET /api/v1/auth/providers reports supported auth providers');
+
+    // Refresh & Logout Flow
+    const refreshRes = await request(app).post('/api/v1/auth/refresh').send({ refreshToken: regA.body?.data?.refreshToken });
+    assert(refreshRes.status === 200 && refreshRes.body?.data?.accessToken, 'POST /api/v1/auth/refresh issues new token pair');
+
+    const logoutRes = await request(app).post('/api/v1/auth/logout').send({ refreshToken: refreshRes.body?.data?.refreshToken || regA.body?.data?.refreshToken });
+    assert(logoutRes.status === 200, 'POST /api/v1/auth/logout revokes refresh token');
+
+    const revokedRefresh = await request(app).post('/api/v1/auth/refresh').send({ refreshToken: refreshRes.body?.data?.refreshToken || regA.body?.data?.refreshToken });
+    assert(revokedRefresh.status === 401, 'POST /api/v1/auth/refresh rejects revoked refresh token with 401');
 
     // Register User B
     const regB = await request(app).post('/api/v1/auth/register').send(testUserB);
-    userB = regB.body.data.user;
-    tokenB = regB.body.data.accessToken;
+    userB = regB.body?.data?.user;
+    tokenB = regB.body?.data?.accessToken;
     assert(regB.status === 201, 'Registered User B for tenant isolation testing');
 
     // 3. Onboarding
@@ -104,23 +132,23 @@ async function runTests() {
         budgetMethod: 'FIFTY_THIRTY_TWENTY',
         financialPriorities: 'Save for home, emergency fund',
       });
-    assert(onb.status === 200 && onb.body.data.isOnboardingComplete === true, 'POST /api/v1/onboarding calculates financial health score & 50/30/20 plan');
+    assert(onb.status === 200 && onb.body?.data?.isOnboardingComplete === true, 'POST /api/v1/onboarding calculates financial health score & 50/30/20 plan');
 
     const onbStat = await request(app).get('/api/v1/onboarding/status').set('Authorization', `Bearer ${tokenA}`);
-    assert(onbStat.status === 200 && onbStat.body.data.isOnboardingComplete === true, 'GET /api/v1/onboarding/status returns complete');
+    assert(onbStat.status === 200 && onbStat.body?.data?.isOnboardingComplete === true, 'GET /api/v1/onboarding/status returns complete');
 
     // 4. Accounts & Deposits (Atomic)
     console.log('\n👉 [4/20] Testing Accounts & Deposit Atomicity...');
     const accs = await request(app).get('/api/v1/accounts').set('Authorization', `Bearer ${tokenA}`);
-    assert(accs.status === 200 && accs.body.data.accounts.length > 0, 'GET /api/v1/accounts lists user accounts');
-    accountAId = accs.body.data.accounts[0].id;
+    assert(accs.status === 200 && accs.body?.data?.accounts?.length > 0, 'GET /api/v1/accounts lists user accounts');
+    accountAId = accs.body?.data?.accounts?.[0]?.id;
 
     const depositRes = await request(app)
       .post(`/api/v1/accounts/${accountAId}/deposit`)
       .set('Authorization', `Bearer ${tokenA}`)
       .send({ amount: 100000, source: 'Salary', description: 'Monthly income credit' });
-    assert(depositRes.status === 200 && depositRes.body.data.newBalance >= 100000, 'POST /api/v1/accounts/:id/deposit adds ₹1,00,000 atomically with income record');
-    txAIncomeId = depositRes.body.data.transactionId;
+    assert(depositRes.status === 200 && depositRes.body?.data?.newBalance >= 100000, 'POST /api/v1/accounts/:id/deposit adds ₹1,00,000 atomically with income record');
+    txAIncomeId = depositRes.body?.data?.transactionId;
 
     // 5. Dashboard Aggregations
     console.log('\n👉 [5/20] Testing Real-time Dashboard Aggregations...');

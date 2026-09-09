@@ -1,12 +1,13 @@
 /**
- * Jinay Finance AI — Centralized API Client
- * Owner: Jinay Golecha (jinay_golecha)
+ * FinPro — Centralized API Client
+ * FinPro — Personal Finance & Investment Decision Support Platform
  * All API calls go to Node.js/Express backend
  */
 
-const API_BASE = window.location.origin.includes(':5000') 
-  ? '/api/v1' 
-  : 'http://127.0.0.1:5000/api/v1';
+const isDevLiveServer = window.location.port === '3000' || window.location.port === '5500' || window.location.protocol === 'file:';
+export const API_BASE = isDevLiveServer 
+  ? 'http://127.0.0.1:5000/api/v1' 
+  : '/api/v1';
 
 // ===== Token Management =====
 
@@ -22,6 +23,21 @@ export const clearTokens = () => {
   localStorage.removeItem('jf_access_token');
   localStorage.removeItem('jf_refresh_token');
   localStorage.removeItem('jf_user');
+};
+
+export const logout = async () => {
+  const refresh = getRefreshToken();
+  if (refresh) {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: refresh }),
+      });
+    } catch {}
+  }
+  clearTokens();
+  window.location.href = '/login.html';
 };
 
 export const getUser = () => {
@@ -483,5 +499,6 @@ export default {
   setUser,
   setTokens,
   clearTokens,
+  logout,
   handleGoogleCallback,
 };

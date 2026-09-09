@@ -35,7 +35,7 @@ const startServer = async () => {
 
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log('\n╔════════════════════════════════════════════════════════╗');
-      console.log('║     JINAY FINANCE AI — Node.js/Express Backend        ║');
+      console.log('║     FinPro — Personal Finance & Decision Support Platform ║');
       console.log('║     Owner: Jinay Golecha (jinay_golecha)               ║');
       console.log('╚════════════════════════════════════════════════════════╝');
       console.log(`\n🚀 Server running at http://127.0.0.1:${PORT}`);

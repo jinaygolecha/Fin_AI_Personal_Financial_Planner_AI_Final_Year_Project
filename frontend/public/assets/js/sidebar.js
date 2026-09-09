@@ -1,6 +1,6 @@
 /**
- * Jinay Finance AI — Shared Sidebar Component (Pure Vanilla JS)
- * Owner: Jinay Golecha (jinay_golecha)
+ * FinPro — Shared Sidebar Component (Pure Vanilla JS)
+ * FinPro — Personal Finance & Investment Decision Support Platform
  * Works in both standard <script> and ES module contexts.
  */
 
@@ -42,7 +42,7 @@ function renderSidebar(activePage = '') {
       <div class="sidebar-brand">
         <div class="brand-icon"><i class="ri-funds-box-fill"></i></div>
         <div>
-          <div class="brand-text">Jinay Finance AI</div>
+          <div class="brand-text">FinPro</div>
           <div class="brand-sub">Decision Support Platform</div>
         </div>
       </div>

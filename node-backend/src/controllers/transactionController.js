@@ -107,7 +107,7 @@ const createTransaction = async (req, res, next) => {
       });
     }
 
-    const transactionType = type.toUpperCase();
+    const transactionType = ((req.body.type || req.body.transactionType || 'EXPENSE')).toUpperCase();
     const validTypes = ['INCOME', 'EXPENSE', 'TRANSFER', 'INVESTMENT', 'LOAN_PAYMENT'];
     if (!validTypes.includes(transactionType)) {
       return res.status(400).json({

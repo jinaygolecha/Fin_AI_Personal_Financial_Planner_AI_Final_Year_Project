@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { formatINR } = require('../utils/inr');
 const { calculateHealthScore } = require('../utils/financialMath');
+const financialTwin = require('../services/financialTwinService');
 
 /**
  * GET /api/v1/dashboard
@@ -98,14 +99,23 @@ const getDashboard = async (req, res, next) => {
     // Budget usage
     const totalBudgetLimit = budgets.reduce((s, b) => s + parseFloat(b.monthlyLimit || 0), 0);
 
-    // Health score from plan or calculate live
-    const healthScore = financialPlan?.financialHealthScore ?? calculateHealthScore({
-      monthlyIncome: incomeAmt,
-      monthlyExpenses: expenseAmt,
-      totalSavings: totalBalance,
-      totalDebt: loanOutstanding,
-      totalInvestments: investmentValue,
-    });
+    // Health score from plan or calculate live using 10-factor engine
+    let healthScore = financialPlan?.financialHealthScore;
+    if (healthScore === undefined || healthScore === null) {
+      try {
+        const detailed = await financialTwin.calculateDetailedHealthScore(userId);
+        healthScore = detailed.overallScore;
+      } catch (err) {
+        console.warn('[Dashboard] 10-factor health score calculation error:', err.message);
+        healthScore = calculateHealthScore({
+          monthlyIncome: incomeAmt,
+          monthlyExpenses: expenseAmt,
+          totalSavings: totalBalance,
+          totalDebt: loanOutstanding,
+          totalInvestments: investmentValue,
+        });
+      }
+    }
 
     return res.status(200).json({
       success: true,

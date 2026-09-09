@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Financial Advisor & Simulator — Jinay Finance AI</title>
+  <title>AI Financial Advisor & Simulator — FinPro</title>
   <meta name="description" content="AI-powered financial decision support with What-If simulations, Voice assistant, OCR receipt scanner, and Risk Radar.">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
@@ -214,13 +214,24 @@ How can I assist you today? You can ask about your spending, run a what-if finan
         <button class="modal-x" id="closeOcrModal">✕</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;">
-        <label style="font-size:11px;color:#94a3b8;">Paste Receipt Text / Bill Note</label>
-        <textarea id="receiptInput" class="form-input" rows="3" placeholder="e.g. STARBUCKS COFFEE Total: Rs 450.00 Date: 2026-08-16"></textarea>
-        <button class="btn-primary" id="scanReceiptBtn">Scan & Extract Fields</button>
+        <label style="font-size:11px;color:#94a3b8;">Upload Receipt Photo (PNG / JPEG / WebP)</label>
+        <input type="file" id="receiptFileInput" class="form-input" accept="image/png,image/jpeg,image/webp" style="padding:6px;">
+        <div id="receiptImagePreviewContainer" style="display:none;text-align:center;">
+          <img id="receiptImagePreview" style="max-height:150px;max-width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.15);object-fit:contain;">
+        </div>
+        <div style="font-size:11px;color:#64748b;text-align:center;">— or paste receipt text —</div>
+        <textarea id="receiptInput" class="form-input" rows="2" placeholder="e.g. STARBUCKS COFFEE Total: Rs 450.00 Date: 2026-08-16"></textarea>
+        <button class="btn-primary" id="scanReceiptBtn">
+          <span id="scanReceiptBtnText">Scan & Extract with OCR</span>
+          <span id="scanReceiptSpinner" style="display:none;"><i class="ri-loader-4-line" style="animation:spin 1s infinite linear;display:inline-block;"></i> Processing OCR...</span>
+        </button>
         <div id="ocrPreviewBox" style="display:none;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);padding:14px;border-radius:10px;font-size:12px;">
           <div style="font-weight:700;color:#6ee7b7;margin-bottom:6px;">Preview Extracted Transaction:</div>
           <div id="ocrExtractedText" style="margin-bottom:10px;"></div>
-          <button class="btn-primary" id="confirmOcrBtn" style="background:#10b981;">Confirm & Add Expense</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-primary" id="confirmOcrBtn" style="background:#10b981;flex:1;">Confirm & Add Expense</button>
+            <button class="btn-secondary" id="cancelOcrBtn" style="flex:1;">Cancel</button>
+          </div>
         </div>
       </div>
     </div>
@@ -489,42 +500,113 @@ How can I assist you today? You can ask about your spending, run a what-if finan
     // OCR Modal
     let pendingScanId = null;
     let pendingScanData = null;
+    let currentReceiptImageBase64 = null;
+
     document.getElementById('openOcrBtn').addEventListener('click', () => {
       document.getElementById('ocrModal').classList.add('show');
     });
     document.getElementById('closeOcrModal').addEventListener('click', () => {
       document.getElementById('ocrModal').classList.remove('show');
     });
+    document.getElementById('cancelOcrBtn').addEventListener('click', () => {
+      document.getElementById('ocrModal').classList.remove('show');
+    });
+
+    // Image file selection & preview
+    const receiptFileInput = document.getElementById('receiptFileInput');
+    const previewContainer = document.getElementById('receiptImagePreviewContainer');
+    const previewImg = document.getElementById('receiptImagePreview');
+
+    receiptFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) {
+        currentReceiptImageBase64 = null;
+        previewContainer.style.display = 'none';
+        return;
+      }
+      if (!['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(file.type)) {
+        alert('Please select a PNG, JPEG, or WebP image file.');
+        receiptFileInput.value = '';
+        currentReceiptImageBase64 = null;
+        previewContainer.style.display = 'none';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        currentReceiptImageBase64 = event.target.result;
+        previewImg.src = currentReceiptImageBase64;
+        previewContainer.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    });
 
     document.getElementById('scanReceiptBtn').addEventListener('click', async () => {
-      const text = document.getElementById('receiptInput').value;
-      const res = await api.receiptsAPI.scan({ receiptText: text });
-      if (res?.success) {
-        const d = res.data;
-        pendingScanId = d.scanId;
-        pendingScanData = d;
-        document.getElementById('ocrPreviewBox').style.display = 'block';
-        document.getElementById('ocrExtractedText').innerHTML = `
-          Merchant: <b>${d.merchant}</b><br>
-          Amount: <b>${d.formattedAmount}</b><br>
-          Category: <b>${d.category}</b> (${d.items.join(', ')})<br>
-          Date: <b>${d.date}</b>
-        `;
+      const text = document.getElementById('receiptInput').value.trim();
+      if (!text && !currentReceiptImageBase64) {
+        alert('Please select an image file or paste receipt text.');
+        return;
+      }
+
+      const btnText = document.getElementById('scanReceiptBtnText');
+      const spinner = document.getElementById('scanReceiptSpinner');
+      const scanBtn = document.getElementById('scanReceiptBtn');
+      scanBtn.disabled = true;
+      btnText.style.display = 'none';
+      spinner.style.display = 'inline';
+
+      try {
+        const payload = {};
+        if (currentReceiptImageBase64) payload.imageData = currentReceiptImageBase64;
+        if (text) payload.receiptText = text;
+
+        const res = await api.receiptsAPI.scan(payload);
+        if (res?.success) {
+          const d = res.data;
+          pendingScanId = d.scanId;
+          pendingScanData = d;
+          document.getElementById('ocrPreviewBox').style.display = 'block';
+          document.getElementById('ocrExtractedText').innerHTML = `
+            Merchant: <b>${d.merchant || 'Unidentified'}</b><br>
+            Amount: <b>${d.formattedAmount || 'Not detected'}</b><br>
+            Category: <b>${d.category}</b> ${d.items?.length ? `(${d.items.join(', ')})` : ''}<br>
+            Date: <b>${d.date}</b><br>
+            Confidence: <span style="color:#34d399;">${d.ocrConfidence || 100}%</span>
+          `;
+        } else {
+          alert(res?.error?.message || 'OCR processing could not recognize receipt details.');
+        }
+      } catch (err) {
+        alert('OCR processing failed: ' + (err.message || 'Please verify the receipt image.'));
+      } finally {
+        scanBtn.disabled = false;
+        btnText.style.display = 'inline';
+        spinner.style.display = 'none';
       }
     });
 
     document.getElementById('confirmOcrBtn').addEventListener('click', async () => {
-      if (pendingScanData) {
-        await api.receiptsAPI.confirm({
+      if (pendingScanData && pendingScanData.amount) {
+        const res = await api.receiptsAPI.confirm({
           scanId: pendingScanId,
           amount: pendingScanData.amount,
           merchant: pendingScanData.merchant,
           category: pendingScanData.category,
           date: pendingScanData.date,
         });
-        alert('✅ Expense recorded to database!');
-        document.getElementById('ocrModal').classList.remove('show');
-        loadSnapshot();
+        if (res?.success) {
+          alert(`✅ ${res.data.message}`);
+          document.getElementById('ocrModal').classList.remove('show');
+          receiptFileInput.value = '';
+          currentReceiptImageBase64 = null;
+          previewContainer.style.display = 'none';
+          document.getElementById('receiptInput').value = '';
+          document.getElementById('ocrPreviewBox').style.display = 'none';
+          loadSnapshot();
+        } else {
+          alert(res?.error?.message || 'Failed to confirm transaction.');
+        }
+      } else {
+        alert('Cannot confirm transaction without a valid detected amount.');
       }
     });
 

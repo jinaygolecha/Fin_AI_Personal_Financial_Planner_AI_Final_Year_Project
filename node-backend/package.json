@@ -11,8 +11,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "build": "node -e \"console.log('Build verification passed')\"",
-    "lint": "node -e \"console.log('Lint verification passed')\""
+    "build": "node scripts/build.js",
+    "lint": "node scripts/lint.js"
   },
   "keywords": [
     "finance",
@@ -42,14 +42,15 @@
     "morgan": "^1.10.0",
     "node-cron": "^3.0.3",
     "socket.io": "^4.8.1",
+    "tesseract.js": "^7.0.0",
     "uuid": "^11.0.5",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "jest": "^29.7.0",
     "nodemon": "^3.1.9",
-    "supertest": "^7.0.0",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "supertest": "^7.0.0"
   },
   "jest": {
     "testEnvironment": "node",

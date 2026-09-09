@@ -605,9 +605,16 @@ const getTechnicals = async (req, res, next) => {
 const getCompanyOverview = async (req, res, next) => {
   try {
     const symbol = req.query.symbol || 'RELIANCE';
-    const data = await marketService.fetchCompanyOverview(symbol);
+    let data = await marketService.fetchCompanyOverview(symbol);
     if (!data) {
-      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Company overview not available for this symbol.' } });
+      data = await marketService.getCompanyProfile(symbol);
+    }
+    if (!data) {
+      data = {
+        symbol: symbol.toUpperCase(),
+        name: symbol.toUpperCase(),
+        description: 'Company overview is currently unavailable for this instrument.',
+      };
     }
     return res.status(200).json({ success: true, data });
   } catch (error) {

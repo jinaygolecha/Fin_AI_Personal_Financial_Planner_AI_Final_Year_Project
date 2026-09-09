@@ -4,6 +4,7 @@ const axios = require('axios');
  * Financial News Service (Phase 30 & Phase 31)
  * Integrates Marketaux API for real-time finance, market, and company news.
  * Strictly keeps API keys server-side with controlled TTL caching.
+ * ABSOLUTE RULE 1 & 12 COMPLIANCE: Zero fake news. Never silently invent data.
  */
 
 const NEWS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
@@ -25,7 +26,7 @@ const setCachedNews = (key, data) => {
 };
 
 /**
- * Fetch financial news from Marketaux API with Finnhub / RSS fallback
+ * Fetch financial news from Marketaux API with Finnhub fallback
  */
 const getFinancialNews = async ({ search = '', category = 'general', symbols = '', limit = 10 } = {}) => {
   const cacheKey = `NEWS_${search}_${category}_${symbols}_${limit}`;
@@ -34,6 +35,9 @@ const getFinancialNews = async ({ search = '', category = 'general', symbols = '
 
   const marketauxKey = process.env.MARKETAUX_API_KEY;
   const finnhubKey = process.env.FINNHUB_API_KEY;
+
+  let lastErrorStatus = null;
+  let lastErrorMessage = null;
 
   // 1. Primary: Marketaux API
   if (marketauxKey && marketauxKey !== 'YOUR_MARKETAUX_API_KEY') {
@@ -45,6 +49,9 @@ const getFinancialNews = async ({ search = '', category = 'general', symbols = '
       };
       if (search) params.search = search;
       if (symbols) params.symbols = symbols;
+      if (category && category !== 'general') {
+        params.industries = category;
+      }
 
       const res = await axios.get('https://api.marketaux.com/v1/news/all', {
         params,
@@ -52,14 +59,14 @@ const getFinancialNews = async ({ search = '', category = 'general', symbols = '
       });
 
       if (res.data?.data && Array.isArray(res.data.data)) {
-        const articles = res.data.data.map(item => ({
-          id: item.uuid || String(Math.random()),
+        const articles = res.data.data.map((item, idx) => ({
+          id: item.uuid || `mx-${idx}-${Date.now()}`,
           headline: item.title,
-          description: item.description,
+          description: item.description || '',
           source: item.source || 'Marketaux',
           url: item.url,
-          imageUrl: item.image_url,
-          publishedAt: item.published_at,
+          imageUrl: item.image_url || null,
+          publishedAt: item.published_at || new Date().toISOString(),
           entities: item.entities?.map(e => e.symbol || e.name) || [],
           sentiment: item.sentiment || null,
         }));
@@ -73,13 +80,26 @@ const getFinancialNews = async ({ search = '', category = 'general', symbols = '
           count: articles.length,
           fetchedAt: new Date().toISOString(),
           data_status: 'LIVE',
+          message: articles.length === 0 ? 'No financial news is currently available.' : null,
         };
 
-        setCachedNews(cacheKey, result);
+        if (articles.length > 0) {
+          setCachedNews(cacheKey, result);
+        }
         return result;
       }
     } catch (err) {
       console.debug('[NewsService] Marketaux fetch notice:', err.message);
+      if (err.response?.status === 429) {
+        lastErrorStatus = 'RATE_LIMIT';
+        lastErrorMessage = 'Marketaux news rate limit reached. Retrying alternative provider.';
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
+        lastErrorStatus = 'AUTHENTICATION_REQUIRED';
+        lastErrorMessage = 'Marketaux API key authentication failure.';
+      } else {
+        lastErrorStatus = 'PROVIDER_ERROR';
+        lastErrorMessage = err.message;
+      }
     }
   }
 
@@ -92,13 +112,13 @@ const getFinancialNews = async ({ search = '', category = 'general', symbols = '
       });
 
       if (Array.isArray(res.data) && res.data.length > 0) {
-        const articles = res.data.slice(0, limit).map(item => ({
+        const articles = res.data.slice(0, limit).map((item) => ({
           id: String(item.id),
           headline: item.headline,
-          description: item.summary,
+          description: item.summary || '',
           source: item.source || 'Finnhub',
           url: item.url,
-          imageUrl: item.image,
+          imageUrl: item.image || null,
           publishedAt: new Date(item.datetime * 1000).toISOString(),
           entities: item.related ? item.related.split(',') : [],
           sentiment: null,
@@ -113,54 +133,44 @@ const getFinancialNews = async ({ search = '', category = 'general', symbols = '
           count: articles.length,
           fetchedAt: new Date().toISOString(),
           data_status: 'LIVE',
+          message: articles.length === 0 ? 'No financial news is currently available.' : null,
         };
 
-        setCachedNews(cacheKey, result);
+        if (articles.length > 0) {
+          setCachedNews(cacheKey, result);
+        }
         return result;
       }
     } catch (err) {
       console.debug('[NewsService] Finnhub news notice:', err.message);
+      if (err.response?.status === 429) {
+        lastErrorStatus = 'RATE_LIMIT';
+      }
     }
   }
 
-  // 3. Structured Live Market Feeds fallback
+  // 3. Truthful fallback state (Rule 1 & 12: Zero fake news. Never invent data.)
+  const status = lastErrorStatus || 'UNAVAILABLE';
+  let message = 'No financial news is currently available.';
+  if (status === 'RATE_LIMIT') {
+    message = 'Financial news provider rate limit exceeded. Please try again shortly.';
+  } else if (status === 'AUTHENTICATION_REQUIRED') {
+    message = 'Financial news provider authentication required. Please verify MARKETAUX_API_KEY.';
+  } else if (!marketauxKey && !finnhubKey) {
+    message = 'Financial news provider not configured. Configure MARKETAUX_API_KEY in .env.';
+  }
+
   return {
-    provider: 'Market Desk',
-    source: 'Market Desk Briefings',
+    provider: 'None',
+    source: 'External Provider',
     category,
     searchQuery: search,
-    articles: [
-      {
-        id: 'desk-1',
-        headline: 'RBI Monetary Policy: Focus on Inflation Trajectory and Liquidity Management',
-        description: 'Reserve Bank of India maintains steady stance on repo rates while tracking monsoon food inflation and interbank liquidity.',
-        source: 'Banking Bureau',
-        url: 'https://www.rbi.org.in',
-        publishedAt: new Date().toISOString(),
-        entities: ['RBI', 'INFLATION', 'BANKING'],
-      },
-      {
-        id: 'desk-2',
-        headline: 'Indian Equity Markets: Foreign Portfolio Flows and Sectoral Allocations',
-        description: 'NSE Nifty 50 and BSE Sensex trade with sectoral rotation into private banks, IT infrastructure, and capital goods.',
-        source: 'NSE India Insights',
-        url: 'https://www.nseindia.com',
-        publishedAt: new Date(Date.now() - 3600000).toISOString(),
-        entities: ['NSE', 'NIFTY50', 'BSE'],
-      },
-      {
-        id: 'desk-3',
-        headline: 'Global Bullion & Precious Metals: COMEX Gold and Silver Macro Drivers',
-        description: 'US Treasury yields and currency movements dictate international bullion demand, influencing converted INR benchmark pricing.',
-        source: 'Precious Metals Desk',
-        url: 'https://www.cmegroup.com',
-        publishedAt: new Date(Date.now() - 7200000).toISOString(),
-        entities: ['GOLD', 'SILVER', 'COMEX'],
-      },
-    ],
-    count: 3,
+    articles: [],
+    count: 0,
     fetchedAt: new Date().toISOString(),
-    data_status: 'CACHED',
+    data_status: status,
+    message,
+    error_detail: lastErrorMessage || null,
   };
 };
 
@@ -174,8 +184,8 @@ const checkNewsHealth = async () => {
   const isFinnhubConfigured = !!(finnhubKey && finnhubKey !== 'YOUR_FINNHUB_API_KEY');
 
   return {
-    status: isMarketauxConfigured || isFinnhubConfigured ? 'healthy' : 'fallback',
-    provider: isMarketauxConfigured ? 'Marketaux' : isFinnhubConfigured ? 'Finnhub' : 'Market Desk',
+    status: isMarketauxConfigured || isFinnhubConfigured ? 'healthy' : 'unconfigured',
+    provider: isMarketauxConfigured ? 'Marketaux' : isFinnhubConfigured ? 'Finnhub' : 'None',
     marketauxConfigured: isMarketauxConfigured,
     finnhubConfigured: isFinnhubConfigured,
     cacheEntries: newsCache.size,

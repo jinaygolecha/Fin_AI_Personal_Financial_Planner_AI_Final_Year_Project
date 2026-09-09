@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Market Dashboard — Stocks, Gold & Commodities | Jinay Finance AI</title>
+  <title>Live Market Dashboard — Stocks, Gold & Commodities | FinPro</title>
   <meta name="description" content="Real-time NSE stocks, 24K/22K Gold, Silver, Crude Oil, USD/INR and technical indicators powered by Alpha Vantage.">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
@@ -289,7 +289,7 @@
         Powered by <a href="https://www.alphavantage.co" target="_blank">Alpha Vantage</a> &amp;
         <a href="https://finnhub.io" target="_blank">Finnhub</a> APIs &middot;
         NSE/BSE Stocks &middot; Gold (GLOBAL_PRICE_OF_GOLD) &middot; Silver &middot; WTI &middot; FX &middot; RSI &middot; MACD &middot; BBands &middot; Earnings &middot;
-        Jinay Finance AI &copy; 2025 Jinay Golecha
+        FinPro &copy; 2025 Jinay Golecha
       </div>
     </div>
   </main>
@@ -302,7 +302,8 @@
     document.getElementById('sidebarRoot').innerHTML = getSidebar('market');
     initSidebarUser();
 
-    const API_BASE = window.location.origin.includes(':5000') ? '/api/v1' : 'http://127.0.0.1:5000/api/v1';
+    const isDevLiveServer = window.location.port === '3000' || window.location.port === '5500' || window.location.protocol === 'file:';
+    const API_BASE = isDevLiveServer ? 'http://127.0.0.1:5000/api/v1' : '/api/v1';
     const token = localStorage.getItem('jf_access_token');
     const hdr = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
 
@@ -539,13 +540,14 @@
 
     const loadNews = async () => {
       const res = await get('/market/news?category=general');
-      if (!res?.success) return;
-      document.getElementById('newsList').innerHTML = res.data.slice(0, 8).map(n => `
+      if (!res?.success || !res.data) return;
+      const list = Array.isArray(res.data) ? res.data : Object.values(res.data).filter(n => n && typeof n === 'object' && n.headline);
+      document.getElementById('newsList').innerHTML = list.slice(0, 8).map(n => `
         <div class="news-item" ${n.url ? `onclick="window.open('${n.url}','_blank')"` : ''}>
           <div class="news-headline">${n.headline}</div>
           <div class="news-meta">
             <span>${n.source || 'Market Desk'}</span><span>&middot;</span>
-            <span>${new Date(n.datetime).toLocaleDateString('en-IN')}</span>
+            <span>${new Date(n.datetime || Date.now()).toLocaleDateString('en-IN')}</span>
           </div>
         </div>
       `).join('');
@@ -584,9 +586,6 @@
       if (e.key === 'Enter') document.getElementById('stockSearchBtn').click();
     });
 
-    document.getElementById('earningsSymSelect').addEventListener('change', e => loadEarnings(e.target.value));
-    document.getElementById('refreshAllBtn').addEventListener('click', initAll);
-
     const initAll = async () => {
       await loadDashboard();
       loadChartForSym('RELIANCE', '1M');
@@ -598,6 +597,9 @@
       setTimeout(loadCommodities, 2000);
       setTimeout(loadFX, 1000);
     };
+
+    document.getElementById('earningsSymSelect').addEventListener('change', e => loadEarnings(e.target.value));
+    document.getElementById('refreshAllBtn').addEventListener('click', initAll);
 
     initAll();
     setInterval(loadDashboard, 3 * 60 * 1000);

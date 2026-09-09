@@ -331,8 +331,8 @@ const parseVoiceIntent = async (req, res, next) => {
     const addExpenseMatch = text.match(/(?:add|record|spent)\s*(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d{1,2})?)\s*(?:rupees|for|on)?\s*([a-z\s]+)?/i) || text.match(/(?:add|record)\s*(?:a|an)?\s*(\d+(?:\.\d{1,2})?)\s*([a-z\s]+)?/i);
     if ((text.startsWith('add') || text.startsWith('record') || text.includes('spent ')) && addExpenseMatch && parseFloat(addExpenseMatch[1]) > 0) {
       const amount = parseFloat(addExpenseMatch[1]);
-      let category = (addExpenseMatch[2] || 'Food').replace('expense', '').trim();
-      if (!category) category = 'Food';
+      let rawCat = (addExpenseMatch[2] || 'Food').replace(/^(?:for|on|in|at)\s+/i, '').replace(/expense/i, '').trim();
+      let category = rawCat ? rawCat.charAt(0).toUpperCase() + rawCat.slice(1) : 'Food';
       return res.status(200).json({
         success: true,
         data: {
