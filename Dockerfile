@@ -41,7 +41,6 @@ ENV PORT=5000
 
 # Copy necessary files from builder
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/node-backend ./node-backend
 COPY --from=builder /app/frontend ./frontend
 
