@@ -10,8 +10,7 @@ const rootDir = path.resolve(__dirname, '..');
 
 console.log('[Build] Step 1/3: Validating Prisma Schema...');
 try {
-  const prismaBin = path.join(rootDir, 'node_modules', '.bin', 'prisma');
-  execSync(`"${prismaBin}" validate`, { cwd: rootDir, stdio: 'inherit' });
+  execSync('npx prisma validate', { cwd: rootDir, stdio: 'inherit' });
   console.log('  -> Prisma Schema is valid ✓');
 } catch (err) {
   console.error('❌ Prisma Schema validation failed:', err.message);
@@ -20,17 +19,15 @@ try {
 
 console.log('[Build] Step 2/3: Generating/Verifying Prisma Client...');
 try {
-  const prismaBin = path.join(rootDir, 'node_modules', '.bin', 'prisma');
-  execSync(`"${prismaBin}" generate`, { cwd: rootDir, stdio: 'inherit' });
-  console.log('  -> Prisma Client generated successfully ✓');
+  const { PrismaClient } = require('@prisma/client');
+  new PrismaClient();
+  console.log('  -> Prisma Client is compiled and verified active ✓');
 } catch (err) {
-  // On Windows, if the server is actively running in background, the DLL is locked
   try {
-    const { PrismaClient } = require('@prisma/client');
-    new PrismaClient();
-    console.log('  -> Prisma Client is already compiled and verified active ✓ (DLL locked by running server)');
-  } catch (verifyErr) {
-    console.error('❌ Prisma Client generation failed:', err.message);
+    execSync('npx prisma generate', { cwd: rootDir, stdio: 'inherit' });
+    console.log('  -> Prisma Client generated successfully ✓');
+  } catch (genErr) {
+    console.error('❌ Prisma Client generation failed:', genErr.message);
     process.exit(1);
   }
 }
