@@ -119,7 +119,7 @@ app.get('/api/v1/health', async (req, res) => {
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     owner: 'Jinay Golecha',
-    project: 'AI-Powered Personal Finance & Investment Advisor',
+    project: 'FinPro — Personal Finance & Investment Decision Support Platform',
     timezone: 'Asia/Kolkata',
     currency: 'INR',
   });

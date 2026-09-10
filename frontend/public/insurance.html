@@ -284,7 +284,7 @@
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `jinay_finance_insurance_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `finpro_insurance_${new Date().toISOString().split('T')[0]}.csv`;
         document.body.appendChild(a);
         a.click();
         a.remove();

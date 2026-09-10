@@ -402,15 +402,15 @@ export const trainingAPI = {
 // ===== Export API =====
 
 export const exportAPI = {
-  transactions: () => downloadFile('/export/transactions.csv', 'jinay_finance_transactions.csv'),
-  accounts: () => downloadFile('/export/accounts.csv', 'jinay_finance_accounts.csv'),
-  budgets: () => downloadFile('/export/budgets.csv', 'jinay_finance_budgets.csv'),
-  goals: () => downloadFile('/export/goals.csv', 'jinay_finance_goals.csv'),
-  investments: () => downloadFile('/export/investments.csv', 'jinay_finance_investments.csv'),
-  loans: () => downloadFile('/export/loans.csv', 'jinay_finance_loans.csv'),
-  insurance: () => downloadFile('/export/insurance.csv', 'jinay_finance_insurance.csv'),
-  subscriptions: () => downloadFile('/export/subscriptions.csv', 'jinay_finance_subscriptions.csv'),
-  summary: () => downloadFile('/export/summary.csv', 'jinay_finance_summary.csv'),
+  transactions: () => downloadFile('/export/transactions.csv', 'finpro_transactions.csv'),
+  accounts: () => downloadFile('/export/accounts.csv', 'finpro_accounts.csv'),
+  budgets: () => downloadFile('/export/budgets.csv', 'finpro_budgets.csv'),
+  goals: () => downloadFile('/export/goals.csv', 'finpro_goals.csv'),
+  investments: () => downloadFile('/export/investments.csv', 'finpro_investments.csv'),
+  loans: () => downloadFile('/export/loans.csv', 'finpro_loans.csv'),
+  insurance: () => downloadFile('/export/insurance.csv', 'finpro_insurance.csv'),
+  subscriptions: () => downloadFile('/export/subscriptions.csv', 'finpro_subscriptions.csv'),
+  summary: () => downloadFile('/export/summary.csv', 'finpro_summary.csv'),
 };
 
 // ===== Utility Functions =====

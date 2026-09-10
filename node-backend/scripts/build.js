@@ -13,9 +13,12 @@ if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/finance_jinay?schema=public';
 }
 
+const prismaBin = path.join(rootDir, 'node_modules', 'prisma', 'build', 'index.js');
+const prismaCmd = fs.existsSync(prismaBin) ? `node "${prismaBin}"` : (process.platform === 'win32' ? 'npx.cmd prisma' : 'npx prisma');
+
 console.log('[Build] Step 1/3: Validating Prisma Schema...');
 try {
-  execSync('npx prisma validate', { cwd: rootDir, stdio: 'inherit', env: process.env });
+  execSync(`${prismaCmd} validate`, { cwd: rootDir, stdio: 'inherit', env: process.env });
   console.log('  -> Prisma Schema is valid ✓');
 } catch (err) {
   console.error('❌ Prisma Schema validation failed:', err.message);
@@ -29,7 +32,7 @@ try {
   console.log('  -> Prisma Client is compiled and verified active ✓');
 } catch (err) {
   try {
-    execSync('npx prisma generate', { cwd: rootDir, stdio: 'inherit' });
+    execSync(`${prismaCmd} generate`, { cwd: rootDir, stdio: 'inherit' });
     console.log('  -> Prisma Client generated successfully ✓');
   } catch (genErr) {
     console.error('❌ Prisma Client generation failed:', genErr.message);
