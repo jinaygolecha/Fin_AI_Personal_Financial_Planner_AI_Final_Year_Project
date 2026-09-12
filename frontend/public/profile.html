@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Profile & Settings — FinPro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    .profile-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .profile-hero {
+      background: linear-gradient(135deg, rgba(30,27,75,0.8), rgba(15,23,42,0.9));
+      border: 1px solid rgba(99,102,241,0.25);
+      border-radius: 16px;
+      padding: 28px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      backdrop-filter: blur(12px);
+    }
+    .profile-avatar-lg {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 700;
+      color: white;
+      box-shadow: 0 0 24px rgba(99,102,241,0.4);
+      flex-shrink: 0;
+    }
+    .profile-meta h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #f8fafc;
+    }
+    .profile-meta p {
+      font-size: 13px;
+      color: #94a3b8;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .badge-verified {
+      background: rgba(16,185,129,0.15);
+      color: #34d399;
+      border: 1px solid rgba(16,185,129,0.3);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .grid-2col { grid-template-columns: 1fr; }
+      .profile-hero { flex-direction: column; text-align: center; }
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .form-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .form-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #94a3b8;
+    }
+    .form-control {
+      background: rgba(15,23,42,0.6);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: white;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-control:focus {
+      border-color: #6366f1;
+    }
+    .form-control:disabled {
+      background: rgba(15,23,42,0.3);
+      color: #64748b;
+      cursor: not-allowed;
+    }
+    .btn-save {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-save:hover {
+      box-shadow: 0 0 20px rgba(99,102,241,0.4);
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body class="app-layout">
+  <div id="sidebarRoot"></div>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div>
+        <h1 style="font-size:20px;font-weight:700;color:#f8fafc">User Profile & Account</h1>
+        <p style="font-size:12px;color:#64748b">Verified PostgreSQL Data & Financial Profile</p>
+      </div>
+      <div>
+        <button class="btn btn-secondary" onclick="window.location.href='/dashboard.html'"><i class="ri-dashboard-line"></i> Dashboard</button>
+      </div>
+    </div>
+
+    <div class="profile-container">
+      <!-- Profile Hero -->
+      <div class="profile-hero">
+        <div class="profile-avatar-lg" id="profileAvatar">J</div>
+        <div class="profile-meta">
+          <h2 id="profileFullName">Loading Profile...</h2>
+          <p>
+            <span id="profileEmail"><i class="ri-mail-line"></i> ...</span>
+            <span>·</span>
+            <span id="profileUsername"><i class="ri-user-line"></i> ...</span>
+            <span>·</span>
+            <span class="badge-verified"><i class="ri-shield-check-line"></i> Verified Account</span>
+          </p>
+          <div style="margin-top:8px;font-size:12px;color:#64748b;" id="profileMemberSince">Member Since: ...</div>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <!-- Personal Identity Card -->
+        <div class="card">
+          <div class="card-title"><i class="ri-user-settings-line" style="color:#6366f1"></i> Personal Identity</div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>First Name</label>
+              <input type="text" id="inputFirstName" class="form-control" placeholder="First Name">
+            </div>
+            <div class="form-group">
+              <label>Last Name</label>
+              <input type="text" id="inputLastName" class="form-control" placeholder="Last Name">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:14px">
+            <label>Email Address (Immutable)</label>
+            <input type="email" id="inputEmail" class="form-control" disabled>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" id="inputUsername" class="form-control" disabled>
+            </div>
+            <div class="form-group">
+              <label>Phone Number</label>
+              <input type="text" id="inputPhone" class="form-control" placeholder="+91 98765 43210">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Occupation / Student Status</label>
+              <input type="text" id="inputOccupation" class="form-control" placeholder="e.g. Student / Software Intern">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Profile Bio</label>
+            <input type="text" id="inputBio" class="form-control" placeholder="Brief financial focus or goals">
+          </div>
+        </div>
+
+        <!-- Financial Context Card -->
+        <div class="card">
+          <div class="card-title"><i class="ri-bank-line" style="color:#10b981"></i> Financial Demographics</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Monthly Salary / Stipend (₹)</label>
+              <input type="number" id="inputSalary" class="form-control" placeholder="12300" min="0" step="100">
+            </div>
+            <div class="form-group">
+              <label>Estimated Monthly Expenses (₹)</label>
+              <input type="number" id="inputExpenses" class="form-control" placeholder="6000" min="0" step="100">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>City / Location</label>
+              <input type="text" id="inputCity" class="form-control" placeholder="Mumbai">
+            </div>
+            <div class="form-group">
+              <label>Risk Tolerance</label>
+              <select id="selectRisk" class="form-control" style="color-scheme:dark;">
+                <option value="CONSERVATIVE">Conservative (Low Risk)</option>
+                <option value="MODERATE">Moderate (Balanced)</option>
+                <option value="AGGRESSIVE">Aggressive (Growth)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Base Currency</label>
+              <input type="text" value="INR (₹)" class="form-control" disabled>
+            </div>
+            <div class="form-group">
+              <label>Market Timezone</label>
+              <input type="text" value="Asia/Kolkata (IST)" class="form-control" disabled>
+            </div>
+          </div>
+
+          <!-- Notification & Audio Controls -->
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08);">
+            <div class="card-title" style="font-size:14px;margin-bottom:8px;"><i class="ri-notification-line" style="color:#f59e0b"></i> Audio & Notification Engine</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px;">
+              <span id="notifStatusText" style="font-size:12px;color:#94a3b8;">Permission: Checking...</span>
+              <div style="display:flex;gap:8px;">
+                <button type="button" class="btn btn-secondary" id="enableNotifBtn" style="padding:6px 12px;font-size:12px"><i class="ri-notification-3-line"></i> Enable Notifications</button>
+                <button type="button" class="btn btn-secondary" id="testAudioBtn" style="padding:6px 12px;font-size:12px"><i class="ri-volume-up-line"></i> Test Audio Chime</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div style="display:flex;justify-content:flex-end;gap:14px;align-items:center;">
+        <span id="saveStatus" style="font-size:13px;color:#34d399;display:none;"></span>
+        <button class="btn-save" id="saveProfileBtn">
+          <i class="ri-save-line"></i> Save Profile Changes
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script src="/assets/js/sidebar.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script>
+    const isDevLiveServer = window.location.port === '3000' || window.location.port === '5500' || window.location.protocol === 'file:';
+    const API_BASE = isDevLiveServer ? 'http://127.0.0.1:5000/api/v1' : '/api/v1';
+
+    const getToken = () => localStorage.getItem('jf_access_token');
+    const getRefreshToken = () => localStorage.getItem('jf_refresh_token');
+
+    if (!getToken()) window.location.href = '/login.html';
+
+    const apiFetch = async (url, opts = {}) => {
+      let at = getToken();
+      let headers = { 'Content-Type': 'application/json', ...(at ? { Authorization: `Bearer ${at}` } : {}), ...(opts.headers || {}) };
+      let r = await fetch(`${API_BASE}${url}`, { ...opts, headers });
+      if (r.status === 401 && getRefreshToken()) {
+        try {
+          const refRes = await fetch(`${API_BASE}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken: getRefreshToken() }),
+          });
+          const refData = await refRes.json();
+          if (refData.success && refData.data?.accessToken) {
+            localStorage.setItem('jf_access_token', refData.data.accessToken);
+            if (refData.data.refreshToken) localStorage.setItem('jf_refresh_token', refData.data.refreshToken);
+            headers.Authorization = `Bearer ${refData.data.accessToken}`;
+            r = await fetch(`${API_BASE}${url}`, { ...opts, headers });
+          } else {
+            localStorage.clear();
+            window.location.href = '/login.html?session_expired=1';
+            return null;
+          }
+        } catch {
+          localStorage.clear();
+          window.location.href = '/login.html?session_expired=1';
+          return null;
+        }
+      }
+      return r.json();
+    };
+
+    document.getElementById('sidebarRoot').innerHTML = getSidebar('profile');
+    initSidebarUser();
+
+    // Load Real Database Profile
+    const loadProfile = async () => {
+      const res = await apiFetch('/auth/me');
+      if (!res?.success || !res.data) {
+        alert('Failed to load user profile from database.');
+        return;
+      }
+      const user = res.data;
+      const name = (user.firstName || user.username || 'User');
+      const fullName = name + (user.lastName ? ' ' + user.lastName : '');
+
+      document.getElementById('profileAvatar').textContent = (name[0] || 'U').toUpperCase();
+      document.getElementById('profileFullName').textContent = fullName;
+      document.getElementById('profileEmail').innerHTML = `<i class="ri-mail-line"></i> ${user.email}`;
+      document.getElementById('profileUsername').innerHTML = `<i class="ri-user-line"></i> @${user.username}`;
+      document.getElementById('profileMemberSince').textContent = `Member Since: ${new Date(user.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+
+      // Form fields
+      document.getElementById('inputFirstName').value = user.firstName || '';
+      document.getElementById('inputLastName').value = user.lastName || '';
+      document.getElementById('inputEmail').value = user.email || '';
+      document.getElementById('inputUsername').value = user.username || '';
+      document.getElementById('inputPhone').value = user.phone || '';
+      document.getElementById('inputOccupation').value = user.profile?.occupation || '';
+      document.getElementById('inputBio').value = user.profile?.bio || '';
+
+      if (user.financialProfile) {
+        document.getElementById('inputSalary').value = user.financialProfile.monthlySalary || 0;
+        document.getElementById('inputExpenses').value = user.financialProfile.estimatedMonthlyExpenses || 0;
+        document.getElementById('inputCity').value = user.financialProfile.city || 'Mumbai';
+        if (user.financialProfile.riskProfile) {
+          document.getElementById('selectRisk').value = user.financialProfile.riskProfile;
+        }
+      }
+    };
+
+    // Save Profile
+    document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('saveProfileBtn');
+      const statusEl = document.getElementById('saveStatus');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ri-loader-line"></i> Saving to PostgreSQL...';
+
+      const payload = {
+        firstName: document.getElementById('inputFirstName').value.trim(),
+        lastName: document.getElementById('inputLastName').value.trim(),
+        phone: document.getElementById('inputPhone').value.trim(),
+        occupation: document.getElementById('inputOccupation').value.trim(),
+        bio: document.getElementById('inputBio').value.trim(),
+        monthlySalary: parseFloat(document.getElementById('inputSalary').value) || 0,
+        estimatedMonthlyExpenses: parseFloat(document.getElementById('inputExpenses').value) || 0,
+        city: document.getElementById('inputCity').value.trim(),
+        riskProfile: document.getElementById('selectRisk').value,
+      };
+
+      const res = await apiFetch('/auth/profile', {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ri-save-line"></i> Save Profile Changes';
+
+      if (res?.success) {
+        // Update localStorage user object
+        const currentUser = JSON.parse(localStorage.getItem('jf_user') || '{}');
+        const updatedUser = { ...currentUser, ...res.data };
+        localStorage.setItem('jf_user', JSON.stringify(updatedUser));
+        initSidebarUser();
+
+        // Audio notification chime
+        if (window.finproAudio) {
+          window.finproAudio.playAudioChime('success');
+          window.finproAudio.triggerNotification({
+            title: 'Profile Updated',
+            message: 'Your personal information has been persisted to PostgreSQL.',
+            type: 'success',
+          });
+        }
+
+        statusEl.textContent = '✅ Profile changes saved successfully to database!';
+        statusEl.style.display = 'inline';
+        setTimeout(() => { statusEl.style.display = 'none'; }, 4000);
+        await loadProfile();
+      } else {
+        alert(res?.error?.message || 'Failed to update profile.');
+      }
+    });
+
+    // Notification & Audio Verification
+    const updateNotifStatus = () => {
+      const el = document.getElementById('notifStatusText');
+      if (!('Notification' in window)) {
+        el.textContent = 'Permission: Unsupported in browser';
+        return;
+      }
+      el.textContent = `Permission: ${Notification.permission.toUpperCase()}`;
+    };
+
+    document.getElementById('enableNotifBtn').addEventListener('click', async () => {
+      if (window.finproAudio) {
+        const perm = await window.finproAudio.requestNotificationPermission();
+        updateNotifStatus();
+        window.finproAudio.triggerNotification({
+          title: 'FinPro Notifications Active',
+          message: `Browser notification permissions: ${perm}. Audio chime enabled.`,
+          type: 'info',
+        });
+      }
+    });
+
+    document.getElementById('testAudioBtn').addEventListener('click', () => {
+      if (window.finproAudio) {
+        window.finproAudio.playAudioChime('success');
+      }
+    });
+
+    updateNotifStatus();
+    loadProfile();
+  </script>
+</body>
+</html>

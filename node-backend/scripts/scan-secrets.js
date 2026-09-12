@@ -5,10 +5,11 @@ const trackedFiles = execSync('git ls-files', { encoding: 'utf8' }).split(/\r?\n
 const suspicious = [];
 
 const secretPatterns = [
-  /AIza[0-9A-Za-z-_]{35}/, // Google API key pattern
-  /sk-[a-zA-Z0-9]{20,}/,  // OpenAI key
-  /ghp_[a-zA-Z0-9]{20,}/,  // GitHub PAT
-  /AKIA[0-9A-Z]{16}/      // AWS access key ID
+  /AIza[0-9A-Za-z-_]{35}/,                  // Google API key pattern
+  /sk-[a-zA-Z0-9]{20,}/,                   // OpenAI API key
+  /ghp_[a-zA-Z0-9]{20,}/,                   // GitHub Personal Access Token
+  /AKIA[0-9A-Z]{16}/,                       // AWS Access Key ID
+  /-----BEGIN [A-Z]+ PRIVATE KEY-----/,     // Private encryption keys
 ];
 
 for (const file of trackedFiles) {

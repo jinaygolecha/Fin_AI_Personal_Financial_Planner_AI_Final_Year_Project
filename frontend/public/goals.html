@@ -83,8 +83,16 @@
         <input type="number" id="goalCurrent" class="form-input" placeholder="0" min="0" value="0">
       </div>
       <div class="form-group">
-        <label class="form-label">Target Date (optional)</label>
-        <input type="date" id="goalDate" class="form-input">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label class="form-label" style="margin:0;">Target Date</label>
+          <div style="display:flex;gap:4px;">
+            <button type="button" class="btn btn-secondary" style="padding:2px 6px;font-size:10px;" onclick="setGoalDatePreset(6)">+6M</button>
+            <button type="button" class="btn btn-secondary" style="padding:2px 6px;font-size:10px;" onclick="setGoalDatePreset(12)">+1Y</button>
+            <button type="button" class="btn btn-secondary" style="padding:2px 6px;font-size:10px;" onclick="setGoalDatePreset(24)">+2Y</button>
+            <button type="button" class="btn btn-secondary" style="padding:2px 6px;font-size:10px;" onclick="document.getElementById('goalDate').value=''">Clear</button>
+          </div>
+        </div>
+        <input type="date" id="goalDate" class="form-input" style="color-scheme:dark;">
       </div>
       <div class="form-group">
         <label class="form-label">Monthly Contribution (₹)</label>
@@ -127,17 +135,52 @@
   <script>
     const isDevLiveServer = window.location.port === '3000' || window.location.port === '5500' || window.location.protocol === 'file:';
     const API_BASE = isDevLiveServer ? 'http://127.0.0.1:5000/api/v1' : '/api/v1';
-    const token = localStorage.getItem('jf_access_token');
-    if (!token) window.location.href = '/login.html';
+    const getToken = () => localStorage.getItem('jf_access_token');
+    const getRefreshToken = () => localStorage.getItem('jf_refresh_token');
+
+    if (!getToken()) window.location.href = '/login.html';
+
     const fmt = (v) => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(v||0);
     const apiFetch = async (url, opts={}) => {
-      const r = await fetch(`${API_BASE}${url}`,{headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`,...(opts.headers||{})},...opts});
-      if(r.status===401){localStorage.clear();window.location.href='/login.html';return null;}
+      let at = getToken();
+      let headers = { 'Content-Type':'application/json', ...(at ? { Authorization:`Bearer ${at}` } : {}), ...(opts.headers||{}) };
+      let r = await fetch(`${API_BASE}${url}`, { ...opts, headers });
+      if (r.status === 401 && getRefreshToken()) {
+        try {
+          const refRes = await fetch(`${API_BASE}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken: getRefreshToken() }),
+          });
+          const refData = await refRes.json();
+          if (refData.success && refData.data?.accessToken) {
+            localStorage.setItem('jf_access_token', refData.data.accessToken);
+            if (refData.data.refreshToken) localStorage.setItem('jf_refresh_token', refData.data.refreshToken);
+            headers.Authorization = `Bearer ${refData.data.accessToken}`;
+            r = await fetch(`${API_BASE}${url}`, { ...opts, headers });
+          } else {
+            localStorage.clear();
+            window.location.href = '/login.html?session_expired=1';
+            return null;
+          }
+        } catch {
+          localStorage.clear();
+          window.location.href = '/login.html?session_expired=1';
+          return null;
+        }
+      }
       return r.json();
     };
 
     document.getElementById('sidebarRoot').innerHTML = getSidebar('goals');
     initSidebarUser();
+
+    // Preset button helper
+    window.setGoalDatePreset = (months) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() + months);
+      document.getElementById('goalDate').value = d.toISOString().split('T')[0];
+    };
 
     let selectedGoalId = null;
     const goalIcons = { EMERGENCY_FUND:'🏦', VACATION:'✈️', HOME:'🏠', CAR:'🚗', EDUCATION:'🎓', RETIREMENT:'🌅', WEDDING:'💍', INVESTMENT:'📈', OTHER:'🎯' };
@@ -150,10 +193,12 @@
         return;
       }
 
-      const goals = data.data.goals || [];
+      // Handle both array and object responses safely
+      const rawGoals = Array.isArray(data.data) ? data.data : (data.data?.goals || []);
+      const goals = rawGoals || [];
       const active = goals.filter(g => g.status === 'ACTIVE');
-      const totalSaved = goals.reduce((s, g) => s + parseFloat(g.currentAmount), 0);
-      const totalTarget = goals.reduce((s, g) => s + parseFloat(g.targetAmount), 0);
+      const totalSaved = goals.reduce((s, g) => s + parseFloat(g.currentAmount || 0), 0);
+      const totalTarget = goals.reduce((s, g) => s + parseFloat(g.targetAmount || 0), 0);
 
       document.getElementById('activeGoals').textContent = active.length;
       document.getElementById('totalSaved').textContent = fmt(totalSaved);
@@ -168,7 +213,7 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
           ${goals.map(g => {
             const pct = Math.min(g.progress || 0, 100);
-            const remaining = parseFloat(g.targetAmount) - parseFloat(g.currentAmount);
+            const remaining = Math.max(0, parseFloat(g.targetAmount) - parseFloat(g.currentAmount));
             const isCompleted = g.status === 'COMPLETED' || pct >= 100;
             return `<div class="card" style="border:1px solid ${isCompleted?'rgba(16,185,129,.3)':g.status==='PAUSED'?'rgba(245,158,11,.2)':g.priority==='HIGH'?'rgba(239,68,68,.2)':'rgba(255,255,255,.08)'}">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
@@ -176,7 +221,7 @@
                   <div style="font-size:24px">${goalIcons[g.goalType]||'🎯'}</div>
                   <div>
                     <div style="font-size:14px;font-weight:700">${g.name}</div>
-                    <div style="font-size:11px;color:#6b7280">${g.goalType.replace(/_/g,' ')} · <span style="color:${priorityColors[g.priority]}">${g.priority}</span></div>
+                    <div style="font-size:11px;color:#6b7280">${(g.goalType || '').replace(/_/g,' ')} · <span style="color:${priorityColors[g.priority] || '#10b981'}">${g.priority || 'MEDIUM'}</span></div>
                   </div>
                 </div>
                 <span class="badge ${isCompleted?'badge-green':g.status==='PAUSED'?'badge-amber':'badge-blue'}">${isCompleted?'✅ Done':g.status}</span>
@@ -193,7 +238,7 @@
               
               <div style="font-size:12px;margin-bottom:12px">
                 ${isCompleted ? '<span style="color:#10b981">🎉 Goal completed!</span>' : `<span style="color:#6b7280">Remaining: <strong style="color:white">${fmt(remaining)}</strong></span>`}
-                ${g.targetDate ? `<span style="color:#6b7280;margin-left:8px">· Due: ${new Date(g.targetDate).toLocaleDateString('en-IN',{month:'short',year:'numeric'})}</span>` : ''}
+                ${g.targetDate ? `<span style="color:#a5b4fc;margin-left:8px">· <i class="ri-calendar-line"></i> Due: <strong style="color:white">${new Date(g.targetDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</strong></span>` : ''}
               </div>
               
               <div style="display:flex;gap:8px">
@@ -220,7 +265,19 @@
       if (!targetAmount || targetAmount <= 0) { errEl.textContent='Enter a valid target amount.'; errEl.style.display='block'; return; }
       errEl.style.display='none';
 
-      const res = await apiFetch('/goals',{method:'POST',body:JSON.stringify({name,goalType,targetAmount,currentAmount,targetDate:targetDate||undefined,monthlyContribution,priority})});
+      const res = await apiFetch('/goals', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          goalType,
+          targetAmount,
+          currentAmount,
+          targetDate: targetDate || undefined,
+          monthlyContribution,
+          priority,
+        }),
+      });
+
       if (res?.success) {
         closeModal('addGoalModal');
         document.getElementById('goalName').value='';
@@ -228,8 +285,8 @@
         document.getElementById('goalCurrent').value='0';
         document.getElementById('goalDate').value='';
         document.getElementById('goalMonthly').value='0';
-        showToast('Goal created!','success');
-        loadGoals();
+        showToast('Goal created successfully!','success');
+        await loadGoals();
       } else {
         errEl.textContent=res?.error?.message||'Failed to create goal.';
         errEl.style.display='block';

@@ -1,4 +1,47 @@
 const prisma = require('../config/database');
+const storageService = require('../services/storageService');
+
+/**
+ * Helper to either stream CSV directly to client or save to cloud/local object storage.
+ */
+const sendOrStoreExport = async (req, res, { filename, csvContent, exportType }) => {
+  if (req.query.storage === 'true' || req.query.store === 'true') {
+    const userId = req.user?.id || 'public';
+    const storageKey = `exports/${userId}/${filename}`;
+    const stored = await storageService.upload({
+      buffer: Buffer.from('\uFEFF' + csvContent, 'utf8'),
+      key: storageKey,
+      contentType: 'text/csv; charset=utf-8',
+      metadata: { userId, exportType, generatedAt: new Date().toISOString() },
+    });
+
+    // Also track in ExportJob if user is authenticated
+    if (req.user?.id) {
+      try {
+        await prisma.exportJob.create({
+          data: {
+            userId: req.user.id,
+            exportType,
+            status: 'completed',
+            filePath: stored.key,
+          },
+        });
+      } catch (dbErr) {
+        console.warn('[Export] Notice creating export job log:', dbErr.message);
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: `${exportType} export successfully saved to ${stored.provider} object storage.`,
+      data: stored,
+    });
+  }
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  return res.send('\uFEFF' + csvContent); // BOM for proper Excel display
+};
 
 /**
  * GET /api/v1/export/transactions.csv
@@ -28,10 +71,8 @@ const exportTransactionsCSV = async (req, res, next) => {
     ];
 
     const csvContent = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="jinay_finance_transactions_${new Date().toISOString().split('T')[0]}.csv"`);
-    return res.send('\uFEFF' + csvContent); // BOM for proper Excel display
+    const filename = `jinay_finance_transactions_${new Date().toISOString().split('T')[0]}.csv`;
+    return sendOrStoreExport(req, res, { filename, csvContent, exportType: 'transactions' });
   } catch (error) {
     next(error);
   }
@@ -53,10 +94,8 @@ const exportAccountsCSV = async (req, res, next) => {
     ];
 
     const csvContent = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="jinay_finance_accounts_${new Date().toISOString().split('T')[0]}.csv"`);
-    return res.send('\uFEFF' + csvContent);
+    const filename = `jinay_finance_accounts_${new Date().toISOString().split('T')[0]}.csv`;
+    return sendOrStoreExport(req, res, { filename, csvContent, exportType: 'accounts' });
   } catch (error) {
     next(error);
   }
@@ -80,9 +119,8 @@ const exportBudgetsCSV = async (req, res, next) => {
     ];
 
     const csvContent = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="jinay_finance_budgets_${new Date().toISOString().split('T')[0]}.csv"`);
-    return res.send('\uFEFF' + csvContent);
+    const filename = `jinay_finance_budgets_${new Date().toISOString().split('T')[0]}.csv`;
+    return sendOrStoreExport(req, res, { filename, csvContent, exportType: 'budgets' });
   } catch (error) {
     next(error);
   }
@@ -107,9 +145,8 @@ const exportGoalsCSV = async (req, res, next) => {
     ];
 
     const csvContent = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="jinay_finance_goals_${new Date().toISOString().split('T')[0]}.csv"`);
-    return res.send('\uFEFF' + csvContent);
+    const filename = `jinay_finance_goals_${new Date().toISOString().split('T')[0]}.csv`;
+    return sendOrStoreExport(req, res, { filename, csvContent, exportType: 'goals' });
   } catch (error) {
     next(error);
   }
@@ -136,9 +173,8 @@ const exportInvestmentsCSV = async (req, res, next) => {
     ];
 
     const csvContent = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="jinay_finance_investments_${new Date().toISOString().split('T')[0]}.csv"`);
-    return res.send('\uFEFF' + csvContent);
+    const filename = `jinay_finance_investments_${new Date().toISOString().split('T')[0]}.csv`;
+    return sendOrStoreExport(req, res, { filename, csvContent, exportType: 'investments' });
   } catch (error) {
     next(error);
   }
@@ -178,10 +214,8 @@ const exportSummaryCSV = async (req, res, next) => {
     ];
 
     const csvContent = rows.map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(',')).join('\n');
-
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="jinay_finance_summary_${new Date().toISOString().split('T')[0]}.csv"`);
-    return res.send('\uFEFF' + csvContent);
+    const filename = `jinay_finance_summary_${new Date().toISOString().split('T')[0]}.csv`;
+    return sendOrStoreExport(req, res, { filename, csvContent, exportType: 'summary' });
   } catch (error) {
     next(error);
   }
@@ -210,9 +244,8 @@ const exportLoansCSV = async (req, res, next) => {
     ];
 
     const csvContent = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="jinay_finance_loans_${new Date().toISOString().split('T')[0]}.csv"`);
-    return res.send('\uFEFF' + csvContent);
+    const filename = `jinay_finance_loans_${new Date().toISOString().split('T')[0]}.csv`;
+    return sendOrStoreExport(req, res, { filename, csvContent, exportType: 'loans' });
   } catch (error) {
     next(error);
   }
@@ -241,9 +274,8 @@ const exportInsuranceCSV = async (req, res, next) => {
     ];
 
     const csvContent = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="jinay_finance_insurance_${new Date().toISOString().split('T')[0]}.csv"`);
-    return res.send('\uFEFF' + csvContent);
+    const filename = `jinay_finance_insurance_${new Date().toISOString().split('T')[0]}.csv`;
+    return sendOrStoreExport(req, res, { filename, csvContent, exportType: 'insurance' });
   } catch (error) {
     next(error);
   }
@@ -270,9 +302,8 @@ const exportSubscriptionsCSV = async (req, res, next) => {
     ];
 
     const csvContent = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="jinay_finance_subscriptions_${new Date().toISOString().split('T')[0]}.csv"`);
-    return res.send('\uFEFF' + csvContent);
+    const filename = `jinay_finance_subscriptions_${new Date().toISOString().split('T')[0]}.csv`;
+    return sendOrStoreExport(req, res, { filename, csvContent, exportType: 'subscriptions' });
   } catch (error) {
     next(error);
   }

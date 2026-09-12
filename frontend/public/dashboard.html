@@ -323,10 +323,11 @@
       <a href="/training.html" class="nav-item"><i class="ri-brain-line"></i> AI Training & ML Studio</a>
       <a href="/analytics.html" class="nav-item"><i class="ri-bar-chart-box-line"></i> Analytics & Reports</a>
       <a href="/calendar.html" class="nav-item"><i class="ri-calendar-event-line"></i> Financial Calendar</a>
+      <a href="/profile.html" class="nav-item"><i class="ri-user-settings-line"></i> Profile & Settings</a>
     </div>
     
     <div class="sidebar-footer">
-      <div class="user-info" id="userMenuBtn">
+      <div class="user-info" id="userMenuBtn" style="cursor:pointer;" title="View Profile" onclick="window.location.href='/profile.html'">
         <div class="avatar" id="userAvatar">J</div>
         <div>
           <div class="user-name" id="userName">Jinay Golecha</div>
@@ -538,9 +539,30 @@
       </button>
     </div>
   </div>
-  
+
+  <!-- Notifications Modal -->
+  <div class="modal-overlay" id="notifModal">
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-header">
+        <span class="modal-title"><i class="ri-notification-3-line" style="color:#6366f1;"></i> Notifications & Activity</span>
+        <button class="modal-close" id="closeNotifModal">✕</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-size:12px;color:#94a3b8;" id="notifModalCount">Loading notifications...</span>
+        <div style="display:flex;gap:6px;">
+          <button type="button" class="btn btn-secondary" id="testChimeBtn" style="padding:4px 8px;font-size:11px;"><i class="ri-volume-up-line"></i> Test Sound</button>
+          <button type="button" class="btn btn-secondary" id="markAllReadBtn" style="padding:4px 8px;font-size:11px;"><i class="ri-check-double-line"></i> Mark all read</button>
+        </div>
+      </div>
+      <div id="notifListContainer" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
+        <div style="text-align:center;padding:20px;color:#64748b;font-size:13px;">No notifications found.</div>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import api, { formatINR, requireAuth, getUser } from '/assets/js/api.js';
+    import { playAudioChime, triggerNotification, requestNotificationPermission } from '/assets/js/notifications.js';
 
     if (!requireAuth()) {
       // redirected
@@ -817,8 +839,71 @@
       }
     });
 
+    // Notifications Engine
+    const loadNotifications = async () => {
+      try {
+        const res = await api.notificationsAPI.list();
+        const list = document.getElementById('notifListContainer');
+        const notifs = res?.data || [];
+        const unread = notifs.filter(n => !n.isRead);
+
+        const countEl = document.getElementById('notifModalCount');
+        if (countEl) countEl.textContent = `${unread.length} unread (${notifs.length} total)`;
+
+        const badge = document.getElementById('notifBadge');
+        if (badge) {
+          badge.textContent = unread.length > 9 ? '9+' : unread.length;
+          badge.style.display = unread.length > 0 ? 'inline-block' : 'none';
+        }
+
+        if (!notifs.length) {
+          list.innerHTML = '<div style="text-align:center;padding:24px;color:#64748b;font-size:13px;">No notifications found. All clear! 🔔</div>';
+          return;
+        }
+
+        list.innerHTML = notifs.map(n => `
+          <div style="padding:10px 12px;background:rgba(255,255,255,${n.isRead ? '0.02' : '0.06'});border-radius:8px;border-left:3px solid ${n.type==='ERROR'?'#ef4444':n.type==='WARNING'?'#f59e0b':'#6366f1'};display:flex;flex-direction:column;gap:3px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:600;font-size:12px;color:${n.isRead?'#cbd5e1':'#f8fafc'}">${n.title}</span>
+              <span style="font-size:10px;color:#64748b">${new Date(n.createdAt).toLocaleDateString('en-IN', {month:'short', day:'numeric'})}</span>
+            </div>
+            <div style="font-size:11px;color:#94a3b8;line-height:1.4;">${n.message}</div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.warn('Could not load notifications:', err);
+      }
+    };
+
+    document.getElementById('notifBtn').addEventListener('click', () => {
+      document.getElementById('notifModal').classList.add('show');
+      playAudioChime('pop');
+      loadNotifications();
+    });
+
+    document.getElementById('closeNotifModal').addEventListener('click', () => {
+      document.getElementById('notifModal').classList.remove('show');
+    });
+
+    document.getElementById('testChimeBtn').addEventListener('click', async () => {
+      playAudioChime('bell');
+      await triggerNotification({
+        title: 'Audio & Alert Test',
+        message: 'FinPro audio synthesizer and notification engine verified active.',
+        type: 'info',
+        playSound: false,
+      });
+    });
+
+    document.getElementById('markAllReadBtn').addEventListener('click', async () => {
+      await api.notificationsAPI.markAllRead().catch(() => {});
+      playAudioChime('success');
+      loadNotifications();
+    });
+
     // Logout
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
+    document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+      e.stopPropagation();
       const refresh = localStorage.getItem('jf_refresh_token');
       await api.authAPI.logout(refresh).catch(() => {});
       api.clearTokens();

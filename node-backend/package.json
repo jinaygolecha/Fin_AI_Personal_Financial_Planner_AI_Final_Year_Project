@@ -7,9 +7,12 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "test": "node run-all-tests.js",
+    "test:cloud": "node test-cloud-verification.js",
+    "test:failure": "node test-cloud-failure.js",
     "seed": "node prisma/seed.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "build": "node scripts/build.js",
     "lint": "node scripts/lint.js"

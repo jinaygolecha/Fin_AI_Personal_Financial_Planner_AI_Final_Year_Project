@@ -21,6 +21,7 @@ const training = require('../controllers/trainingController');
 const cards = require('../controllers/cardController');
 const tasks = require('../controllers/taskController');
 const news = require('../controllers/newsController');
+const storage = require('../controllers/storageController');
 
 // Apply auth to all routes below
 router.use(authenticate);
@@ -61,6 +62,7 @@ router.get('/transactions/:id', transactions.getTransaction);
 router.patch('/transactions/:id', transactions.updateTransaction);
 router.delete('/transactions/:id', transactions.deleteTransaction);
 router.post('/transactions/voice', transactions.parseVoiceEntry);
+router.post('/transactions/parse-text', transactions.parseTextEntry);
 
 // Budgets
 router.get('/budgets', budgets.getBudgets);
@@ -198,6 +200,12 @@ router.get('/export/loans.csv', exports_.exportLoansCSV);
 router.get('/export/insurance.csv', exports_.exportInsuranceCSV);
 router.get('/export/subscriptions.csv', exports_.exportSubscriptionsCSV);
 router.get('/export/summary.csv', exports_.exportSummaryCSV);
+
+// Cloud Storage & Document Management (Phase 2)
+router.post('/storage/upload', storage.uploadDocument);
+router.get('/storage/status', storage.getStorageStatus);
+router.get('/storage/file/*', storage.getFile);
+router.delete('/storage/file/*', storage.deleteFile);
 
 // Training Data Bot & ML Studio (Phases 15, 16, 17)
 router.post('/training/datasets/upload', training.uploadDataset);

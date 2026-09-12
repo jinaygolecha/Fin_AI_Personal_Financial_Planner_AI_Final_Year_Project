@@ -408,17 +408,49 @@ const deleteTransaction = async (req, res, next) => {
 /**
  * POST /api/v1/transactions/voice
  */
+/**
+ * POST /api/v1/transactions/parse-text
+ * Extracts financial transaction details from bank SMS or natural text
+ */
+const parseTextEntry = async (req, res, next) => {
+  try {
+    const { text } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'SMS or transaction text is required.' },
+      });
+    }
+
+    const parsed = parseFinancialText(text);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        parsed,
+        formattedAmount: formatINR(parsed.amount),
+        message: 'Transaction details detected. Please review and confirm to save.',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/transactions/voice
+ */
 const parseVoiceEntry = async (req, res, next) => {
   try {
     const { text } = req.body;
-    if (!text) {
+    if (!text || !text.trim()) {
       return res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'Voice text is required.' },
       });
     }
 
-    const parsed = parseVoiceText(text);
+    const parsed = parseFinancialText(text);
 
     return res.status(200).json({
       success: true,
@@ -434,41 +466,146 @@ const parseVoiceEntry = async (req, res, next) => {
 };
 
 /**
- * Parse natural language into transaction fields
+ * Comprehensive parser for Bank SMS & Natural Language
+ * Detects: amount, credit/debit type, date, merchant/description, category, payment method
  */
-const parseVoiceText = (text) => {
+const parseFinancialText = (rawText) => {
+  const text = (rawText || '').trim();
   const lower = text.toLowerCase();
 
-  // Amount detection
-  const amountMatch = lower.match(/(?:rs\.?|rupees?|₹|inr)?\s*(\d+(?:,\d+)*(?:\.\d{1,2})?)\s*(?:rs\.?|rupees?|₹|inr)?/i);
-  const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
+  // 1. Amount Extraction
+  // Patterns: "INR 1,500.00", "Rs. 12,300", "Rs 450", "₹5,000", "spent 500"
+  let amount = 0;
+  const currencyAmountMatch = text.match(/(?:INR|Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i) ||
+    text.match(/([\d,]+(?:\.\d{1,2})?)\s*(?:INR|Rs\.?|₹|rupees)/i) ||
+    text.match(/(?:debited(?:\s+with|\s+by)?|credited(?:\s+with|\s+by)?|spent|paid|received|amount:?)\s*(?:INR|Rs\.?|₹)?\s*([\d,]+(?:\.\d{1,2})?)/i) ||
+    text.match(/\b(\d{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?)\b/);
 
-  // Type detection
+  if (currencyAmountMatch) {
+    const rawAmt = (currencyAmountMatch[1] || currencyAmountMatch[2] || '').replace(/,/g, '');
+    const parsedAmt = parseFloat(rawAmt);
+    if (!isNaN(parsedAmt) && parsedAmt > 0) {
+      amount = parsedAmt;
+    }
+  }
+
+  // 2. Credit / Debit Transaction Type Detection
   let type = 'EXPENSE';
-  if (/\b(received?|got|earned?|salary|income|credited?)\b/.test(lower)) type = 'INCOME';
+  const isCredit = /\b(credited|credit|received|earned|salary|stipend|deposited|refund|cashback|bonus|income)\b/i.test(lower);
+  const isDebit = /\b(debited|debit|spent|paid|withdrawn|charged|purchase|sent|payment to|payment of)\b/i.test(lower);
+  const isTransfer = /\b(transferred to|transfer to)\b/i.test(lower);
 
-  // Category detection
-  const categoryMap = {
-    food: ['food', 'eat', 'dinner', 'lunch', 'breakfast', 'restaurant', 'swiggy', 'zomato', 'coffee', 'chai'],
-    transport: ['uber', 'ola', 'taxi', 'auto', 'metro', 'bus', 'fuel', 'petrol', 'diesel', 'travel'],
-    shopping: ['amazon', 'flipkart', 'myntra', 'shopping', 'clothes', 'bought'],
-    entertainment: ['movie', 'netflix', 'hotstar', 'concert', 'game'],
-    utilities: ['electricity', 'water', 'bill', 'recharge', 'phone', 'internet'],
-    health: ['doctor', 'medicine', 'hospital', 'medical', 'pharmacy'],
-    groceries: ['groceries', 'vegetables', 'milk', 'kirana'],
-    income: ['salary', 'freelance', 'bonus', 'interest'],
-  };
+  if (isTransfer) {
+    type = 'TRANSFER';
+  } else if (isCredit && !isDebit) {
+    type = 'INCOME';
+  } else if (isDebit) {
+    type = 'EXPENSE';
+  } else if (isCredit) {
+    type = 'INCOME';
+  }
 
-  let category = 'General';
-  for (const [cat, keywords] of Object.entries(categoryMap)) {
-    if (keywords.some((kw) => lower.includes(kw))) {
-      category = cat.charAt(0).toUpperCase() + cat.slice(1);
+  // 3. Date Detection
+  // Handles: "10-Sep-2026", "01-Sep-26", "09/09/2026", "15 Oct 2026", "on 12-09-2026"
+  let date = new Date().toISOString().split('T')[0];
+  const months = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
+
+  const dateMatch = text.match(/\b(\d{1,2})[-/ ]([A-Za-z]{3,9}|\d{1,2})[-/ ](\d{2,4})\b/);
+  if (dateMatch) {
+    const day = dateMatch[1].padStart(2, '0');
+    let monthPart = dateMatch[2].toLowerCase();
+    let yearPart = dateMatch[3];
+    if (yearPart.length === 2) yearPart = '20' + yearPart;
+
+    let month = '01';
+    if (/^\d+$/.test(monthPart)) {
+      month = monthPart.padStart(2, '0');
+    } else {
+      const shortM = monthPart.slice(0, 3);
+      if (months[shortM]) month = months[shortM];
+    }
+    const candidateDate = `${yearPart}-${month}-${day}`;
+    if (!isNaN(Date.parse(candidateDate))) {
+      date = candidateDate;
+    }
+  }
+
+  // 4. Merchant / Description Detection
+  let merchant = '';
+  // Check known popular merchants first
+  const knownMerchants = [
+    'Swiggy', 'Zomato', 'Amazon', 'Flipkart', 'Uber', 'Ola', 'Myntra', 'Blinkit', 'Zepto',
+    'Star Health', 'JioFiber', 'Airtel', 'Spotify', 'Netflix', 'BookMyShow', 'Apollo',
+    'Tata Neu', 'BigBasket', 'Cultfit', 'HDFC Bank', 'ICICI Bank', 'SBI Bank',
+  ];
+  for (const km of knownMerchants) {
+    if (new RegExp(`\\b${km}\\b`, 'i').test(text)) {
+      merchant = km;
       break;
     }
   }
 
-  const description = text.trim();
-  return { amount, type, category, description };
+  // If not found, look for patterns: "at SWIGGY via", "to John via UPI", "by internship stipend"
+  if (!merchant) {
+    const atMatch = text.match(/(?:at|to|by|for|info:?|vpa:?)\s+([A-Za-z0-9\s.&_-]{2,30}?)(?:\s+via|\s+on|\s+ref|\s+avl|\s+bal|\.|$|,|;)/i);
+    if (atMatch && atMatch[1]) {
+      const clean = atMatch[1].replace(/^(a\/c|the|your)\s+/i, '').trim();
+      if (clean && !/^(rs|inr|account|card)\b/i.test(clean)) {
+        merchant = clean;
+      }
+    }
+  }
+
+  // 5. Payment Method
+  let paymentMethod = 'UPI';
+  if (/\bcredit\s*card\b/i.test(text)) paymentMethod = 'Credit Card';
+  else if (/\bdebit\s*card\b/i.test(text) || /\bcard\s+ending\b/i.test(text)) paymentMethod = 'Debit Card';
+  else if (/\bneft\b/i.test(text)) paymentMethod = 'NEFT';
+  else if (/\brtgs\b/i.test(text)) paymentMethod = 'RTGS';
+  else if (/\bimps\b/i.test(text)) paymentMethod = 'IMPS';
+  else if (/\bnet\s*banking\b/i.test(text)) paymentMethod = 'Net Banking';
+  else if (/\bcash\b/i.test(text)) paymentMethod = 'Cash';
+  else if (/\bupi\b/i.test(text)) paymentMethod = 'UPI';
+
+  // 6. Category Mapping
+  const categoryMap = {
+    'Food & Dining': ['food', 'swiggy', 'zomato', 'eat', 'dinner', 'lunch', 'restaurant', 'cafe', 'coffee', 'chai', 'mcdonalds', 'starbucks'],
+    'Shopping': ['amazon', 'flipkart', 'myntra', 'shopping', 'clothes', 'bought', 'mall', 'retail', 'blinkit', 'zepto'],
+    'Transport': ['uber', 'ola', 'taxi', 'auto', 'metro', 'fuel', 'petrol', 'diesel', 'bus', 'flight', 'railway', 'irctc'],
+    'Utilities': ['jiofiber', 'airtel', 'electricity', 'water bill', 'recharge', 'broadband', 'phone bill', 'utility', 'gas'],
+    'Entertainment': ['netflix', 'spotify', 'movie', 'hotstar', 'prime', 'cinema', 'bookmyshow', 'game'],
+    'Education': ['books', 'course', 'college', 'tuition', 'fee', 'exam', 'certification', 'udemy', 'coursera'],
+    'Healthcare': ['doctor', 'medicine', 'hospital', 'pharmacy', 'medical', 'star health', 'apollo', 'clinic'],
+    'Salary & Income': ['salary', 'stipend', 'freelance', 'dividend', 'interest', 'bonus'],
+  };
+
+  let category = type === 'INCOME' ? 'Salary & Income' : 'General';
+  for (const [catName, keywords] of Object.entries(categoryMap)) {
+    if (keywords.some((kw) => lower.includes(kw))) {
+      category = catName;
+      break;
+    }
+  }
+
+  // 7. Clean Description
+  let description = merchant ? `${merchant} (${paymentMethod})` : text.slice(0, 60);
+  if (type === 'INCOME' && /stipend/i.test(text)) {
+    description = 'Internship Stipend Credit';
+    category = 'Salary & Income';
+  } else if (type === 'INCOME' && /salary/i.test(text)) {
+    description = 'Monthly Salary Credit';
+    category = 'Salary & Income';
+  }
+
+  return {
+    amount,
+    type,
+    category,
+    date,
+    merchant: merchant || (type === 'INCOME' ? 'Employer / Client' : 'Merchant'),
+    description,
+    paymentMethod,
+  };
 };
 
 module.exports = {
@@ -478,4 +615,5 @@ module.exports = {
   updateTransaction,
   deleteTransaction,
   parseVoiceEntry,
+  parseTextEntry,
 };

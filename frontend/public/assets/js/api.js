@@ -168,6 +168,7 @@ export const authAPI = {
   refresh: (refreshToken) => apiFetch('/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
   logout: (refreshToken) => apiFetch('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken }) }),
   getMe: () => apiFetch('/auth/me'),
+  updateProfile: (data) => apiFetch('/auth/profile', { method: 'PATCH', body: JSON.stringify(data) }),
   googleToken: (token) => apiFetch('/auth/google/token', { method: 'POST', body: JSON.stringify({ token }) }),
   googleRedirectUrl: () => `${API_BASE}/auth/google`,
 };
@@ -208,6 +209,7 @@ export const transactionsAPI = {
   update: (id, data) => apiFetch(`/transactions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id) => apiFetch(`/transactions/${id}`, { method: 'DELETE' }),
   parseVoice: (text) => apiFetch('/transactions/voice', { method: 'POST', body: JSON.stringify({ text }) }),
+  parseText: (text) => apiFetch('/transactions/parse-text', { method: 'POST', body: JSON.stringify({ text }) }),
 };
 
 // ===== Budgets API =====

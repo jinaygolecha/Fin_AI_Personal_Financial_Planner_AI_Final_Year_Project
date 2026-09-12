@@ -1,4 +1,4 @@
-name: CI / Build & Test
+name: FinPro CI/CD — Cloud Computing Pipeline
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    name: Node.js 22 LTS Validation
+  cloud-validation:
+    name: Node.js 22 LTS & Cloud Architecture Pipeline
     runs-on: ubuntu-latest
 
     services:
@@ -27,50 +27,62 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout Source Code
+      - name: 1. Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 22
+      - name: 2. Setup Node.js 22 LTS
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: 'npm'
           cache-dependency-path: '**/package-lock.json'
 
-      - name: Install Dependencies
+      - name: 3. Install Dependencies
         run: |
           npm --prefix node-backend install
 
-      - name: Generate Prisma Client
+      - name: 4. Generate Prisma ORM Client
         run: |
           npm --prefix node-backend run prisma:generate
 
-      - name: Run Syntax & Code Quality Linter
+      - name: 5. Code Quality & Syntax Lint
         run: |
           npm run lint
 
-      - name: Synchronize Database Schema (Prisma DB Push)
+      - name: 6. Apply Database Migrations (Prisma Migrate Deploy)
         env:
           DATABASE_URL: postgresql://postgres:postgrespassword_ci_test@localhost:5432/finance_jinay_test?schema=public
         run: |
-          cd node-backend && npx prisma db push --skip-generate --accept-data-loss
+          cd node-backend && npx prisma migrate deploy
 
-      - name: Run Acceptance Test Suite
+      - name: 7. Run Master Integration & Acceptance Tests
         env:
           NODE_ENV: test
           PORT: 5000
           DATABASE_URL: postgresql://postgres:postgrespassword_ci_test@localhost:5432/finance_jinay_test?schema=public
           JWT_SECRET: ci_test_jwt_secret_key_minimum_32_characters
           JWT_REFRESH_SECRET: ci_test_refresh_secret_key_minimum_32_characters
+          STORAGE_PROVIDER: local
         run: |
           npm test
 
-      - name: Build Verification
+      - name: 8. Run Cloud Data Persistence Verification Suite
+        env:
+          NODE_ENV: test
+          PORT: 5000
+          DATABASE_URL: postgresql://postgres:postgrespassword_ci_test@localhost:5432/finance_jinay_test?schema=public
+          JWT_SECRET: ci_test_jwt_secret_key_minimum_32_characters
+          JWT_REFRESH_SECRET: ci_test_refresh_secret_key_minimum_32_characters
+          STORAGE_PROVIDER: local
+        run: |
+          npm run test:cloud
+
+      - name: 9. Production Build Verification
         env:
           DATABASE_URL: postgresql://postgres:postgrespassword_ci_test@localhost:5432/finance_jinay_test?schema=public
         run: |
           npm run build
 
-      - name: Verify Docker Container Build
+      - name: 10. Verify Production Docker Container Build
         run: |
           docker build -t finpro:latest .

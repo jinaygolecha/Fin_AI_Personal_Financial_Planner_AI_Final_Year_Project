@@ -167,16 +167,98 @@ const getMe = async (req, res, next) => {
         isPremium: true,
         currency: true,
         timezone: true,
+        country: true,
         createdAt: true,
-        financialProfile: {
-          select: { isOnboardingComplete: true },
-        },
+        profile: true,
+        financialProfile: true,
       },
     });
 
     return res.status(200).json({
       success: true,
       data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PATCH /api/v1/auth/profile
+ */
+const updateProfile = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { firstName, lastName, phone, city, occupation, bio, monthlySalary, estimatedMonthlyExpenses, riskProfile } = req.body;
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(firstName !== undefined && { firstName: firstName.trim() }),
+        ...(lastName !== undefined && { lastName: lastName.trim() }),
+        ...(phone !== undefined && { phone: phone ? phone.trim() : null }),
+      },
+    });
+
+    if (occupation !== undefined || bio !== undefined) {
+      await prisma.profile.upsert({
+        where: { userId },
+        update: {
+          ...(occupation !== undefined && { occupation: occupation ? occupation.trim() : null }),
+          ...(bio !== undefined && { bio: bio ? bio.trim() : null }),
+        },
+        create: {
+          userId,
+          occupation: occupation ? occupation.trim() : null,
+          bio: bio ? bio.trim() : null,
+        },
+      });
+    }
+
+    if (city !== undefined || monthlySalary !== undefined || estimatedMonthlyExpenses !== undefined || riskProfile !== undefined) {
+      await prisma.financialProfile.upsert({
+        where: { userId },
+        update: {
+          ...(city !== undefined && { city: city ? city.trim() : 'Mumbai' }),
+          ...(monthlySalary !== undefined && { monthlySalary: parseFloat(monthlySalary) || 0 }),
+          ...(estimatedMonthlyExpenses !== undefined && { estimatedMonthlyExpenses: parseFloat(estimatedMonthlyExpenses) || 0 }),
+          ...(riskProfile !== undefined && { riskProfile }),
+        },
+        create: {
+          userId,
+          city: city ? city.trim() : 'Mumbai',
+          monthlySalary: parseFloat(monthlySalary) || 0,
+          estimatedMonthlyExpenses: parseFloat(estimatedMonthlyExpenses) || 0,
+          riskProfile: riskProfile || 'MODERATE',
+        },
+      });
+    }
+
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        avatarUrl: true,
+        role: true,
+        isPremium: true,
+        currency: true,
+        timezone: true,
+        country: true,
+        createdAt: true,
+        profile: true,
+        financialProfile: true,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: updatedUser,
+      message: 'Profile updated successfully.',
     });
   } catch (error) {
     next(error);
@@ -278,4 +360,4 @@ const googleAuthWithToken = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, refresh, logout, getMe, getAuthProviders, googleAuthRedirect, googleAuthCallback, googleAuthWithToken };
+module.exports = { register, login, refresh, logout, getMe, updateProfile, getAuthProviders, googleAuthRedirect, googleAuthCallback, googleAuthWithToken };

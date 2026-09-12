@@ -47,9 +47,10 @@ const refreshTokens = async () => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken: rt }),
   }).then(r => r.json()).then(d => {
-    if (d.success) { setTokens(d.data.accessToken, d.data.refreshToken); return d.data.accessToken; }
-    clearAuth(); return null;
-  }).catch(() => { clearAuth(); return null; }).finally(() => { _refreshing = null; });
+    if (d.success && d.data?.accessToken) { setTokens(d.data.accessToken, d.data.refreshToken); return d.data.accessToken; }
+    if (d.error?.code === 'TOKEN_REVOKED' || d.error?.code === 'USER_NOT_FOUND') { clearAuth(); }
+    return null;
+  }).catch(() => { return null; }).finally(() => { _refreshing = null; });
   return _refreshing;
 };
 

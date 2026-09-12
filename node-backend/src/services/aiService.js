@@ -220,14 +220,9 @@ const generateRuleBasedResponse = (userMessage, ctx) => {
   return `I'm here to help with your personal finances, ${ctx.user?.firstName || 'there'}! You can ask me about your balance, savings, expenses, investments, loans, or get financial tips. Your current balance is ${formatINR(totalBalance)} and health score is ${healthScore}/100.`;
 };
 
-const CANDIDATE_MODELS = [
-  process.env.AI_MODEL || 'gemini-2.5-flash',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
-  'gemini-pro',
-];
+const CANDIDATE_MODELS = Array.from(
+  new Set([process.env.AI_MODEL, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'].filter(Boolean))
+);
 
 /**
  * Main AI chat function
@@ -256,7 +251,7 @@ const chat = async (userId, userMessage, chatHistory = []) => {
     parts: [{ text: msg.content }],
   }));
 
-  // Try candidate models in order
+  // Try candidate models in order with timeout
   for (const modelName of CANDIDATE_MODELS) {
     try {
       const model = client.getGenerativeModel({ model: modelName });
@@ -272,7 +267,12 @@ const chat = async (userId, userMessage, chatHistory = []) => {
         },
       });
 
-      const result = await chatSession.sendMessage(userMessage);
+      const callPromise = chatSession.sendMessage(userMessage);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('AI response timeout (4s)')), 4000)
+      );
+
+      const result = await Promise.race([callPromise, timeoutPromise]);
       const response = result.response.text();
 
       return {

@@ -1,0 +1,40 @@
+name: FinPro CD — Automated Cloud VM Deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Cloud Virtual Machine
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 1. Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: 2. Check for Cloud VM Credentials
+        id: check_credentials
+        run: |
+          if [ -z "${{ secrets.VM_HOST }}" ] || [ -z "${{ secrets.VM_SSH_KEY }}" ]; then
+            echo "::warning ::Cloud VM secrets (VM_HOST, VM_SSH_KEY) are not configured in GitHub Secrets. Automated SSH deployment step will be skipped."
+            echo "configured=false" >> $GITHUB_OUTPUT
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 3. Execute Remote Deployment via SSH
+        if: steps.check_credentials.outputs.configured == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USERNAME || 'ubuntu' }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.VM_PORT || 22 }}
+          script: |
+            echo "Connecting to Cloud VM at ${{ secrets.VM_HOST }}..."
+            cd /opt/finpro
+            chmod +x deployment/deploy.sh
+            ./deployment/deploy.sh

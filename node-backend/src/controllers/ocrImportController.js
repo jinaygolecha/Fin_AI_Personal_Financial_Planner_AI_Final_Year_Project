@@ -1,6 +1,8 @@
 const prisma = require('../config/database');
 const { formatINR } = require('../utils/inr');
 const { createWorker } = require('tesseract.js');
+const storageService = require('../services/storageService');
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * OCR Receipt & Bank Statement CSV Import Controller
@@ -225,9 +227,25 @@ const scanReceipt = async (req, res, next) => {
           },
         });
       }
+
+      // Persist raw receipt image to Cloud / Local Storage Service
+      try {
+        const receiptExt = '.png';
+        const storageKey = `receipts/${userId}/receipt_${Date.now()}_${uuidv4().slice(0, 8)}${receiptExt}`;
+        const stored = await storageService.upload({
+          buffer: imageBuffer,
+          key: storageKey,
+          contentType: 'image/png',
+          metadata: { userId, scanDate: new Date().toISOString() },
+        });
+        req.__storedReceipt = stored;
+      } catch (storageErr) {
+        console.warn('[Storage] Receipt image storage notice:', storageErr.message);
+      }
     }
 
     const parsed = parseReceiptText(extractedText);
+    const storedReceipt = req.__storedReceipt || null;
 
     if (!parsed.amount || parsed.amount <= 0) {
       return res.status(200).json({
@@ -242,6 +260,8 @@ const scanReceipt = async (req, res, next) => {
           items: parsed.items,
           rawText: extractedText.slice(0, 500),
           ocrConfidence,
+          receiptImageUrl: storedReceipt?.url || null,
+          storageKey: storedReceipt?.key || null,
           status: 'MANUAL_INPUT_REQUIRED',
           message: 'Could not detect a clear total amount from the receipt. Please enter the amount before confirming.',
         },
@@ -274,6 +294,8 @@ const scanReceipt = async (req, res, next) => {
         items: parsed.items,
         ocrConfidence,
         rawTextPreview: extractedText.slice(0, 200),
+        receiptImageUrl: storedReceipt?.url || null,
+        storageKey: storedReceipt?.key || null,
         status: 'PENDING_CONFIRMATION',
         message: `Extracted ${formatINR(parsed.amount)} ${parsed.category} expense from ${parsed.merchant}. Please confirm to save to your transactions.`,
       },

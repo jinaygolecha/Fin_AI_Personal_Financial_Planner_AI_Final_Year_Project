@@ -69,6 +69,89 @@ Key architectural pillars:
 
 ---
 
+## Cloud Computing Architecture
+
+FinPro implements a decoupled, production-grade cloud computing architecture designed for high availability, fault isolation, and persistent data integrity across distributed environments.
+
+```
+                INTERNET (HTTPS :443)
+                         |
+                 [ Nginx Reverse Proxy ]
+                 - SSL Termination (Let's Encrypt)
+                 - Gzip Compression & Rate Limiting
+                         |
+                  Proxy (:5000)
+                         |
+           +-----------------------------+
+           |  FINPRO DOCKER CONTAINER    |
+           |  Node.js 22 LTS (Non-Root)  |
+           |  Express + SPA Frontend     |
+           +-----------------------------+
+                   /              \
+ DATABASE_URL     /                \   S3 REST API / Local
+ (Encrypted TLS) /                  \
+                v                    v
+    +----------------------+  +-------------------------+
+    |   CLOUD POSTGRESQL   |  |   CLOUD OBJECT STORAGE  |
+    |   (Managed RDS/Neon/ |  |   (S3 / R2 / OCI /      |
+    |    Supabase / OCI)   |  |    Local Disk Fallback) |
+    |   Persistent DB      |  |   Receipts & Reports    |
+    |   Automated Backups  |  |   Signed URLs & Quotas  |
+    +----------------------+  +-------------------------+
+```
+
+### 1. Cloud Database
+- **Engine:** Managed PostgreSQL (compatible with Neon Serverless, Supabase, AWS RDS, GCP Cloud SQL, or Oracle Cloud PostgreSQL).
+- **Driver & ORM:** Prisma ORM with connection pooling support (`pgbouncer=true`).
+- **Connection Model:** Database connectivity is controlled strictly via `DATABASE_URL` with SSL enforcement (`sslmode=require`), ensuring credentials are never hardcoded.
+- **Zero-Data-Loss Migrations:** Schema changes are applied via version-controlled SQL migrations using `npx prisma migrate deploy` rather than destructive schema pushes.
+- **Complete Documentation:** Step-by-step setup and migration guides in [`docs/cloud/database-migration.md`](docs/cloud/database-migration.md).
+
+### 2. Cloud Object Storage
+- **Unified Abstraction:** `storageService` provides a clean interface for `upload`, `download`, `delete`, `getPublicOrSignedUrl`, and `checkStorageHealth`.
+- **Dual-Provider Architecture:**
+  - **Development Mode:** Local disk storage (`uploads/`) for zero-cost offline development.
+  - **Production Mode:** S3-compatible cloud object store (AWS S3, Cloudflare R2, Oracle Cloud Object Storage, MinIO, or Backblaze B2) utilizing native AWS Signature Version 4.
+- **Integrated Features:** OCR receipt image persistence, generated monthly financial PDF/CSV reports, and user document proofs.
+
+### 3. Cloud Compute
+- **Hosting Target:** Optimized for deployment on an Always Free Cloud VM (Oracle Cloud Infrastructure Ampere A1 / AMD VM or Ubuntu 22.04/24.04 LTS).
+- **Reverse Proxy:** Production Nginx configuration handling SSL/TLS termination, HTTP/2 multiplexing, security headers, rate limiting (20 r/s), and WebSocket forwarding.
+- **Service Management:** Managed via a systemd unit (`finpro.service`) with automated container recovery across server reboots. Deployment guides available in [`docs/cloud/deployment.md`](docs/cloud/deployment.md).
+
+### 4. Docker Containerization
+- **Multi-Stage Build:** Builder stage compiles Prisma Client and resolves production dependencies; minimal Runner stage runs on lightweight Node.js 22 LTS Alpine.
+- **Security Hardening:** Enforces non-root container user (`USER node`) execution with isolated `/app/uploads` volume ownership.
+- **Container Healthcheck:** Built-in `HEALTHCHECK` directive probing `/api/v1/health/ready` every 30 seconds.
+- **Docker Compose:** Supports both local standalone development (`postgres` container + `app` container) and cloud production (`app` container connecting directly to external Cloud PostgreSQL).
+
+### 5. CI/CD (Continuous Integration & Delivery)
+- **Automated GitHub Actions Pipeline:** Executes on every push and pull request to `main` and `develop`.
+- **Honest, Fail-Fast Quality Gates:**
+  1. Dependency resolution with npm caching.
+  2. Prisma ORM generation.
+  3. Code quality and syntax linting (`npm run lint`).
+  4. Migration deployment verification against test database (`prisma migrate deploy`).
+  5. Master Acceptance Test Suite (`npm test`).
+  6. Cloud Data Persistence Verification Suite (`npm run test:cloud`).
+  7. Production build verification (`npm run build`).
+  8. Multi-stage Docker container build (`docker build -t finpro:latest .`).
+
+### 6. Health Monitoring & Observability
+- **Real Probes (Zero Mocking):**
+  - `GET /api/v1/health`: Overall health, environment tier, and version.
+  - `GET /api/v1/health/database`: Live `SELECT 1` execution, round-trip latency (ms), masked cloud host, and SSL state.
+  - `GET /api/v1/health/storage`: Live read/write verification of storage provider and latency (ms).
+  - `GET /api/v1/health/ready`: Orchestrator readiness probe returning HTTP 200 when ready or HTTP 503 when dependencies are unreachable.
+- **Interactive Cloud Status Page:** Web dashboard at `/status.html` rendering live subsystem telemetry with auto-refresh every 30 seconds. Detailed metrics documentation in [`docs/cloud/monitoring.md`](docs/cloud/monitoring.md).
+
+### 7. Backup & Disaster Recovery
+- **Database Snapshots:** Managed cloud database automated point-in-time recovery (PITR) combined with scheduled logical dumps via `pg_dump`.
+- **Storage Durability:** Cloud object storage lifecycle policies with versioning and immutable backups.
+- **Documented Runbooks:** Step-by-step backup, restore, and disaster recovery procedures detailed in [`docs/cloud/database-migration.md`](docs/cloud/database-migration.md).
+
+---
+
 ## 3. Visual Gallery & QA Screenshot Evidence
 
 FinPro includes 30 verified high-resolution browser screenshots in [`docs/screenshots/`](docs/screenshots/). Every screenshot was captured from the actual running application with realistic demo data:

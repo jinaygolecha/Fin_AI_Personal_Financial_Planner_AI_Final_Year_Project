@@ -69,3 +69,5 @@ node-backend/test-db.js
 # Local/private data
 data/raw/
 data/private/
+node-backend/uploads/*
+!node-backend/uploads/.gitkeep

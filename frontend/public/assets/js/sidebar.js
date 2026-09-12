@@ -23,6 +23,8 @@ function renderSidebar(activePage = '') {
       { href: 'training', icon: 'ri-brain-line', label: 'AI Training & ML Studio' },
       { href: 'analytics', icon: 'ri-bar-chart-box-line', label: 'Analytics & Reports' },
       { href: 'calendar', icon: 'ri-calendar-event-line', label: 'Financial Calendar' },
+      { href: 'status', icon: 'ri-cloud-line', label: 'Cloud Status' },
+      { href: 'profile', icon: 'ri-user-settings-line', label: 'Profile & Account' },
     ]},
   ];
 
@@ -48,13 +50,13 @@ function renderSidebar(activePage = '') {
       </div>
       ${navHTML}
       <div class="sidebar-footer">
-        <div class="user-info">
+        <div class="user-info" id="sidebarUserCard" style="cursor:pointer;" title="View Profile" onclick="window.location.href='/profile.html'">
           <div class="avatar" id="sidebarAvatar">J</div>
           <div>
             <div class="user-name" id="sidebarUserName">Loading...</div>
             <div class="user-role" id="sidebarUserRole">User</div>
           </div>
-          <i class="ri-logout-box-r-line logout-btn" id="sidebarLogout" title="Logout" style="margin-left:auto;cursor:pointer;"></i>
+          <i class="ri-logout-box-r-line logout-btn" id="sidebarLogout" title="Logout" style="margin-left:auto;cursor:pointer;" onclick="event.stopPropagation()"></i>
         </div>
       </div>
     </aside>
