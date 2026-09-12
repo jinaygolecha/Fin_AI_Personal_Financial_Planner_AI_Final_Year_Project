@@ -7,8 +7,11 @@ const { formatINR } = require('../utils/inr');
  * Owner: Jinay Golecha (jinay_golecha)
  */
 
+const ragService = require('../services/ragService');
+
 /**
  * POST /api/v1/ai/chat
+ * Real Retrieval-Augmented Generation (RAG) Architecture
  */
 const chat = async (req, res, next) => {
   try {
@@ -35,8 +38,8 @@ const chat = async (req, res, next) => {
       data: { userId, role: 'user', content: message.trim() },
     });
 
-    // Get AI response
-    const result = await aiService.chat(userId, message.trim(), chatHistory);
+    // Execute Real RAG Pipeline: Intent -> Multi-domain User Retriever -> Grounded Context -> LLM / Reasoning
+    const result = await ragService.runRAGPipeline(userId, message.trim(), chatHistory);
 
     // Save assistant response
     await prisma.chatMessage.create({
@@ -48,8 +51,14 @@ const chat = async (req, res, next) => {
       data: {
         response: result.response,
         source: result.source,
-        context: result.context,
-        formatted_net_worth: result.context?.formattedNetWorth || formatINR(result.context?.netWorth || 0),
+        sources: result.sources,
+        rag: {
+          enabled: true,
+          sources: result.sources,
+          retrievedDocCount: result.retrievedDocCount,
+          intents: result.intents,
+          tenantVerified: result.tenantVerified,
+        },
       },
     });
   } catch (error) {

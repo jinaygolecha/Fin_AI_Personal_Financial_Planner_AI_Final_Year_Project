@@ -29,9 +29,20 @@ process.on('unhandledRejection', (reason) => {
 // Start server
 const startServer = async () => {
   try {
-    // Verify database connection
-    await prisma.$connect();
-    console.log('[Database] Connected to PostgreSQL (finance_jinay) ✓');
+    // Verify database connection with retry for cloud latency
+    let retries = 5;
+    while (retries > 0) {
+      try {
+        await prisma.$connect();
+        console.log('[Database] Connected to PostgreSQL (Cloud Supabase) ✓');
+        break;
+      } catch (err) {
+        retries--;
+        if (retries === 0) throw err;
+        console.warn(`[Database] Connection attempt failed (${err.message}). Retrying in 2s... (${retries} left)`);
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
 
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log('\n╔════════════════════════════════════════════════════════╗');

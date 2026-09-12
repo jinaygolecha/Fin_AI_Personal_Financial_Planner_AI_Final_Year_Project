@@ -228,15 +228,15 @@ const scanReceipt = async (req, res, next) => {
         });
       }
 
-      // Persist raw receipt image to Cloud / Local Storage Service
+      // Persist raw receipt image to Cloud / Local Storage Service (User-isolated path)
       try {
         const receiptExt = '.png';
-        const storageKey = `receipts/${userId}/receipt_${Date.now()}_${uuidv4().slice(0, 8)}${receiptExt}`;
+        const storageKey = `users/${userId}/receipts/receipt_${Date.now()}_${uuidv4().slice(0, 8)}${receiptExt}`;
         const stored = await storageService.upload({
           buffer: imageBuffer,
           key: storageKey,
           contentType: 'image/png',
-          metadata: { userId, scanDate: new Date().toISOString() },
+          metadata: { userId, documentType: 'receipts', scanDate: new Date().toISOString() },
         });
         req.__storedReceipt = stored;
       } catch (storageErr) {
@@ -276,7 +276,12 @@ const scanReceipt = async (req, res, next) => {
         amount: parsed.amount,
         date: new Date(parsed.date),
         category: parsed.category,
-        items: parsed.items,
+        items: {
+          lineItems: parsed.items,
+          storageKey: storedReceipt?.key || null,
+          receiptImageUrl: storedReceipt?.url || null,
+          confidence: ocrConfidence,
+        },
         rawText: extractedText.slice(0, 1000),
         status: 'PENDING_CONFIRMATION',
       },

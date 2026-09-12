@@ -266,6 +266,9 @@ class S3CloudProvider {
       const parsed = new URL(url);
       const transport = parsed.protocol === 'http:' ? http : https;
       const req = transport.request(url, { method: 'GET', headers: signedHeaders }, (res) => {
+        if (res.statusCode === 404) {
+          return reject(Object.assign(new Error(`File not found in storage (${key})`), { statusCode: 404 }));
+        }
         if (res.statusCode !== 200) {
           return reject(new Error(`S3 Download Failed (${res.statusCode})`));
         }

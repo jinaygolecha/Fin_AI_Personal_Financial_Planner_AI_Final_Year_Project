@@ -15,7 +15,7 @@ services:
     profiles: ["local", "default"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres2905}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-finance_jinay}
     ports:
       - "5432:5432"
@@ -41,7 +41,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 5000
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres2905@postgres:5432/finance_jinay?schema=public}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/finance_jinay?schema=public}
       JWT_SECRET: ${JWT_SECRET:-finpro_jwt_secret_production_key_32chars}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-finpro_jwt_refresh_secret_production_key_32chars}
       STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}

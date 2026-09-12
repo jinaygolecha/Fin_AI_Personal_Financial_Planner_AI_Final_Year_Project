@@ -17,24 +17,30 @@ jobs:
 
       - name: 2. Check for Cloud VM Credentials
         id: check_credentials
+        env:
+          VM_HOST: ${{ secrets['VM_HOST'] }}
+          VM_SSH_KEY: ${{ secrets['VM_SSH_KEY'] }}
+          VM_USERNAME: ${{ secrets['VM_USERNAME'] }}
+          VM_PORT: ${{ secrets['VM_PORT'] }}
         run: |
-          if [ -z "${{ secrets.VM_HOST }}" ] || [ -z "${{ secrets.VM_SSH_KEY }}" ]; then
-            echo "::warning ::Cloud VM secrets (VM_HOST, VM_SSH_KEY) are not configured in GitHub Secrets. Automated SSH deployment step will be skipped."
-            echo "configured=false" >> $GITHUB_OUTPUT
+          if [ -z "$VM_HOST" ] || [ -z "$VM_SSH_KEY" ]; then
+            echo "::notice ::Cloud VM deployment secrets (VM_HOST, VM_SSH_KEY) not present. Skipping remote SSH deploy step safely."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
           else
-            echo "configured=true" >> $GITHUB_OUTPUT
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "vm_user=${VM_USERNAME:-ubuntu}" >> "$GITHUB_OUTPUT"
+            echo "vm_port=${VM_PORT:-22}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: 3. Execute Remote Deployment via SSH
         if: steps.check_credentials.outputs.configured == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USERNAME || 'ubuntu' }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          port: ${{ secrets.VM_PORT || 22 }}
+          host: ${{ secrets['VM_HOST'] }}
+          username: ${{ steps.check_credentials.outputs.vm_user }}
+          key: ${{ secrets['VM_SSH_KEY'] }}
+          port: ${{ steps.check_credentials.outputs.vm_port }}
           script: |
-            echo "Connecting to Cloud VM at ${{ secrets.VM_HOST }}..."
             cd /opt/finpro
             chmod +x deployment/deploy.sh
             ./deployment/deploy.sh

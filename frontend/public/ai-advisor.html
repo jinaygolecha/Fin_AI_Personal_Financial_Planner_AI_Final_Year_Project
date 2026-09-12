@@ -226,8 +226,29 @@ How can I assist you today? You can ask about your spending, run a what-if finan
           <span id="scanReceiptSpinner" style="display:none;"><i class="ri-loader-4-line" style="animation:spin 1s infinite linear;display:inline-block;"></i> Processing OCR...</span>
         </button>
         <div id="ocrPreviewBox" style="display:none;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);padding:14px;border-radius:10px;font-size:12px;">
-          <div style="font-weight:700;color:#6ee7b7;margin-bottom:6px;">Preview Extracted Transaction:</div>
-          <div id="ocrExtractedText" style="margin-bottom:10px;"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-weight:700;color:#6ee7b7;">Review / Edit Extracted Details:</span>
+            <span id="ocrConfidenceBadge" style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(16,185,129,0.2);color:#34d399;">Confidence: 100%</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div>
+              <label style="font-size:10px;color:#94a3b8;display:block;margin-bottom:2px;">Merchant</label>
+              <input type="text" id="ocrEditMerchant" class="form-input" style="padding:6px;font-size:12px;width:100%;">
+            </div>
+            <div>
+              <label style="font-size:10px;color:#94a3b8;display:block;margin-bottom:2px;">Amount (₹)</label>
+              <input type="number" step="0.01" id="ocrEditAmount" class="form-input" style="padding:6px;font-size:12px;width:100%;">
+            </div>
+            <div>
+              <label style="font-size:10px;color:#94a3b8;display:block;margin-bottom:2px;">Category</label>
+              <input type="text" id="ocrEditCategory" class="form-input" style="padding:6px;font-size:12px;width:100%;">
+            </div>
+            <div>
+              <label style="font-size:10px;color:#94a3b8;display:block;margin-bottom:2px;">Date</label>
+              <input type="date" id="ocrEditDate" class="form-input" style="padding:6px;font-size:12px;width:100%;">
+            </div>
+          </div>
+          <div id="ocrExtractedLineItems" style="font-size:11px;color:#94a3b8;margin-bottom:10px;"></div>
           <div style="display:flex;gap:8px;">
             <button class="btn-primary" id="confirmOcrBtn" style="background:#10b981;flex:1;">Confirm & Add Expense</button>
             <button class="btn-secondary" id="cancelOcrBtn" style="flex:1;">Cancel</button>
@@ -288,15 +309,34 @@ How can I assist you today? You can ask about your spending, run a what-if finan
 
     let pendingVoicePayload = null;
 
-    const addMsg = (role, text, id = null) => {
+    const addMsg = (role, text, id = null, sources = []) => {
       const div = document.createElement('div');
       div.className = `msg ${role}`;
       const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const formattedText = (text || '').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+
       if (role === 'ai') {
+        let sourcesHtml = '';
+        if (sources && sources.length > 0) {
+          sourcesHtml = `
+            <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.12);font-size:11px;">
+              <div style="font-weight:600;color:#6ee7b7;margin-bottom:4px;display:flex;align-items:center;gap:4px;">
+                <i class="ri-database-2-line"></i> Grounded RAG Sources & Telemetry:
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                ${sources.map(s => `<span style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);padding:2px 7px;border-radius:4px;color:#a7f3d0;font-size:10px;">${s}</span>`).join('')}
+              </div>
+            </div>
+          `;
+        }
+
         div.innerHTML = `
           <div class="msg-avatar"><i class="ri-robot-line"></i></div>
           <div>
-            <div class="msg-bubble">${text}</div>
+            <div class="msg-bubble">
+              ${formattedText}
+              ${sourcesHtml}
+            </div>
             <div class="msg-feedback">
               <button class="feedback-btn" onclick="sendFeedback('${id || 'advice'}', 'HELPFUL')">👍 Helpful</button>
               <button class="feedback-btn" onclick="sendFeedback('${id || 'advice'}', 'NOT_HELPFUL')">👎 Not helpful</button>
@@ -309,7 +349,7 @@ How can I assist you today? You can ask about your spending, run a what-if finan
         div.innerHTML = `
           <div class="msg-avatar">${(name[0] || 'U').toUpperCase()}</div>
           <div>
-            <div class="msg-bubble">${text}</div>
+            <div class="msg-bubble">${formattedText}</div>
             <div class="msg-time">${time}</div>
           </div>
         `;
@@ -355,7 +395,8 @@ How can I assist you today? You can ask about your spending, run a what-if finan
         hideTyping();
         document.getElementById('sendBtn').disabled = false;
         if (res?.success) {
-          addMsg('ai', res.data.response);
+          const sources = res.data.sources || res.data.rag?.sources || [];
+          addMsg('ai', res.data.response, null, sources);
           if (res.data.context) {
             document.getElementById('snapScore').textContent = `${res.data.context.healthScore || '--'}/100`;
             if (res.data.context.formattedNetWorth) {
@@ -565,13 +606,18 @@ How can I assist you today? You can ask about your spending, run a what-if finan
           pendingScanId = d.scanId;
           pendingScanData = d;
           document.getElementById('ocrPreviewBox').style.display = 'block';
-          document.getElementById('ocrExtractedText').innerHTML = `
-            Merchant: <b>${d.merchant || 'Unidentified'}</b><br>
-            Amount: <b>${d.formattedAmount || 'Not detected'}</b><br>
-            Category: <b>${d.category}</b> ${d.items?.length ? `(${d.items.join(', ')})` : ''}<br>
-            Date: <b>${d.date}</b><br>
-            Confidence: <span style="color:#34d399;">${d.ocrConfidence || 100}%</span>
-          `;
+          document.getElementById('ocrEditMerchant').value = d.merchant || '';
+          document.getElementById('ocrEditAmount').value = d.amount || '';
+          document.getElementById('ocrEditCategory').value = d.category || 'General';
+          document.getElementById('ocrEditDate').value = d.date ? d.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+          document.getElementById('ocrConfidenceBadge').textContent = `Confidence: ${d.ocrConfidence || 100}%`;
+          const lineItemsDiv = document.getElementById('ocrExtractedLineItems');
+          if (d.items && d.items.length) {
+            lineItemsDiv.innerHTML = `Line items: <i>${d.items.join(', ')}</i>`;
+            lineItemsDiv.style.display = 'block';
+          } else {
+            lineItemsDiv.style.display = 'none';
+          }
         } else {
           alert(res?.error?.message || 'OCR processing could not recognize receipt details.');
         }
@@ -584,29 +630,41 @@ How can I assist you today? You can ask about your spending, run a what-if finan
       }
     });
 
+    document.getElementById('cancelOcrBtn').addEventListener('click', () => {
+      document.getElementById('ocrPreviewBox').style.display = 'none';
+      pendingScanId = null;
+      pendingScanData = null;
+    });
+
     document.getElementById('confirmOcrBtn').addEventListener('click', async () => {
-      if (pendingScanData && pendingScanData.amount) {
-        const res = await api.receiptsAPI.confirm({
-          scanId: pendingScanId,
-          amount: pendingScanData.amount,
-          merchant: pendingScanData.merchant,
-          category: pendingScanData.category,
-          date: pendingScanData.date,
-        });
-        if (res?.success) {
-          alert(`✅ ${res.data.message}`);
-          document.getElementById('ocrModal').classList.remove('show');
-          receiptFileInput.value = '';
-          currentReceiptImageBase64 = null;
-          previewContainer.style.display = 'none';
-          document.getElementById('receiptInput').value = '';
-          document.getElementById('ocrPreviewBox').style.display = 'none';
-          loadSnapshot();
-        } else {
-          alert(res?.error?.message || 'Failed to confirm transaction.');
-        }
+      const finalMerchant = document.getElementById('ocrEditMerchant').value.trim();
+      const finalAmount = parseFloat(document.getElementById('ocrEditAmount').value);
+      const finalCategory = document.getElementById('ocrEditCategory').value.trim() || 'General';
+      const finalDate = document.getElementById('ocrEditDate').value;
+
+      if (!finalAmount || isNaN(finalAmount) || finalAmount <= 0) {
+        alert('Please enter a valid positive expense amount.');
+        return;
+      }
+
+      const res = await api.receiptsAPI.confirm({
+        scanId: pendingScanId,
+        amount: finalAmount,
+        merchant: finalMerchant || 'Receipt Merchant',
+        category: finalCategory,
+        date: finalDate || new Date().toISOString(),
+      });
+      if (res?.success) {
+        alert(`✅ ${res.data.message}`);
+        document.getElementById('ocrModal').classList.remove('show');
+        receiptFileInput.value = '';
+        currentReceiptImageBase64 = null;
+        previewContainer.style.display = 'none';
+        document.getElementById('receiptInput').value = '';
+        document.getElementById('ocrPreviewBox').style.display = 'none';
+        loadSnapshot();
       } else {
-        alert('Cannot confirm transaction without a valid detected amount.');
+        alert(res?.error?.message || 'Failed to confirm transaction.');
       }
     });
 

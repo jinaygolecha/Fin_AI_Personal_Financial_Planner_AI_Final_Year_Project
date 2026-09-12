@@ -53,7 +53,7 @@ export const setUser = (user) => {
 };
 
 export const isAuthenticated = () => {
-  return !!getToken();
+  return !!getToken() || !!getRefreshToken();
 };
 
 // ===== Auto token refresh =====
@@ -94,7 +94,11 @@ const refreshTokens = async () => {
 
 export const apiFetch = async (endpoint, options = {}) => {
   const url = `${API_BASE}${endpoint}`;
-  const token = getToken();
+  let token = getToken();
+
+  if (!token && getRefreshToken()) {
+    token = await refreshTokens();
+  }
 
   const defaultHeaders = {
     'Content-Type': 'application/json',

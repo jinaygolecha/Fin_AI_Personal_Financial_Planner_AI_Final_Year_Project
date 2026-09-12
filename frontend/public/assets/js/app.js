@@ -21,7 +21,7 @@ export const clearAuth = () => {
   localStorage.removeItem('jf_refresh_token');
   localStorage.removeItem('jf_user');
 };
-export const isAuthenticated = () => !!getToken();
+export const isAuthenticated = () => !!getToken() || !!getRefreshToken();
 export const getUser = () => {
   try { return JSON.parse(localStorage.getItem('jf_user') || 'null'); } catch { return null; }
 };
@@ -58,6 +58,9 @@ const refreshTokens = async () => {
 export const apiFetch = async (endpoint, options = {}) => {
   const url = `${API_BASE}${endpoint}`;
   let token = getToken();
+  if (!token && getRefreshToken()) {
+    token = await refreshTokens();
+  }
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),

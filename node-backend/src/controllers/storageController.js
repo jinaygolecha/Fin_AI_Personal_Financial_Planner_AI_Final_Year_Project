@@ -56,9 +56,10 @@ const uploadDocument = async (req, res, next) => {
       });
     }
 
-    const safeDocType = documentType.replace(/[^a-zA-Z0-9_-]/g, '');
+    const folder = (documentType === 'receipt' ? 'receipts' : documentType === 'export' ? 'exports' : documentType === 'report' ? 'reports' : 'documents');
     const cleanExt = fileName ? path.extname(fileName) : (detectedMime.includes('png') ? '.png' : detectedMime.includes('pdf') ? '.pdf' : '.jpg');
-    const storageKey = `documents/${userId}/${safeDocType}_${Date.now()}_${uuidv4().slice(0, 8)}${cleanExt}`;
+    const safeBaseName = fileName ? path.basename(fileName, cleanExt).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30) : `${folder}_${Date.now()}`;
+    const storageKey = `users/${userId}/${folder}/${safeBaseName}_${uuidv4().slice(0, 8)}${cleanExt}`;
 
     const uploadResult = await storageService.upload({
       buffer,
@@ -67,7 +68,7 @@ const uploadDocument = async (req, res, next) => {
       metadata: {
         userId,
         originalName: fileName || 'uploaded_document',
-        documentType: safeDocType,
+        documentType: folder,
       },
     });
 
@@ -82,7 +83,7 @@ const uploadDocument = async (req, res, next) => {
 
 /**
  * GET /api/v1/storage/file/:key*
- * Retrieves stored file via storageService
+ * Retrieves stored file via storageService with tenant isolation
  */
 const getFile = async (req, res, next) => {
   try {
@@ -91,15 +92,28 @@ const getFile = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Storage key is required' });
     }
 
-    const decodedKey = decodeURIComponent(rawKey);
+    const decodedKey = decodeURIComponent(rawKey).replace(/^\/+/, '');
+
+    // Strict Tenant Isolation: Never allow one user to access another user's files
+    if (decodedKey.startsWith('users/')) {
+      const parts = decodedKey.split('/');
+      const keyOwnerId = parts[1];
+      if (req.user && req.user.id !== keyOwnerId && req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'Forbidden: You do not have permission to access this file.',
+        });
+      }
+    }
+
     const downloaded = await storageService.download(decodedKey);
 
     res.setHeader('Content-Type', downloaded.contentType || 'application/octet-stream');
     res.setHeader('Content-Length', downloaded.size);
-    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Cache-Control', 'private, no-cache');
     return res.send(downloaded.buffer);
   } catch (err) {
-    if (err.message.includes('not found')) {
+    if (err.statusCode === 404 || (err.message && (err.message.toLowerCase().includes('not found') || err.message.includes('404')))) {
       return res.status(404).json({ success: false, error: 'File not found in storage' });
     }
     next(err);
@@ -108,11 +122,25 @@ const getFile = async (req, res, next) => {
 
 /**
  * DELETE /api/v1/storage/file/:key*
+ * Deletes stored file via storageService with tenant isolation
  */
 const deleteFile = async (req, res, next) => {
   try {
     const rawKey = req.params.key || req.params[0] || '';
-    const decodedKey = decodeURIComponent(rawKey);
+    const decodedKey = decodeURIComponent(rawKey).replace(/^\/+/, '');
+
+    // Strict Tenant Isolation: Never allow one user to delete another user's files
+    if (decodedKey.startsWith('users/')) {
+      const parts = decodedKey.split('/');
+      const keyOwnerId = parts[1];
+      if (req.user && req.user.id !== keyOwnerId && req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'Forbidden: You do not have permission to delete this file.',
+        });
+      }
+    }
+
     const result = await storageService.delete(decodedKey);
     return res.json({ success: true, ...result });
   } catch (err) {
