@@ -4,6 +4,20 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+  workflow_call:
+    secrets:
+      VM_HOST:
+        description: 'Target Cloud VM Hostname or Public IP'
+        required: false
+      VM_SSH_KEY:
+        description: 'Private SSH Key for authentication'
+        required: false
+      VM_USERNAME:
+        description: 'SSH user account (default: ubuntu)'
+        required: false
+      VM_PORT:
+        description: 'SSH daemon port (default: 22)'
+        required: false
 
 jobs:
   deploy:
@@ -18,10 +32,10 @@ jobs:
       - name: 2. Check for Cloud VM Credentials
         id: check_credentials
         env:
-          VM_HOST: ${{ secrets['VM_HOST'] }}
-          VM_SSH_KEY: ${{ secrets['VM_SSH_KEY'] }}
-          VM_USERNAME: ${{ secrets['VM_USERNAME'] }}
-          VM_PORT: ${{ secrets['VM_PORT'] }}
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_USERNAME: ${{ secrets.VM_USERNAME }}
+          VM_PORT: ${{ secrets.VM_PORT }}
         run: |
           if [ -z "$VM_HOST" ] || [ -z "$VM_SSH_KEY" ]; then
             echo "::notice ::Cloud VM deployment secrets (VM_HOST, VM_SSH_KEY) not present. Skipping remote SSH deploy step safely."
@@ -36,9 +50,9 @@ jobs:
         if: steps.check_credentials.outputs.configured == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets['VM_HOST'] }}
+          host: ${{ secrets.VM_HOST }}
           username: ${{ steps.check_credentials.outputs.vm_user }}
-          key: ${{ secrets['VM_SSH_KEY'] }}
+          key: ${{ secrets.VM_SSH_KEY }}
           port: ${{ steps.check_credentials.outputs.vm_port }}
           script: |
             cd /opt/finpro
