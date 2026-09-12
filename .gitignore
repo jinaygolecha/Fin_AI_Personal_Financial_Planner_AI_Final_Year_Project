@@ -53,6 +53,7 @@ logs/
 *.db
 *.rdb
 *.sql
+!**/prisma/migrations/**/*.sql
 dump.rdb
 backup.json
 backup.sql

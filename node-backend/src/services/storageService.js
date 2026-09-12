@@ -105,10 +105,10 @@ class LocalDiskProvider {
       if (!fs.existsSync(this.baseDir)) {
         fs.mkdirSync(this.baseDir, { recursive: true });
       }
-      const testFile = path.join(this.baseDir, '.healthcheck');
+      const testFile = path.join(this.baseDir, `.healthcheck-${crypto.randomBytes(6).toString('hex')}`);
       await fs.promises.writeFile(testFile, `health-${Date.now()}`);
       await fs.promises.readFile(testFile);
-      await fs.promises.unlink(testFile);
+      try { await fs.promises.unlink(testFile); } catch {}
       const latencyMs = Date.now() - start;
       return {
         available: true,
@@ -324,9 +324,12 @@ class S3CloudProvider {
     }
 
     try {
-      const url = this.forcePathStyle
+      const endpointUrl = new URL(this.endpoint);
+      const hasPath = endpointUrl.pathname && endpointUrl.pathname !== '/';
+      const usePathStyle = this.forcePathStyle || hasPath || endpointUrl.host.includes('supabase.co') || endpointUrl.host.includes('cloudflarestorage.com');
+      const url = usePathStyle
         ? `${this.endpoint.replace(/\/$/, '')}/${this.bucket}`
-        : `${new URL(this.endpoint).protocol}//${this.bucket}.${new URL(this.endpoint).host}`;
+        : `${endpointUrl.protocol}//${this.bucket}.${endpointUrl.host}`;
       const signedHeaders = this._signRequest('HEAD', url, {});
 
       return await new Promise((resolve) => {
