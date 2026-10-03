@@ -2,13 +2,15 @@ const prisma = require('../config/database');
 const { formatINR } = require('../utils/inr');
 const { createWorker } = require('tesseract.js');
 const storageService = require('../services/storageService');
+const documentIngestionService = require('../services/documentIngestionService');
+const mlCategorizerService = require('../services/mlCategorizerService');
 const { v4: uuidv4 } = require('uuid');
 
 /**
- * OCR Receipt & Bank Statement CSV Import Controller
+ * OCR Receipt & Bank Statement Ingestion Controller
  * Owner: Jinay Golecha (jinay_golecha)
  * ABSOLUTE RULE 1 & 15 COMPLIANCE: Zero fake OCR results.
- * Real OCR extraction with file validation, MIME checking, and user confirmation.
+ * Unified Ingestion Engine: PDF Text/OCR, CSV, Receipt OCR with GST breakdown & ML classification.
  */
 
 // Helper: Parse structured receipt fields from extracted text
@@ -22,14 +24,14 @@ const parseReceiptText = (rawText) => {
 
   const textLower = rawText.toLowerCase();
 
-  // 1. Merchant Detection: Check first 3 lines or known brands
+  // 1. Merchant Detection: Check known brands
   const knownMerchants = [
-    { pattern: /starbucks/i, name: 'Starbucks Coffee', cat: 'Food' },
-    { pattern: /mcdonald|mcd/i, name: "McDonald's", cat: 'Food' },
-    { pattern: /subway/i, name: 'Subway', cat: 'Food' },
-    { pattern: /domino/i, name: "Domino's Pizza", cat: 'Food' },
-    { pattern: /swiggy/i, name: 'Swiggy', cat: 'Food' },
-    { pattern: /zomato/i, name: 'Zomato', cat: 'Food' },
+    { pattern: /starbucks/i, name: 'Starbucks Coffee', cat: 'Food & Dining' },
+    { pattern: /mcdonald|mcd/i, name: "McDonald's", cat: 'Food & Dining' },
+    { pattern: /subway/i, name: 'Subway', cat: 'Food & Dining' },
+    { pattern: /domino/i, name: "Domino's Pizza", cat: 'Food & Dining' },
+    { pattern: /swiggy/i, name: 'Swiggy', cat: 'Food & Dining' },
+    { pattern: /zomato/i, name: 'Zomato', cat: 'Food & Dining' },
     { pattern: /d-?mart|avenue\s+supermarts/i, name: 'DMart Supermarket', cat: 'Groceries' },
     { pattern: /reliance\s+(?:fresh|smart|retail)/i, name: 'Reliance Retail', cat: 'Groceries' },
     { pattern: /nature'?s\s+basket/i, name: "Nature's Basket", cat: 'Groceries' },
@@ -43,8 +45,8 @@ const parseReceiptText = (rawText) => {
     { pattern: /flipkart/i, name: 'Flipkart', cat: 'Shopping' },
     { pattern: /zara/i, name: 'Zara', cat: 'Shopping' },
     { pattern: /h&m|hnm/i, name: 'H&M', cat: 'Shopping' },
-    { pattern: /croma/i, name: 'Croma Electronics', cat: 'Electronics' },
-    { pattern: /ikea/i, name: 'IKEA', cat: 'Home' },
+    { pattern: /croma/i, name: 'Croma Electronics', cat: 'Shopping' },
+    { pattern: /ikea/i, name: 'IKEA', cat: 'Shopping' },
   ];
 
   for (const km of knownMerchants) {
@@ -67,8 +69,7 @@ const parseReceiptText = (rawText) => {
   }
   if (!merchant) merchant = 'Retail Merchant';
 
-  // 2. Amount Detection: Look for total amount patterns
-  // Match lines with "total", "grand total", "net payable", "amount"
+  // 2. Amount Detection
   const totalRegex = /(?:grand\s+total|net\s+total|total\s+amount|bill\s+amount|amount\s+payable|total|net\s+payable|bal(?:ance)?\s+due|subtotal)[\s:=₹rs\.]*([\d,]+(?:\.\d{1,2})?)/i;
   const matchTotal = rawText.match(totalRegex);
   if (matchTotal && matchTotal[1]) {
@@ -120,21 +121,10 @@ const parseReceiptText = (rawText) => {
     date = new Date().toISOString().split('T')[0];
   }
 
-  // 4. Category refinement if not already set by brand
+  // 4. ML / Keyword Categorization Refinement
   if (category === 'General') {
-    if (/grocery|vegetable|fruit|dairy|milk|bread|supermarket/i.test(textLower)) {
-      category = 'Groceries';
-    } else if (/restaurant|dining|food|meal|pizza|burger|chai|coffee|bakery/i.test(textLower)) {
-      category = 'Food';
-    } else if (/petrol|diesel|fuel|toll|transport|cab|taxi|parking/i.test(textLower)) {
-      category = 'Transport';
-    } else if (/medicine|clinic|hospital|pharmacy|doctor|lab/i.test(textLower)) {
-      category = 'Healthcare';
-    } else if (/apparel|clothing|shoes|fashion|mall|shopping/i.test(textLower)) {
-      category = 'Shopping';
-    } else if (/electricity|water|broadband|recharge|mobile|utility/i.test(textLower)) {
-      category = 'Utilities';
-    }
+    const mlPred = mlCategorizerService.predict(merchant, amount);
+    category = mlPred.category;
   }
 
   // 5. Items extraction: lines with quantity or price patterns
@@ -156,6 +146,7 @@ const parseReceiptText = (rawText) => {
 /**
  * POST /api/v1/receipts/scan
  * Performs real OCR extraction using Tesseract.js on uploaded receipt image or text
+ * Extracts GST data (GSTIN, CGST, SGST, IGST, total GST) when present
  */
 const scanReceipt = async (req, res, next) => {
   try {
@@ -245,6 +236,7 @@ const scanReceipt = async (req, res, next) => {
     }
 
     const parsed = parseReceiptText(extractedText);
+    const gstInfo = documentIngestionService.extractGSTInformation(extractedText);
     const storedReceipt = req.__storedReceipt || null;
 
     if (!parsed.amount || parsed.amount <= 0) {
@@ -258,6 +250,7 @@ const scanReceipt = async (req, res, next) => {
           date: parsed.date,
           category: parsed.category,
           items: parsed.items,
+          gst: gstInfo,
           rawText: extractedText.slice(0, 500),
           ocrConfidence,
           receiptImageUrl: storedReceipt?.url || null,
@@ -278,6 +271,7 @@ const scanReceipt = async (req, res, next) => {
         category: parsed.category,
         items: {
           lineItems: parsed.items,
+          gst: gstInfo,
           storageKey: storedReceipt?.key || null,
           receiptImageUrl: storedReceipt?.url || null,
           confidence: ocrConfidence,
@@ -297,6 +291,7 @@ const scanReceipt = async (req, res, next) => {
         date: parsed.date,
         category: parsed.category,
         items: parsed.items,
+        gst: gstInfo,
         ocrConfidence,
         rawTextPreview: extractedText.slice(0, 200),
         receiptImageUrl: storedReceipt?.url || null,
@@ -342,11 +337,11 @@ const confirmReceipt = async (req, res, next) => {
     }
 
     let categoryRecord = await prisma.category.findFirst({
-      where: { userId, name: { equals: category || 'Food', mode: 'insensitive' } },
+      where: { userId, name: { equals: category || 'Food & Dining', mode: 'insensitive' } },
     });
     if (!categoryRecord) {
       categoryRecord = await prisma.category.create({
-        data: { userId, name: category || 'Food', categoryType: 'EXPENSE' },
+        data: { userId, name: category || 'Food & Dining', categoryType: 'EXPENSE' },
       });
     }
 
@@ -397,87 +392,97 @@ const confirmReceipt = async (req, res, next) => {
 
 /**
  * POST /api/v1/import/bank-statement
- * Parses CSV statement, checks duplicates, categorizes rows, and returns preview stats
+ * Parses CSV statement with multi-attribute duplicate identity and ML categorization
  */
 const parseBankStatement = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { csvContent } = req.body;
+    const { csvContent, accountId } = req.body;
 
     if (!csvContent) {
       return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'CSV content required.' } });
     }
 
-    const lines = csvContent.trim().split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.length < 2) {
-      return res.status(400).json({ success: false, error: { code: 'INVALID_CSV', message: 'CSV requires header and at least 1 data row.' } });
-    }
-
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const dateIdx = headers.findIndex(h => h.includes('date'));
-    const descIdx = headers.findIndex(h => h.includes('desc') || h.includes('narration') || h.includes('merchant') || h.includes('particulars'));
-    const amountIdx = headers.findIndex(h => h.includes('amount') || h.includes('debit') || h.includes('credit'));
-    const typeIdx = headers.findIndex(h => h.includes('type'));
-    const categoryIdx = headers.findIndex(h => h.includes('category'));
-
-    const existing = await prisma.transaction.findMany({
-      where: { userId },
-      select: { amount: true, date: true, description: true },
-      take: 100,
+    const result = await documentIngestionService.processStatementCSV({
+      userId,
+      csvContent,
+      accountId,
     });
 
-    const validRows = [];
-    const duplicateRows = [];
-    const invalidRows = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
-      const rawDate = dateIdx >= 0 ? cols[dateIdx] : new Date().toISOString().split('T')[0];
-      const rawDesc = descIdx >= 0 ? cols[descIdx] : 'Bank Transaction';
-      const rawAmount = amountIdx >= 0 ? parseFloat(cols[amountIdx]) : null;
-      const rawType = typeIdx >= 0 ? cols[typeIdx].toUpperCase() : (rawAmount && rawAmount < 0 ? 'EXPENSE' : 'INCOME');
-      const rawCat = categoryIdx >= 0 ? cols[categoryIdx] : 'General';
-
-      if (!rawAmount || isNaN(rawAmount)) {
-        invalidRows.push({ row: i, reason: 'Invalid or missing amount', data: lines[i] });
-        continue;
-      }
-
-      const absAmount = Math.abs(rawAmount);
-      const rowDate = new Date(rawDate);
-
-      const isDuplicate = existing.some(e => 
-        parseFloat(e.amount) === absAmount && 
-        new Date(e.date).toISOString().split('T')[0] === rowDate.toISOString().split('T')[0]
-      );
-
-      const rowObj = {
-        row: i,
-        date: rawDate,
-        description: rawDesc,
-        amount: absAmount,
-        type: rawType.includes('CR') || rawType.includes('INC') ? 'INCOME' : 'EXPENSE',
-        category: rawCat,
-      };
-
-      if (isDuplicate) {
-        duplicateRows.push(rowObj);
-      } else {
-        validRows.push(rowObj);
-      }
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    if (error.message.includes('header and at least 1 data row') || error.message.includes('empty')) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_CSV', message: error.message },
+      });
     }
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/import/statement-pdf
+ * Parses Bank Statement PDF (both text-based and scanned OCR)
+ */
+const parseBankStatementPDF = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { pdfData, accountId, filename } = req.body;
+
+    if (!pdfData) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'PDF data (base64 string or buffer) is required.' },
+      });
+    }
+
+    let pdfBuffer = null;
+    if (typeof pdfData === 'string' && pdfData.startsWith('data:application/pdf;base64,')) {
+      pdfBuffer = Buffer.from(pdfData.split(',')[1], 'base64');
+    } else if (typeof pdfData === 'string') {
+      pdfBuffer = Buffer.from(pdfData, 'base64');
+    } else if (Buffer.isBuffer(pdfData)) {
+      pdfBuffer = pdfData;
+    }
+
+    if (!pdfBuffer || pdfBuffer.length < 50) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_PDF', message: 'Invalid or empty PDF document provided.' },
+      });
+    }
+
+    // Persist to Cloud/Local storage in user-scoped directory
+    let storedDoc = null;
+    try {
+      const storageKey = `users/${userId}/documents/${Date.now()}_${(filename || 'statement.pdf').replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      storedDoc = await storageService.upload({
+        buffer: pdfBuffer,
+        key: storageKey,
+        contentType: 'application/pdf',
+        metadata: { userId, documentType: 'bank-statement-pdf', originalName: filename || 'statement.pdf' },
+      });
+    } catch (storageErr) {
+      console.warn('[Storage] Notice during statement PDF upload:', storageErr.message);
+    }
+
+    const result = await documentIngestionService.processStatementPDF({
+      userId,
+      pdfBuffer,
+      accountId,
+      filename: filename || 'statement.pdf',
+    });
 
     return res.status(200).json({
       success: true,
       data: {
-        totalRows: lines.length - 1,
-        validCount: validRows.length,
-        duplicateCount: duplicateRows.length,
-        invalidCount: invalidRows.length,
-        preview: validRows.slice(0, 10),
-        duplicates: duplicateRows,
-        invalids: invalidRows,
-        validRows,
+        ...result,
+        storageKey: storedDoc?.key || null,
+        documentUrl: storedDoc?.url || null,
       },
     });
   } catch (error) {
@@ -487,7 +492,7 @@ const parseBankStatement = async (req, res, next) => {
 
 /**
  * POST /api/v1/import/confirm
- * Commits verified bank statement transactions to database
+ * Commits verified bank statement transactions to database with categories and balance updates
  */
 const confirmBankStatementImport = async (req, res, next) => {
   try {
@@ -520,10 +525,24 @@ const confirmBankStatementImport = async (req, res, next) => {
         const amt = parseFloat(row.amount);
         const txType = row.type === 'INCOME' ? 'INCOME' : 'EXPENSE';
 
+        let categoryId = null;
+        if (row.category && row.category !== 'General' && row.category !== 'Other') {
+          let categoryRecord = await tx.category.findFirst({
+            where: { userId, name: { equals: row.category, mode: 'insensitive' } },
+          });
+          if (!categoryRecord) {
+            categoryRecord = await tx.category.create({
+              data: { userId, name: row.category, categoryType: txType },
+            });
+          }
+          categoryId = categoryRecord.id;
+        }
+
         await tx.transaction.create({
           data: {
             userId,
             accountId: account.id,
+            categoryId,
             amount: amt,
             transactionType: txType,
             description: row.description || 'Imported statement transaction',
@@ -560,9 +579,48 @@ const confirmBankStatementImport = async (req, res, next) => {
   }
 };
 
+/**
+ * POST /api/v1/import/feedback
+ * Records user correction to ML category predictions for active learning
+ */
+const recordCategoryFeedback = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { transactionId, originalPrediction, correctedCategory, confidence, text } = req.body;
+
+    if (!correctedCategory) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Corrected category is required.' },
+      });
+    }
+
+    const feedback = await mlCategorizerService.recordFeedback({
+      userId,
+      transactionId: transactionId || null,
+      originalPrediction: originalPrediction || 'General',
+      correctedCategory,
+      confidence: confidence ? parseFloat(confidence) : 0.5,
+      text: text || '',
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        feedback,
+        message: `Active learning feedback recorded: "${originalPrediction}" -> "${correctedCategory}".`,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   scanReceipt,
   confirmReceipt,
   parseBankStatement,
+  parseBankStatementPDF,
   confirmBankStatementImport,
+  recordCategoryFeedback,
 };

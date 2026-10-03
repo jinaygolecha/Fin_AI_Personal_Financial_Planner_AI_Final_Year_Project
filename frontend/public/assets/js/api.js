@@ -101,7 +101,7 @@ export const apiFetch = async (endpoint, options = {}) => {
   }
 
   const defaultHeaders = {
-    'Content-Type': 'application/json',
+    ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
@@ -387,8 +387,21 @@ export const receiptsAPI = {
 };
 
 export const importAPI = {
-  bankStatement: (csvContent) => apiFetch('/import/bank-statement', { method: 'POST', body: JSON.stringify({ csvContent }) }),
+  bankStatement: (csvContent, accountId) => apiFetch('/import/bank-statement', { method: 'POST', body: JSON.stringify({ csvContent, accountId }) }),
+  statementPDF: (data) => apiFetch('/import/statement-pdf', { method: 'POST', body: JSON.stringify(data) }),
   confirm: (data) => apiFetch('/import/confirm', { method: 'POST', body: JSON.stringify(data) }),
+  feedback: (data) => apiFetch('/import/feedback', { method: 'POST', body: JSON.stringify(data) }),
+};
+
+// ===== Credit Bureau & Score Intelligence API (Layer 1 + 2) =====
+export const creditAPI = {
+  getCreditScore: () => apiFetch('/credit-score'),
+};
+
+// ===== GST Verification & Tax API =====
+export const gstAPI = {
+  lookup: (gstin) => apiFetch('/gst/lookup', { method: 'POST', body: JSON.stringify({ gstin }) }),
+  calculate: (data) => apiFetch('/gst/calculate', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 // ===== Training Data Bot & ML Studio API =====
@@ -495,6 +508,8 @@ export default {
   trainingAPI,
   receiptsAPI,
   importAPI,
+  creditAPI,
+  gstAPI,
   exportAPI,
   formatINR,
   formatINRFull,

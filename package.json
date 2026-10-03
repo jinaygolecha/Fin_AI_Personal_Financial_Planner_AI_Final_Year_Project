@@ -10,6 +10,7 @@
     "test": "npm --prefix node-backend test",
     "test:cloud": "npm --prefix node-backend run test:cloud",
     "test:failure": "npm --prefix node-backend run test:failure",
+    "test:repair": "npm --prefix node-backend run test:repair",
     "build": "npm --prefix node-backend run build",
     "lint": "npm --prefix node-backend run lint",
     "db:push": "cd node-backend && npx prisma db push",

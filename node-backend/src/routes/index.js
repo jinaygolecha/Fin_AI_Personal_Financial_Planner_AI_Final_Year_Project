@@ -22,6 +22,8 @@ const cards = require('../controllers/cardController');
 const tasks = require('../controllers/taskController');
 const news = require('../controllers/newsController');
 const storage = require('../controllers/storageController');
+const creditHealth = require('../controllers/creditHealthController');
+const gst = require('../controllers/gstController');
 
 // Apply auth to all routes below
 router.use(authenticate);
@@ -184,11 +186,20 @@ router.get('/ai/simulations/history', simulations.getSimulationHistory);
 router.post('/ai/retirement-plan', simulations.getRetirementPlan);
 router.get('/ai/goals/:id/forecast', simulations.getGoalForecast);
 
-// Receipts OCR & Bank Statement Import
+// Receipts OCR & Bank Statement Import (Unified Ingestion Engine)
 router.post('/receipts/scan', ocrImport.scanReceipt);
 router.post('/receipts/confirm', ocrImport.confirmReceipt);
 router.post('/import/bank-statement', ocrImport.parseBankStatement);
+router.post('/import/statement-pdf', ocrImport.parseBankStatementPDF);
 router.post('/import/confirm', ocrImport.confirmBankStatementImport);
+router.post('/import/feedback', ocrImport.recordCategoryFeedback);
+
+// CIBIL & Credit Score Intelligence (Requirement 18)
+router.get('/credit-score', creditHealth.getCreditScore);
+
+// GST Intelligence & Tax Breakdown (Requirements 19 & 20)
+router.post('/gst/lookup', gst.lookupGSTIN);
+router.post('/gst/calculate', gst.calculateGST);
 
 // Exports
 router.get('/export/transactions.csv', exports_.exportTransactionsCSV);

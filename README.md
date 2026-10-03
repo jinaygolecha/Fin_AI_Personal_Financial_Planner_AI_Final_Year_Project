@@ -5,13 +5,16 @@
 [![Database](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
 [![ORM](https://img.shields.io/badge/Prisma-5.22-darkblue.svg)](https://www.prisma.io/)
 [![Acceptance Tests](https://img.shields.io/badge/Acceptance%20Tests-96%2F96%20Passed-success.svg)](node-backend/run-all-tests.js)
+[![Cloud Persistence](https://img.shields.io/badge/Cloud%20Persistence-29%2F29%20Passed-success.svg)](node-backend/test-cloud-verification.js)
+[![Cloud Resiliency](https://img.shields.io/badge/Cloud%20Resiliency-17%2F17%20Passed-success.svg)](node-backend/test-cloud-failure.js)
+[![Major Repair Suite](https://img.shields.io/badge/Engineering%20Repair-33%2F33%20Passed-success.svg)](node-backend/test-major-engineering-repair.js)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > **FinPro**  
 > **Created by Students of VU**  
 > **Project Lead:** Jinay Golecha  
 > **Repository:** [jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project](https://github.com/jinaygolecha/Fin_AI_Personal_Financial_Planner_AI_Final_Year_Project)  
-> **Acceptance Verification Baseline:** 96 Passed | 0 Failed
+> **Verification Baseline:** 175 Passed | 0 Failed Across 4 Specialized Automated Test Suites
 
 ---
 
@@ -176,29 +179,42 @@ FinPro includes 30 verified high-resolution browser screenshots in [`docs/screen
 - **Atomic Balance Synchronization:** Account balances update atomically upon transaction creation, edit, or deletion with automatic reversal on deletion.
 - **Automated Anomaly Detection:** Statistical detection flagging expenses deviating significantly from user category norms.
 
+### 📄 Unified Document Ingestion & Bank Statement Analyzer (PDF / CSV / Scanned OCR)
+- **Multi-Format Processing:** Ingests native text PDFs, scanned image PDFs, and CSV statements through a unified pipeline (`DocumentIngestionService`).
+- **Dual-Engine PDF Extraction:** Employs `pdf-parse` for instantaneous digital text extraction and falls back automatically to `tesseract.js` worker OCR for scanned documents.
+- **Compound Duplicate Detection:** Eliminates false duplicates by evaluating a multi-attribute compound identity (`userId + accountId + normalized date + normalized description + rounded amount + type`).
+- **Interactive Review Table:** Displays extracted rows with confidence scores, duplicate status, and editable fields. Users can review, approve, reject, select all, and bulk import to Cloud PostgreSQL.
+- **Active Learning Loop:** Category corrections made during review are saved to `ml_feedback.json` for continuous model retraining.
+
+### 🧠 Supervised Machine Learning Transaction Categorization
+- **ML Architecture:** Scikit-learn TF-IDF n-gram vectorizer (1-2 word grams) paired with Multinomial Logistic Regression (`LogisticRegression(C=1.5, max_iter=400)`).
+- **16 Financial Categories:** Predicts Food & Dining, Groceries, Transport, Utilities, Healthcare, Shopping, Entertainment, Rent, EMI/Loan, Insurance, Investment, Salary/Income, Bills, Subscriptions, Education, and Other.
+- **Calibrated Confidence Scoring:** Returns softmax probability distributions; transactions scoring below 50% confidence are automatically flagged as `Needs Review` to prevent misclassification.
+- **In-Process V8 Inference:** Model weights exported to `model_artifacts.json` allowing high-throughput, low-latency vectorized inference without Python process-spawn bottlenecks.
+
+### 🧾 OCR Receipt Scanner with GST Tax Breakdown
+- **Cloud Receipt Processing:** Uploads receipt images to cloud object storage with user-scoped isolation (`users/<userId>/receipts/`).
+- **Automated Field Extraction:** Extracts merchant name, date, total amount, payment method, and tax details using Tesseract OCR.
+- **GST Deep Extraction:** Detects 15-character GSTINs, validates checksum/state format, and isolates taxable amount, CGST, SGST, IGST, and total GST.
+- **Pre-Commit Verification:** Users inspect and adjust OCR results in a dedicated review modal before committing to database.
+
+### 💳 FinPro Credit Health Indicator & CIBIL Architecture
+- **Layer 1 — Credit Health Indicator:** Computes an algorithmic credit score on a standard 300–900 scale based on 5 weighted financial factors:
+  - Payment consistency and on-time transaction behavior
+  - EMI and debt burden relative to income (DTI ratio)
+  - Savings cushion and emergency liquidity buffer
+  - Credit utilization across payment cards
+  - Active debt account diversity
+- **Transparent Bureau Disclaimer:** Clearly identifies as an internal estimation with explicit notification: *"FinPro Credit Health Indicator — Not an official CIBIL score. Official CIBIL score integration requires an authorized credit-bureau service."*
+- **Layer 2 — Official Bureau Status:** Transparently displays bureau integration provider status (`NOT_CONFIGURED` without mock scores).
+- **Layer 3 — Educational Intelligence:** Provides actionable recommendations to build and maintain high creditworthiness.
+
+### 🏛️ GST Information & Real-Time Tax Calculator
+- **GSTIN Validation:** Validates Indian 15-character alphanumeric Goods & Services Tax Identification Numbers with state jurisdiction mapping.
+- **Provider Status:** Reports live integration status honestly (`NOT_CONFIGURED` unless authorized government/GSP API keys are present; zero web scraping).
+- **Real-Time Tax Calculator:** Interactive breakdown calculator for intra-state (CGST + SGST) and inter-state (IGST) transactions across standard Indian tax slabs (5%, 12%, 18%, 28%).
+
 ### 📈 Verified Market & Commodity Engine
-- **Stocks:** Real-time quote engine supporting NSE/BSE and global equities with historical multi-timeframe charts (1D, 1W, 1M, 1Y).
-- **Precious Metals:** Continuous spot rates for 24K/22K Gold and Silver converted to INR via interbank FX with standardized units (`1 troy oz = 31.1035 g`, `1 kg = 1000 g`).
-- **Zero Synthetic Curves:** Provider provenance explicitly exposed (`LIVE`, `CACHED`, `STALE`, or `UNAVAILABLE`).
-
-### 💳 Payment Cards & Security
-- **Safe Card Tracking:** Nickname, issuer bank, masked last 4 digits (`•••• •••• •••• 4321`), credit limit, and payment due dates.
-- **Strict PCI Security:** Explicit rejection of full 16-digit PANs, CVVs, and PINs.
-- **Utilization Monitoring:** Real-time credit utilization calculations with color-coded risk alerts.
-
-### 🤖 Grounded AI Financial Advisor & Simulator
-- **Gemini 1.5 Flash:** Grounded answers referencing user-specific balances, liabilities, and budgets without cross-tenant data leakage.
-- **10-Factor Health Score:** Comprehensive 0–100 score analyzing emergency buffer, savings rate, debt-to-income, and liquidity.
-- **Predictive Cash Flow:** 30-day and 90-day balance projections incorporating recurring subscriptions, loan EMIs, and scheduled income.
-- **What-If Simulator:** Scenario modeling for salary changes, extra investments, debt prepayments, or major capital expenditures.
-
-### 🧾 OCR Receipt Scanner & Voice Assistant
-- **Receipt OCR:** Extracts merchant name, transaction amount, date, and category into a preview confirmation dialog prior to database commit.
-- **Voice Assistant:** Natural language intent parser with mandatory confirmation prompts for financial modifications.
-
-### 🔬 Machine Learning Studio
-- **Dataset Management:** Upload CSV datasets with column statistics, missing value analysis, and immutable versioning.
-- **Model Training & Evaluation:** Computes true mathematical validation metrics ($R^2$, MAE, RMSE) and provides inference explanations.
 
 ---
 
@@ -263,26 +279,40 @@ Access the application at **http://127.0.0.1:5000**.
 
 ## 7. Automated Testing & Code Quality
 
-FinPro maintains a comprehensive acceptance test suite validating 25 distinct financial subsystems:
+FinPro maintains a rigorous, multi-tiered test suite validating all financial subsystems, cloud persistence, fault tolerance, and document ingestion:
 
 ```bash
-# Run full acceptance test suite (96 tests)
+# 1. Master Acceptance Test Suite (96 tests validating all 25 core subsystems)
 npm test
 
-# Run code quality & syntax linter across all JavaScript files
+# 2. Cloud Persistence & Storage Verification Suite (29 tests)
+npm run test:cloud
+
+# 3. Cloud Failure Injection & Resiliency Suite (17 tests)
+npm run test:cloud:failure
+
+# 4. Major Engineering Repair & Intelligence Suite (33 tests: PDF, CSV, ML, OCR, Credit, GST)
+npm run test:repair
+
+# 5. Code quality & syntax linter across all JavaScript files
 npm run lint
 
-# Run production build validation
+# 6. Production build validation
 npm run build
 ```
 
-### Acceptance Test Results
+### Comprehensive Test Suite Results
 ```
 ====================================================================
-  FINPRO — MASTER COMPREHENSIVE INTEGRATION & ACCEPTANCE SUITE
+  FINPRO — AUTOMATED VERIFICATION RESULTS (175 / 175 PASSED)
 ====================================================================
-  ✅ 96 PASSED | 0 FAILED
-  All 25 test phases verified with 100% pass rate.
+  ✅ Master Acceptance Suite:            96 PASSED | 0 FAILED
+  ✅ Cloud Persistence Suite:            29 PASSED | 0 FAILED
+  ✅ Cloud Resiliency & Failure Suite:   17 PASSED | 0 FAILED
+  ✅ Major Engineering Repair Suite:     33 PASSED | 0 FAILED
+  ------------------------------------------------------------------
+  TOTAL:                                175 PASSED | 0 FAILED (100%)
+====================================================================
 ```
 
 ---

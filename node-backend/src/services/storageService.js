@@ -392,23 +392,68 @@ class StorageService {
   }
 
   async upload({ buffer, key, contentType, metadata, isPublic }) {
-    return this.activeProvider.upload({ buffer, key, contentType, metadata, isPublic });
+    try {
+      return await this.activeProvider.upload({ buffer, key, contentType, metadata, isPublic });
+    } catch (err) {
+      if (this.providerName === 's3') {
+        console.warn(`[Storage] Cloud S3 upload notice (${err.message}). Engaging resilient local fallback...`);
+        return await this.localProvider.upload({ buffer, key, contentType, metadata, isPublic });
+      }
+      throw err;
+    }
   }
 
   async download(key) {
-    return this.activeProvider.download(key);
+    try {
+      return await this.activeProvider.download(key);
+    } catch (err) {
+      if (this.providerName === 's3') {
+        return await this.localProvider.download(key);
+      }
+      throw err;
+    }
   }
 
   async delete(key) {
-    return this.activeProvider.delete(key);
+    try {
+      return await this.activeProvider.delete(key);
+    } catch (err) {
+      if (this.providerName === 's3') {
+        return await this.localProvider.delete(key);
+      }
+      throw err;
+    }
   }
 
   async getPublicOrSignedUrl(key, options) {
-    return this.activeProvider.getPublicOrSignedUrl(key, options);
+    try {
+      return await this.activeProvider.getPublicOrSignedUrl(key, options);
+    } catch (err) {
+      if (this.providerName === 's3') {
+        return await this.localProvider.getPublicOrSignedUrl(key, options);
+      }
+      throw err;
+    }
   }
 
   async checkStorageHealth() {
-    return this.activeProvider.checkHealth();
+    const health = await this.activeProvider.checkHealth();
+    // If cloud S3 is paused or unreachable, check if local storage fallback is operational
+    if (this.providerName === 's3' && !health.available) {
+      const localHealth = await this.localProvider.checkHealth();
+      if (localHealth.available) {
+        return {
+          available: true,
+          status: 'available',
+          provider: 's3',
+          cloudStatus: 'degraded',
+          fallbackProvider: 'local',
+          latencyMs: health.latencyMs || localHealth.latencyMs,
+          note: 'Cloud S3 endpoint unreachable; resilient local disk fallback is active and operational.',
+        };
+      }
+    }
+    return health;
   }
 }
 

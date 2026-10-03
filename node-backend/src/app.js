@@ -101,6 +101,7 @@ const frontendPath = path.join(__dirname, '..', '..', 'frontend', 'public');
 app.use(express.static(frontendPath));
 
 const storageService = require('./services/storageService');
+const cloudHealthService = require('./services/cloudHealthService');
 
 // ==================== HEALTH ENDPOINTS ====================
 
@@ -180,6 +181,15 @@ app.get('/api/v1/health/ready', async (req, res) => {
       },
     },
   });
+});
+
+app.get('/api/v1/health/cloud-detailed', async (req, res) => {
+  try {
+    const health = await cloudHealthService.checkAllSubsystems();
+    res.json(health);
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Health probe failed: ' + err.message });
+  }
 });
 
 app.get('/api/v1/health/market', (req, res) => {
