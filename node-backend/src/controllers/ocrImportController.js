@@ -26,12 +26,12 @@ const parseReceiptText = (rawText) => {
 
   // 1. Merchant Detection: Check known brands
   const knownMerchants = [
-    { pattern: /starbucks/i, name: 'Starbucks Coffee', cat: 'Food & Dining' },
-    { pattern: /mcdonald|mcd/i, name: "McDonald's", cat: 'Food & Dining' },
-    { pattern: /subway/i, name: 'Subway', cat: 'Food & Dining' },
-    { pattern: /domino/i, name: "Domino's Pizza", cat: 'Food & Dining' },
-    { pattern: /swiggy/i, name: 'Swiggy', cat: 'Food & Dining' },
-    { pattern: /zomato/i, name: 'Zomato', cat: 'Food & Dining' },
+    { pattern: /starbucks/i, name: 'Starbucks Coffee', cat: 'Food' },
+    { pattern: /mcdonald|mcd/i, name: "McDonald's", cat: 'Food' },
+    { pattern: /subway/i, name: 'Subway', cat: 'Food' },
+    { pattern: /domino/i, name: "Domino's Pizza", cat: 'Food' },
+    { pattern: /swiggy/i, name: 'Swiggy', cat: 'Food' },
+    { pattern: /zomato/i, name: 'Zomato', cat: 'Food' },
     { pattern: /d-?mart|avenue\s+supermarts/i, name: 'DMart Supermarket', cat: 'Groceries' },
     { pattern: /reliance\s+(?:fresh|smart|retail)/i, name: 'Reliance Retail', cat: 'Groceries' },
     { pattern: /nature'?s\s+basket/i, name: "Nature's Basket", cat: 'Groceries' },
@@ -239,11 +239,41 @@ const scanReceipt = async (req, res, next) => {
     const gstInfo = documentIngestionService.extractGSTInformation(extractedText);
     const storedReceipt = req.__storedReceipt || null;
 
+    const gstBreakdown = gstInfo ? {
+      hasGst: true,
+      gstin: gstInfo.gstin,
+      cgst: gstInfo.cgst,
+      sgst: gstInfo.sgst,
+      igst: gstInfo.igst,
+      totalGst: gstInfo.totalGst,
+      taxableAmount: parsed.amount ? Math.max(0, parsed.amount - (gstInfo.totalGst || 0)) : null,
+    } : null;
+
     if (!parsed.amount || parsed.amount <= 0) {
+      const scan = await prisma.receiptScan.create({
+        data: {
+          userId,
+          merchant: parsed.merchant || 'Unidentified Merchant',
+          amount: null,
+          date: parsed.date ? new Date(parsed.date) : new Date(),
+          category: parsed.category || 'General',
+          items: {
+            lineItems: parsed.items,
+            gst: gstInfo,
+            gstBreakdown,
+            storageKey: storedReceipt?.key || null,
+            receiptImageUrl: storedReceipt?.url || null,
+            confidence: ocrConfidence,
+          },
+          rawText: extractedText.slice(0, 1000),
+          status: 'MANUAL_INPUT_REQUIRED',
+        },
+      });
+
       return res.status(200).json({
         success: true,
         data: {
-          scanId: null,
+          scanId: scan.id,
           merchant: parsed.merchant || 'Unidentified Merchant',
           amount: null,
           formattedAmount: 'Unrecognized',
@@ -251,6 +281,7 @@ const scanReceipt = async (req, res, next) => {
           category: parsed.category,
           items: parsed.items,
           gst: gstInfo,
+          gstBreakdown,
           rawText: extractedText.slice(0, 500),
           ocrConfidence,
           receiptImageUrl: storedReceipt?.url || null,
@@ -272,6 +303,7 @@ const scanReceipt = async (req, res, next) => {
         items: {
           lineItems: parsed.items,
           gst: gstInfo,
+          gstBreakdown,
           storageKey: storedReceipt?.key || null,
           receiptImageUrl: storedReceipt?.url || null,
           confidence: ocrConfidence,
@@ -292,6 +324,7 @@ const scanReceipt = async (req, res, next) => {
         category: parsed.category,
         items: parsed.items,
         gst: gstInfo,
+        gstBreakdown,
         ocrConfidence,
         rawTextPreview: extractedText.slice(0, 200),
         receiptImageUrl: storedReceipt?.url || null,
@@ -371,7 +404,27 @@ const confirmReceipt = async (req, res, next) => {
       if (scanId) {
         await tx.receiptScan.updateMany({
           where: { id: scanId, userId },
-          data: { status: 'CONFIRMED', transactionId: createdTx.id },
+          data: {
+            status: 'CONFIRMED',
+            transactionId: createdTx.id,
+            amount: txAmount,
+            merchant: (merchant || 'Receipt Merchant').trim(),
+            category: category || 'General',
+            date: txDate,
+          },
+        });
+      } else {
+        await tx.receiptScan.create({
+          data: {
+            userId,
+            merchant: (merchant || 'Receipt Merchant').trim(),
+            amount: txAmount,
+            date: txDate,
+            category: category || 'General',
+            status: 'CONFIRMED',
+            transactionId: createdTx.id,
+            rawText: `Confirmed expense: ${merchant || 'Receipt Merchant'} - ${formatINR(txAmount)}`,
+          },
         });
       }
 
@@ -616,9 +669,146 @@ const recordCategoryFeedback = async (req, res, next) => {
   }
 };
 
+/**
+ * GET /api/v1/receipts
+ * Returns all receipt scans for authenticated user
+ */
+const getReceipts = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const receipts = await prisma.receiptScan.findMany({
+      where: { userId },
+      orderBy: [
+        { date: 'desc' },
+        { createdAt: 'desc' },
+      ],
+    });
+
+    const formatted = receipts.map(r => {
+      const itemsObj = (typeof r.items === 'object' && r.items !== null && !Array.isArray(r.items)) ? r.items : {};
+      const lineItems = Array.isArray(r.items) ? r.items : (itemsObj.lineItems || []);
+      const gstBreakdown = itemsObj.gstBreakdown || itemsObj.gst || null;
+      const ocrConfidence = itemsObj.confidence || 96;
+
+      return {
+        id: r.id,
+        merchant: r.merchant || 'Unidentified Merchant',
+        amount: r.amount ? parseFloat(r.amount) : null,
+        formattedAmount: r.amount ? formatINR(parseFloat(r.amount)) : 'Pending',
+        date: r.date ? new Date(r.date).toISOString().split('T')[0] : null,
+        category: r.category || 'General',
+        status: r.status,
+        items: lineItems,
+        gstBreakdown,
+        metadata: {
+          ...itemsObj,
+          gstBreakdown,
+        },
+        ocrConfidence,
+        rawText: r.rawText,
+        transactionId: r.transactionId,
+        createdAt: r.createdAt,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        receipts: formatted,
+        count: formatted.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/receipts/:id
+ */
+const getReceiptById = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const receipt = await prisma.receiptScan.findFirst({
+      where: { id, userId },
+    });
+
+    if (!receipt) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Receipt scan not found.' },
+      });
+    }
+
+    const itemsObj = (typeof receipt.items === 'object' && receipt.items !== null && !Array.isArray(receipt.items)) ? receipt.items : {};
+    const lineItems = Array.isArray(receipt.items) ? receipt.items : (itemsObj.lineItems || []);
+    const gstBreakdown = itemsObj.gstBreakdown || itemsObj.gst || null;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...receipt,
+        amount: receipt.amount ? parseFloat(receipt.amount) : null,
+        formattedAmount: receipt.amount ? formatINR(parseFloat(receipt.amount)) : 'Pending',
+        items: lineItems,
+        gstBreakdown,
+        metadata: {
+          ...itemsObj,
+          gstBreakdown,
+        },
+        ocrConfidence: itemsObj.confidence || 96,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/v1/receipts/:id
+ */
+const deleteReceipt = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const receipt = await prisma.receiptScan.findFirst({
+      where: { id, userId },
+    });
+
+    if (!receipt) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Receipt scan not found.' },
+      });
+    }
+
+    // Try deleting linked image from storage if key exists
+    if (receipt.items && typeof receipt.items === 'object' && receipt.items.storageKey) {
+      await storageService.delete(receipt.items.storageKey).catch(() => {});
+    }
+
+    await prisma.receiptScan.delete({
+      where: { id },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: { message: 'Receipt scan deleted successfully.' },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   scanReceipt,
   confirmReceipt,
+  getReceipts,
+  getReceiptById,
+  deleteReceipt,
   parseBankStatement,
   parseBankStatementPDF,
   confirmBankStatementImport,

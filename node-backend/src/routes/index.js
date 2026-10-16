@@ -187,6 +187,9 @@ router.post('/ai/retirement-plan', simulations.getRetirementPlan);
 router.get('/ai/goals/:id/forecast', simulations.getGoalForecast);
 
 // Receipts OCR & Bank Statement Import (Unified Ingestion Engine)
+router.get('/receipts', ocrImport.getReceipts);
+router.get('/receipts/:id', ocrImport.getReceiptById);
+router.delete('/receipts/:id', ocrImport.deleteReceipt);
 router.post('/receipts/scan', ocrImport.scanReceipt);
 router.post('/receipts/confirm', ocrImport.confirmReceipt);
 router.post('/import/bank-statement', ocrImport.parseBankStatement);

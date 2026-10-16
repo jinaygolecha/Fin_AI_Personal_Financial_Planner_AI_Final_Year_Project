@@ -72,3 +72,4 @@ data/raw/
 data/private/
 node-backend/uploads/*
 !node-backend/uploads/.gitkeep
+*.traineddata

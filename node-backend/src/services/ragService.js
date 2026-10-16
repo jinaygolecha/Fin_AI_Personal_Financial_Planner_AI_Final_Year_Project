@@ -425,9 +425,32 @@ const generateDeterministicGroundedResponse = (userMessage, retrievalResult) => 
   if (/where did i spend the most|highest spending|spend most|biggest expense/i.test(q)) {
     const summaryDoc = knowledgeDocs.find(d => d.sourceType === 'TRANSACTION_SUMMARY');
     const txDocs = knowledgeDocs.filter(d => d.sourceType === 'TRANSACTION');
-    if (summaryDoc) {
-      return `**DATABASE FACT:**\n${summaryDoc.text}\n\n**CALCULATED INSIGHT:**\nYour highest expenditure is concentrated in your top category. Reviewing transactions shows active spending in this area.\n\n**MODEL RECOMMENDATION:**\nSet a category spending limit or budget alert in FinPro to prevent overshooting your monthly discretionary target.\n\n**Sources:**\n${sources.map(s => `• ${s}`).join('\n')}`;
+
+    // Extract all recorded expenses from txDocs
+    let highestTx = null;
+    let highestAmt = 0;
+    txDocs.forEach(td => {
+      const match = td.text.match(/EXPENSE\s+[₹Rs.]*([\d,]+(?:\.\d+)?)/i);
+      if (match) {
+        const val = parseFloat(match[1].replace(/,/g, ''));
+        if (val > highestAmt) {
+          highestAmt = val;
+          highestTx = td;
+        }
+      } else if (!highestTx) {
+        highestTx = td;
+      }
+    });
+
+    if (summaryDoc && !summaryDoc.text.includes('"None"')) {
+      const extraContext = highestTx ? ` (Notable expenditure: ${highestTx.text})` : '';
+      return `**DATABASE FACT:**\n${summaryDoc.text}${extraContext}\n\n**CALCULATED INSIGHT:**\nYour highest expenditure is concentrated in your top category. Reviewing transactions shows active spending in this area.\n\n**MODEL RECOMMENDATION:**\nSet a category spending limit or budget alert in FinPro to prevent overshooting your monthly discretionary target.\n\n**Sources:**\n${sources.map(s => `• ${s}`).join('\n')}`;
     }
+
+    if (highestTx) {
+      return `**DATABASE FACT:**\n${highestTx.text}\n\n**CALCULATED INSIGHT:**\nBased on your retrieved transaction records, your highest recorded expense is ${highestTx.text}.\n\n**MODEL RECOMMENDATION:**\nSet a budget in FinPro for this spending category to maintain healthy savings margins.\n\n**Sources:**\n${sources.map(s => `• ${s}`).join('\n')}`;
+    }
+
     return `**DATABASE FACT:**\nNo recorded expense transactions found for this month.\n\n**MODEL RECOMMENDATION:**\nLog or scan your recent receipts to start tracking spending categories.\n\n**Sources:**\n• Transactions`;
   }
 
@@ -507,9 +530,11 @@ const runRAGPipeline = async (userId, userMessage, chatHistory = []) => {
     const CANDIDATE_MODELS = Array.from(
       new Set([
         process.env.AI_MODEL,
+        'gemini-3.8-flash',
+        'gemini-3.7-flash',
         'gemini-3.6-flash',
         'gemini-2.5-flash',
-        'gemini-3.7-flash',
+        'gemini-2.0-flash',
         'gemini-1.5-flash',
         'gemini-1.5-pro',
       ].filter(Boolean))

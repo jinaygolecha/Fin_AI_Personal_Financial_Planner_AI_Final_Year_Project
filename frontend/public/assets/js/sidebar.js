@@ -50,6 +50,15 @@ function renderSidebar(activePage = '') {
       </div>
       ${navHTML}
       <div class="sidebar-footer">
+        <div class="theme-toggle-row" id="sidebarThemeToggle" title="Switch Theme (Light / Dark)" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;margin-bottom:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;user-select:none;">
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--text);">
+            <i class="ri-moon-line" id="sidebarThemeIcon"></i>
+            <span id="sidebarThemeLabel">Theme</span>
+          </div>
+          <div style="width:34px;height:18px;border-radius:9px;background:var(--border-dark);position:relative;transition:background 0.2s;" id="sidebarThemeTrack">
+            <span style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#ffffff;transition:transform 0.2s;box-shadow:0 1px 2px rgba(0,0,0,0.2);" id="sidebarThemeKnob"></span>
+          </div>
+        </div>
         <div class="user-info" id="sidebarUserCard" style="cursor:pointer;" title="View Profile" onclick="window.location.href='/profile.html'">
           <div class="avatar" id="sidebarAvatar">J</div>
           <div>
@@ -63,7 +72,52 @@ function renderSidebar(activePage = '') {
   `;
 }
 
+function getSavedTheme() {
+  const saved = localStorage.getItem('finpro_theme');
+  if (saved === 'dark' || saved === 'light') return saved;
+  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  if (document.body) document.body.setAttribute('data-theme', theme);
+  localStorage.setItem('finpro_theme', theme);
+
+  const icon = document.getElementById('sidebarThemeIcon');
+  const label = document.getElementById('sidebarThemeLabel');
+  const track = document.getElementById('sidebarThemeTrack');
+  const knob = document.getElementById('sidebarThemeKnob');
+
+  if (icon) icon.className = theme === 'dark' ? 'ri-sun-line' : 'ri-moon-line';
+  if (label) label.textContent = theme === 'dark' ? 'Dark Mode' : 'Light Mode';
+  if (track) track.style.background = theme === 'dark' ? 'var(--primary)' : 'var(--border-dark)';
+  if (knob) knob.style.transform = theme === 'dark' ? 'translateX(16px)' : 'translateX(0px)';
+
+  window.dispatchEvent(new CustomEvent('finproThemeChanged', { detail: { theme } }));
+}
+
+function initGlobalTheme() {
+  const current = getSavedTheme();
+  applyTheme(current);
+
+  const toggle = document.getElementById('sidebarThemeToggle');
+  if (toggle) {
+    toggle.onclick = () => {
+      const active = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(active);
+    };
+  }
+}
+
+// Immediate initial execution to avoid flashes of wrong theme
+if (typeof document !== 'undefined') {
+  const earlyTheme = localStorage.getItem('finpro_theme') || ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', earlyTheme);
+}
+
 function initSidebarUser() {
+  initGlobalTheme();
+
   const user = JSON.parse(localStorage.getItem('jf_user') || '{}');
   const name = (user.firstName || user.username || 'User');
   const fullName = name + (user.lastName ? ' ' + user.lastName : '');
@@ -99,4 +153,6 @@ if (typeof window !== 'undefined') {
   window.renderSidebar = renderSidebar;
   window.getSidebar = renderSidebar;
   window.initSidebarUser = initSidebarUser;
+  window.applyTheme = applyTheme;
+  window.getSavedTheme = getSavedTheme;
 }

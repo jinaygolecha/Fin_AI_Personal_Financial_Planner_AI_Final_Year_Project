@@ -6,6 +6,7 @@
 require('dotenv').config();
 const app = require('./app');
 const prisma = require('./config/database');
+const { startMarketBackgroundWorker, stopMarketBackgroundWorker } = require('./services/marketService');
 
 const PORT = parseInt(process.env.PORT) || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -13,6 +14,7 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 // Graceful shutdown handler
 const shutdown = async (signal) => {
   console.log(`\n[Server] ${signal} received. Shutting down gracefully...`);
+  stopMarketBackgroundWorker();
   await prisma.$disconnect();
   console.log('[Server] Database disconnected. Server stopped.');
   process.exit(0);
@@ -59,6 +61,9 @@ const startServer = async () => {
       console.log(`   Auth:      POST http://127.0.0.1:${PORT}/api/v1/auth/register`);
       console.log(`   Dashboard: GET  http://127.0.0.1:${PORT}/api/v1/dashboard`);
       console.log(`   Frontend:  http://127.0.0.1:${PORT}/\n`);
+
+      // Proactive 60-second market cache warmup worker
+      startMarketBackgroundWorker(60000);
     });
 
     server.on('error', (err) => {

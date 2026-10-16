@@ -382,6 +382,9 @@ export const newsAPI = {
 // ===== Receipts OCR & Bank Statement Import API =====
 
 export const receiptsAPI = {
+  list: () => apiFetch('/receipts'),
+  get: (id) => apiFetch(`/receipts/${id}`),
+  delete: (id) => apiFetch(`/receipts/${id}`, { method: 'DELETE' }),
   scan: (data) => apiFetch('/receipts/scan', { method: 'POST', body: JSON.stringify(data) }),
   confirm: (data) => apiFetch('/receipts/confirm', { method: 'POST', body: JSON.stringify(data) }),
 };

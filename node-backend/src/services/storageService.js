@@ -415,14 +415,26 @@ class StorageService {
   }
 
   async delete(key) {
-    try {
-      return await this.activeProvider.delete(key);
-    } catch (err) {
-      if (this.providerName === 's3') {
-        return await this.localProvider.delete(key);
+    let cloudResult = null;
+    let localResult = null;
+
+    if (this.providerName === 's3') {
+      try {
+        cloudResult = await this.cloudProvider.delete(key);
+      } catch {
+        // Cloud delete attempt notice
       }
+    }
+
+    try {
+      localResult = await this.localProvider.delete(key);
+    } catch (err) {
+      if (cloudResult && cloudResult.success) return cloudResult;
       throw err;
     }
+
+    if (cloudResult && cloudResult.success) return cloudResult;
+    return localResult || { success: true, key };
   }
 
   async getPublicOrSignedUrl(key, options) {
