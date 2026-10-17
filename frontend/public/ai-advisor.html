@@ -1,79 +1,464 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Financial Advisor & Simulator — FinPro</title>
-  <meta name="description" content="AI-powered financial decision support with What-If simulations, Voice assistant, OCR receipt scanner, and Risk Radar.">
+  <meta name="description"
+    content="AI-powered financial decision support with What-If simulations, Voice assistant, OCR receipt scanner, and Risk Radar.">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
   <link rel="stylesheet" href="/assets/css/app.css">
   <style>
-    .chat-layout { display: grid; grid-template-columns: 1fr 340px; height: calc(100vh - 65px); }
-    .chat-container { display: flex; flex-direction: column; height: 100%; border-right: 1px solid var(--border); }
-    .chat-header { padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-    .ai-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 18px; color: white; }
-    .ai-status { font-size: 11px; color: #10b981; }
-    .chat-snapshot { padding: 10px 24px; border-bottom: 1px solid var(--border); background: rgba(99,102,241,.04); display: flex; gap: 12px; overflow-x: auto; flex-shrink: 0; }
-    .snapshot-item { flex-shrink: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 11px; white-space: nowrap; box-shadow: var(--shadow-sm); }
-    .snapshot-val { font-weight: 700; color: var(--text, #0f172a); display: block; font-size: 12px; }
-    .snapshot-lbl { color: var(--muted, #64748b); font-size: 9px; font-weight: 600; text-transform: uppercase; }
-    
-    .messages-area { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
-    .msg { display: flex; gap: 10px; max-width: 80%; }
-    .msg.user { align-self: flex-end; flex-direction: row-reverse; }
-    .msg-avatar { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
-    .msg.user .msg-avatar { background: linear-gradient(135deg, #10b981, #059669); }
-    .msg-bubble { padding: 12px 14px; border-radius: 14px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
-    .msg.ai .msg-bubble { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 4px 14px 14px 14px; box-shadow: var(--shadow-sm); }
-    .msg.user .msg-bubble { background: var(--primary); color: #ffffff; border-radius: 14px 4px 14px 14px; box-shadow: var(--shadow-sm); }
-    .msg-time { font-size: 10px; color: var(--muted); margin-top: 4px; text-align: right; }
-    .msg-feedback { display: flex; gap: 6px; margin-top: 8px; font-size: 11px; }
-    .feedback-btn { padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; transition: all 0.2s; }
-    .feedback-btn:hover { background: var(--primary-light); color: var(--primary); }
+    .chat-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      height: calc(100vh - 65px);
+    }
 
-    .input-area { padding: 16px 24px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
-    .input-row { display: flex; gap: 10px; align-items: flex-end; }
-    .chat-input { flex: 1; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 13px; font-family: 'Inter', sans-serif; outline: none; resize: none; min-height: 42px; max-height: 120px; line-height: 1.5; }
-    .chat-input:focus { border-color: var(--primary); }
-    .send-btn { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
-    .voice-btn { width: 40px; height: 40px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); color: var(--primary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; transition: all 0.2s; }
-    .voice-btn.recording { background: #ef4444; color: white; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      border-right: 1px solid var(--border);
+    }
 
-    .quick-btns { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; }
-    .quick-btn { flex-shrink: 0; padding: 5px 10px; background: var(--primary-light); border: 1px solid var(--primary-border); border-radius: 20px; color: var(--primary-dark); font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .chat-header {
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .ai-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: white;
+    }
+
+    .ai-status {
+      font-size: 11px;
+      color: #10b981;
+    }
+
+    .chat-snapshot {
+      padding: 10px 24px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(99, 102, 241, .04);
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .snapshot-item {
+      flex-shrink: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 6px 12px;
+      font-size: 11px;
+      white-space: nowrap;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .snapshot-val {
+      font-weight: 700;
+      color: var(--text, #0f172a);
+      display: block;
+      font-size: 12px;
+    }
+
+    .snapshot-lbl {
+      color: var(--muted, #64748b);
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .msg {
+      display: flex;
+      gap: 10px;
+      max-width: 80%;
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .msg-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+    }
+
+    .msg.user .msg-avatar {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .msg-bubble {
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .msg.ai .msg-bubble {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px 14px 14px 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .msg.user .msg-bubble {
+      background: var(--primary);
+      color: #ffffff;
+      border-radius: 14px 4px 14px 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .msg-time {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .msg-feedback {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 11px;
+    }
+
+    .feedback-btn {
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .feedback-btn:hover {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .input-area {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      resize: none;
+      min-height: 42px;
+      max-height: 120px;
+      line-height: 1.5;
+    }
+
+    .chat-input:focus {
+      border-color: var(--primary);
+    }
+
+    .send-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .voice-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .voice-btn.recording {
+      background: #ef4444;
+      color: white;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.1);
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .quick-btns {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+
+    .quick-btn {
+      flex-shrink: 0;
+      padding: 5px 10px;
+      background: var(--primary-light);
+      border: 1px solid var(--primary-border);
+      border-radius: 20px;
+      color: var(--primary-dark);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
 
     /* Side Tools Panel */
-    .tools-panel { padding: 20px; background: var(--surface); overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-    .tool-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-sm); }
-    .tool-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; color: var(--text, #0f172a); }
-    .tool-desc { font-size: 11px; color: var(--muted, #64748b); margin-bottom: 12px; line-height: 1.4; }
-    .tool-btn { width: 100%; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--primary-border); background: var(--primary-light); color: var(--primary); transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
-    .tool-btn:hover { background: var(--primary); color: white; }
+    .tools-panel {
+      padding: 20px;
+      background: var(--surface);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .tool-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .tool-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text, #0f172a);
+    }
+
+    .tool-desc {
+      font-size: 11px;
+      color: var(--muted, #64748b);
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .tool-btn {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--primary-border);
+      background: var(--primary-light);
+      color: var(--primary);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .tool-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
 
     /* Modals */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
-    .modal-overlay.show { display: flex; }
-    .modal-box { background: var(--surface, #ffffff); border: 1px solid var(--border, #cbd5e1); border-radius: 16px; padding: 24px; width: 500px; max-width: 95vw; max-height: 90vh; overflow-y: auto; color: var(--text, #0f172a); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
-    .modal-box-wide { background: var(--surface, #ffffff); border: 1px solid var(--border, #cbd5e1); border-radius: 16px; padding: 24px; width: 980px; max-width: 96vw; max-height: 90vh; overflow-y: auto; color: var(--text, #0f172a); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
-    .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-    .modal-h3 { font-size: 16px; font-weight: 700; color: var(--text, #0f172a); }
-    .modal-x { background: none; border: none; color: var(--muted, #64748b); font-size: 20px; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
-    .modal-x:hover { color: var(--text); background: var(--surface-2); }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
 
-    .typing { display: flex; gap: 4px; align-items: center; padding: 8px; }
-    .dot { width: 6px; height: 6px; border-radius: 50%; background: #6366f1; animation: bounce .8s infinite; opacity: .7; }
-    .dot:nth-child(2) { animation-delay: .15s; }
-    .dot:nth-child(3) { animation-delay: .3s; }
-    @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--surface, #ffffff);
+      border: 1px solid var(--border, #cbd5e1);
+      border-radius: 16px;
+      padding: 24px;
+      width: 500px;
+      max-width: 95vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      color: var(--text, #0f172a);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal-box-wide {
+      background: var(--surface, #ffffff);
+      border: 1px solid var(--border, #cbd5e1);
+      border-radius: 16px;
+      padding: 24px;
+      width: 980px;
+      max-width: 96vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      color: var(--text, #0f172a);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    .modal-h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text, #0f172a);
+    }
+
+    .modal-x {
+      background: none;
+      border: none;
+      color: var(--muted, #64748b);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .modal-x:hover {
+      color: var(--text);
+      background: var(--surface-2);
+    }
+
+    .typing {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 8px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #6366f1;
+      animation: bounce .8s infinite;
+      opacity: .7;
+    }
+
+    .dot:nth-child(2) {
+      animation-delay: .15s;
+    }
+
+    .dot:nth-child(3) {
+      animation-delay: .3s;
+    }
+
+    @keyframes bounce {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-4px);
+      }
+    }
 
     @media (max-width: 900px) {
-      .chat-layout { grid-template-columns: 1fr; }
-      .tools-panel { display: none; }
+      .chat-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .tools-panel {
+        display: none;
+      }
     }
   </style>
 </head>
+
 <body>
   <div id="sidebarRoot"></div>
   <main class="main-content">
@@ -88,18 +473,25 @@
             <div class="ai-status">● Real-time financial twin integration active</div>
           </div>
           <div style="margin-left:auto;display:flex;gap:8px">
-            <button class="btn-icon-only" id="voiceAssistantBtn" title="Voice Interaction"><i class="ri-mic-line"></i></button>
-            <button class="btn-icon-only" id="clearHistoryBtn" title="Clear History"><i class="ri-delete-bin-line"></i></button>
+            <button class="btn-icon-only" id="voiceAssistantBtn" title="Voice Interaction"><i
+                class="ri-mic-line"></i></button>
+            <button class="btn-icon-only" id="clearHistoryBtn" title="Clear History"><i
+                class="ri-delete-bin-line"></i></button>
           </div>
         </div>
 
         <!-- Snapshot -->
         <div class="chat-snapshot">
-          <div class="snapshot-item"><span class="snapshot-val" id="snapBalance">...</span><span class="snapshot-lbl">Balance</span></div>
-          <div class="snapshot-item"><span class="snapshot-val" id="snapIncome">...</span><span class="snapshot-lbl">Income</span></div>
-          <div class="snapshot-item"><span class="snapshot-val" id="snapExpense">...</span><span class="snapshot-lbl">Expenses</span></div>
-          <div class="snapshot-item"><span class="snapshot-val" id="snapScore">...</span><span class="snapshot-lbl">Health Score</span></div>
-          <div class="snapshot-item"><span class="snapshot-val" id="snapNetWorth">...</span><span class="snapshot-lbl">Net Worth</span></div>
+          <div class="snapshot-item"><span class="snapshot-val" id="snapBalance">...</span><span
+              class="snapshot-lbl">Balance</span></div>
+          <div class="snapshot-item"><span class="snapshot-val" id="snapIncome">...</span><span
+              class="snapshot-lbl">Income</span></div>
+          <div class="snapshot-item"><span class="snapshot-val" id="snapExpense">...</span><span
+              class="snapshot-lbl">Expenses</span></div>
+          <div class="snapshot-item"><span class="snapshot-val" id="snapScore">...</span><span
+              class="snapshot-lbl">Health Score</span></div>
+          <div class="snapshot-item"><span class="snapshot-val" id="snapNetWorth">...</span><span
+              class="snapshot-lbl">Net Worth</span></div>
         </div>
 
         <!-- Messages -->
@@ -107,9 +499,11 @@
           <div class="msg ai">
             <div class="msg-avatar"><i class="ri-robot-line"></i></div>
             <div>
-              <div class="msg-bubble">Hello! I am your AI Financial Advisor. I have analyzed your accounts, transactions, investments, and health metrics. 
-                
-How can I assist you today? You can ask about your spending, run a what-if financial simulation, scan a receipt, or check your retirement trajectory.</div>
+              <div class="msg-bubble">Hello! I am your AI Financial Advisor. I have analyzed your accounts,
+                transactions, investments, and health metrics.
+
+                How can I assist you today? You can ask about your spending, run a what-if financial simulation, scan a
+                receipt, or check your retirement trajectory.</div>
               <div class="msg-time">Just now</div>
             </div>
           </div>
@@ -118,15 +512,22 @@ How can I assist you today? You can ask about your spending, run a what-if finan
         <!-- Input Area -->
         <div class="input-area">
           <div class="quick-btns">
-            <button class="quick-btn" onclick="sendQuick('How much did I spend on food this month?')">Food spending</button>
-            <button class="quick-btn" onclick="sendQuick('What is my savings rate and how can I improve it?')">Savings rate</button>
-            <button class="quick-btn" onclick="sendQuick('How is my investment portfolio performing?')">Portfolio review</button>
-            <button class="quick-btn" onclick="sendQuick('What if my salary increases by 10%?')">What-If: Salary +10%</button>
-            <button class="quick-btn" onclick="sendQuick('What is my financial health score?')">Health breakdown</button>
+            <button class="quick-btn" onclick="sendQuick('How much did I spend on food this month?')">Food
+              spending</button>
+            <button class="quick-btn" onclick="sendQuick('What is my savings rate and how can I improve it?')">Savings
+              rate</button>
+            <button class="quick-btn" onclick="sendQuick('How is my investment portfolio performing?')">Portfolio
+              review</button>
+            <button class="quick-btn" onclick="sendQuick('What if my salary increases by 10%?')">What-If: Salary
+              +10%</button>
+            <button class="quick-btn" onclick="sendQuick('What is my financial health score?')">Health
+              breakdown</button>
           </div>
           <div class="input-row">
             <button class="voice-btn" id="recordVoiceBtn" title="Speak to AI"><i class="ri-mic-fill"></i></button>
-            <textarea id="chatInput" class="chat-input" placeholder="Ask about finances, simulate scenarios, or type 'Add ₹500 food expense'..." rows="1"></textarea>
+            <textarea id="chatInput" class="chat-input"
+              placeholder="Ask about finances, simulate scenarios, or type 'Add ₹500 food expense'..."
+              rows="1"></textarea>
             <button class="send-btn" id="sendBtn"><i class="ri-send-plane-fill"></i></button>
           </div>
         </div>
@@ -137,35 +538,43 @@ How can I assist you today? You can ask about your spending, run a what-if finan
         <!-- Simulator -->
         <div class="tool-card">
           <div class="tool-title"><i class="ri-swap-box-line" style="color:var(--primary);"></i> What-If Simulator</div>
-          <div class="tool-desc">Simulate salary hikes, loan prepayments, or major purchases against your real cash flow.</div>
+          <div class="tool-desc">Simulate salary hikes, loan prepayments, or major purchases against your real cash
+            flow.</div>
           <button class="tool-btn" id="openSimulatorBtn"><i class="ri-play-circle-line"></i> Open Simulator</button>
         </div>
 
         <!-- OCR Receipt Scanner -->
         <div class="tool-card">
-          <div class="tool-title"><i class="ri-camera-lens-line" style="color:var(--success);"></i> OCR Receipt Scanner</div>
-          <div class="tool-desc">Upload receipt image or paste text to auto-extract merchant, amount, and category with confirmation.</div>
+          <div class="tool-title"><i class="ri-camera-lens-line" style="color:var(--success);"></i> OCR Receipt Scanner
+          </div>
+          <div class="tool-desc">Upload receipt image or paste text to auto-extract merchant, amount, and category with
+            confirmation.</div>
           <button class="tool-btn" id="openOcrBtn"><i class="ri-scan-2-line"></i> Scan Receipt</button>
         </div>
 
         <!-- Statement Analyzer (PDF / CSV) -->
         <div class="tool-card">
-          <div class="tool-title"><i class="ri-file-text-line" style="color:var(--warning);"></i> Bank Statement Analyzer</div>
-          <div class="tool-desc">Upload statement PDF (Text or Scanned OCR) or CSV with automated duplicate detection & ML categorization.</div>
+          <div class="tool-title"><i class="ri-file-text-line" style="color:var(--warning);"></i> Bank Statement
+            Analyzer</div>
+          <div class="tool-desc">Upload statement PDF (Text or Scanned OCR) or CSV with automated duplicate detection &
+            ML categorization.</div>
           <button class="tool-btn" id="openImportBtn"><i class="ri-upload-cloud-line"></i> Statement Analyzer</button>
         </div>
 
         <!-- Credit Health & CIBIL Indicator -->
         <div class="tool-card">
-          <div class="tool-title"><i class="ri-shield-check-line" style="color:#0284c7;"></i> Credit Health & CIBIL</div>
+          <div class="tool-title"><i class="ri-shield-check-line" style="color:#0284c7;"></i> Credit Health & CIBIL
+          </div>
           <div class="tool-desc">FinPro Credit Health Indicator (300-900 score) & bureau integration telemetry.</div>
-          <button class="tool-btn" id="openCreditModalBtn"><i class="ri-dashboard-3-line"></i> View Credit Score</button>
+          <button class="tool-btn" id="openCreditModalBtn"><i class="ri-dashboard-3-line"></i> View Credit
+            Score</button>
         </div>
 
         <!-- GST Information & Calculator -->
         <div class="tool-card">
           <div class="tool-title"><i class="ri-bank-card-line" style="color:#7c3aed;"></i> GST Information & Tax</div>
-          <div class="tool-desc">Verify GSTIN format, legal jurisdiction, and calculate CGST/SGST/IGST tax breakdowns.</div>
+          <div class="tool-desc">Verify GSTIN format, legal jurisdiction, and calculate CGST/SGST/IGST tax breakdowns.
+          </div>
           <button class="tool-btn" id="openGstModalBtn"><i class="ri-search-eye-line"></i> GST Lookup</button>
         </div>
 
@@ -191,8 +600,10 @@ How can I assist you today? You can ask about your spending, run a what-if finan
           <label style="font-size:11px;color:#64748b;font-weight:600;">Preset Scenarios</label>
           <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
             <button class="quick-btn" onclick="setSimPreset(10, 0, 0, 0, 0, 'Salary +10%')">Salary +10%</button>
-            <button class="quick-btn" onclick="setSimPreset(0, 0, 5000, 0, 0, 'Extra SIP ₹5k/mo')">Invest +₹5k/mo</button>
-            <button class="quick-btn" onclick="setSimPreset(0, 0, 0, 100000, 0, 'Prepay ₹1L Loan')">Prepay ₹1L Debt</button>
+            <button class="quick-btn" onclick="setSimPreset(0, 0, 5000, 0, 0, 'Extra SIP ₹5k/mo')">Invest
+              +₹5k/mo</button>
+            <button class="quick-btn" onclick="setSimPreset(0, 0, 0, 100000, 0, 'Prepay ₹1L Loan')">Prepay ₹1L
+              Debt</button>
             <button class="quick-btn" onclick="setSimPreset(0, 0, 0, 0, 800000, 'Buy Car ₹8L')">Buy Car ₹8L</button>
           </div>
         </div>
@@ -217,7 +628,9 @@ How can I assist you today? You can ask about your spending, run a what-if finan
           <input type="number" id="simPurchase" class="form-input" value="0" placeholder="e.g. 800000">
         </div>
         <button class="btn btn-primary" id="runSimulationBtn" style="width:100%;">Calculate Impact</button>
-        <div id="simResultBox" style="display:none;background:var(--surface-2);border:1px solid var(--border);padding:14px;border-radius:10px;font-size:12px;line-height:1.5;"></div>
+        <div id="simResultBox"
+          style="display:none;background:var(--surface-2);border:1px solid var(--border);padding:14px;border-radius:10px;font-size:12px;line-height:1.5;">
+        </div>
       </div>
     </div>
   </div>
@@ -227,43 +640,58 @@ How can I assist you today? You can ask about your spending, run a what-if finan
     <div class="modal-box-wide" style="max-width:740px;">
       <div class="modal-head">
         <div>
-          <span class="modal-h3"><i class="ri-scan-2-line" style="color:var(--success);"></i> OCR Receipt Scanner & GST Engine</span>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Tesseract Optical Recognition · Itemized Line Extraction · Automatic GST Breakdown · 50-Day Audit History</div>
+          <span class="modal-h3"><i class="ri-scan-2-line" style="color:var(--success);"></i> OCR Receipt Scanner & GST
+            Engine</span>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Tesseract Optical Recognition · Itemized Line
+            Extraction · Automatic GST Breakdown · 50-Day Audit History</div>
         </div>
         <button class="modal-x" id="closeOcrModal">✕</button>
       </div>
 
       <!-- Tab Switcher -->
       <div style="display:flex;gap:8px;border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px;">
-        <button id="ocrTabScan" class="btn btn-primary" style="padding:6px 14px;font-size:12px;"><i class="ri-camera-lens-line"></i> Scan New Receipt</button>
-        <button id="ocrTabHistory" class="btn btn-secondary" style="padding:6px 14px;font-size:12px;"><i class="ri-history-line"></i> Scanned Receipts History (<span id="ocrHistoryBadgeCount">0</span>)</button>
+        <button id="ocrTabScan" class="btn btn-primary" style="padding:6px 14px;font-size:12px;"><i
+            class="ri-camera-lens-line"></i> Scan New Receipt</button>
+        <button id="ocrTabHistory" class="btn btn-secondary" style="padding:6px 14px;font-size:12px;"><i
+            class="ri-history-line"></i> Scanned Receipts History (<span id="ocrHistoryBadgeCount">0</span>)</button>
       </div>
 
       <!-- TAB 1: SCAN NEW RECEIPT -->
       <div id="ocrScanTabContent" style="display:flex;flex-direction:column;gap:12px;">
         <label style="font-size:11px;color:#64748b;font-weight:600;">Upload Receipt Photo (PNG / JPEG / WebP)</label>
-        <input type="file" id="receiptFileInput" class="form-input" accept="image/png,image/jpeg,image/webp" style="padding:6px;">
+        <input type="file" id="receiptFileInput" class="form-input" accept="image/png,image/jpeg,image/webp"
+          style="padding:6px;">
         <div id="receiptImagePreviewContainer" style="display:none;text-align:center;">
-          <img id="receiptImagePreview" style="max-height:150px;max-width:100%;border-radius:8px;border:1px solid var(--border);object-fit:contain;">
+          <img id="receiptImagePreview"
+            style="max-height:150px;max-width:100%;border-radius:8px;border:1px solid var(--border);object-fit:contain;">
         </div>
         <div style="font-size:11px;color:#64748b;text-align:center;">— or paste receipt text —</div>
-        <textarea id="receiptInput" class="form-input" rows="2" placeholder="e.g. STARBUCKS COFFEE Total: Rs 450.00 Date: 2026-08-16"></textarea>
+        <textarea id="receiptInput" class="form-input" rows="2"
+          placeholder="e.g. STARBUCKS COFFEE Total: Rs 450.00 Date: 2026-08-16"></textarea>
         <button class="btn btn-primary" id="scanReceiptBtn" style="width:100%;">
           <span id="scanReceiptBtnText"><i class="ri-camera-lens-line"></i> Scan & Extract with OCR</span>
-          <span id="scanReceiptSpinner" style="display:none;"><i class="ri-loader-4-line" style="animation:spin 1s infinite linear;display:inline-block;"></i> Processing OCR...</span>
+          <span id="scanReceiptSpinner" style="display:none;"><i class="ri-loader-4-line"
+              style="animation:spin 1s infinite linear;display:inline-block;"></i> Processing OCR...</span>
         </button>
 
-        <div id="ocrPreviewBox" style="display:none;background:rgba(5,150,105,0.06);border:1px solid rgba(5,150,105,0.3);padding:14px;border-radius:10px;font-size:12px;">
+        <div id="ocrPreviewBox"
+          style="display:none;background:rgba(5,150,105,0.06);border:1px solid rgba(5,150,105,0.3);padding:14px;border-radius:10px;font-size:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <span style="font-weight:700;color:var(--success);">Review & Edit Extracted Details:</span>
-            <span id="ocrConfidenceBadge" style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(5,150,105,0.15);color:var(--success);font-weight:700;">Confidence: 100%</span>
+            <span id="ocrConfidenceBadge"
+              style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(5,150,105,0.15);color:var(--success);font-weight:700;">Confidence:
+              100%</span>
           </div>
 
           <!-- GST Breakdown Box -->
-          <div id="ocrGstBreakdownBox" style="display:none;background:#f8fafc;border:1px solid #cbd5e1;padding:12px;border-radius:8px;margin-bottom:10px;">
+          <div id="ocrGstBreakdownBox"
+            style="display:none;background:#f8fafc;border:1px solid #cbd5e1;padding:12px;border-radius:8px;margin-bottom:10px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-              <span style="font-weight:700;color:#0f172a;font-size:11px;"><i class="ri-shield-check-line" style="color:var(--success);"></i> GST Tax Breakdown Detected</span>
-              <span id="ocrGstinBadge" style="font-size:10px;font-family:monospace;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-weight:700;">GSTIN: -</span>
+              <span style="font-weight:700;color:#0f172a;font-size:11px;"><i class="ri-shield-check-line"
+                  style="color:var(--success);"></i> GST Tax Breakdown Detected</span>
+              <span id="ocrGstinBadge"
+                style="font-size:10px;font-family:monospace;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-weight:700;">GSTIN:
+                -</span>
             </div>
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:11px;text-align:center;">
               <div style="background:#ffffff;border:1px solid #e2e8f0;padding:4px;border-radius:6px;">
@@ -287,15 +715,19 @@ How can I assist you today? You can ask about your spending, run a what-if finan
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
             <div>
-              <label style="font-size:10px;color:#64748b;display:block;margin-bottom:2px;font-weight:600;">Merchant</label>
+              <label
+                style="font-size:10px;color:#64748b;display:block;margin-bottom:2px;font-weight:600;">Merchant</label>
               <input type="text" id="ocrEditMerchant" class="form-input" style="padding:6px;font-size:12px;width:100%;">
             </div>
             <div>
-              <label style="font-size:10px;color:#64748b;display:block;margin-bottom:2px;font-weight:600;">Amount (₹)</label>
-              <input type="number" step="0.01" id="ocrEditAmount" class="form-input" style="padding:6px;font-size:12px;width:100%;">
+              <label style="font-size:10px;color:#64748b;display:block;margin-bottom:2px;font-weight:600;">Amount
+                (₹)</label>
+              <input type="number" step="0.01" id="ocrEditAmount" class="form-input"
+                style="padding:6px;font-size:12px;width:100%;">
             </div>
             <div>
-              <label style="font-size:10px;color:#64748b;display:block;margin-bottom:2px;font-weight:600;">Category</label>
+              <label
+                style="font-size:10px;color:#64748b;display:block;margin-bottom:2px;font-weight:600;">Category</label>
               <input type="text" id="ocrEditCategory" class="form-input" style="padding:6px;font-size:12px;width:100%;">
             </div>
             <div>
@@ -305,7 +737,8 @@ How can I assist you today? You can ask about your spending, run a what-if finan
           </div>
           <div id="ocrExtractedLineItems" style="font-size:11px;color:#64748b;margin-bottom:10px;"></div>
           <div style="display:flex;gap:8px;">
-            <button class="btn btn-primary" id="confirmOcrBtn" style="background:var(--success);border-color:var(--success);flex:1;">Confirm & Add Expense</button>
+            <button class="btn btn-primary" id="confirmOcrBtn"
+              style="background:var(--success);border-color:var(--success);flex:1;">Confirm & Add Expense</button>
             <button class="btn btn-secondary" id="cancelOcrBtn" style="flex:1;">Cancel</button>
           </div>
         </div>
@@ -314,14 +747,18 @@ How can I assist you today? You can ask about your spending, run a what-if finan
       <!-- TAB 2: SCANNED RECEIPTS HISTORY -->
       <div id="ocrHistoryTabContent" style="display:none;flex-direction:column;gap:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <input type="text" id="ocrSearchHistoryInput" class="form-input" placeholder="🔍 Search receipts by merchant, category, or amount..." style="padding:6px 10px;font-size:12px;width:60%;">
-          <button class="btn btn-secondary" id="refreshOcrHistoryBtn" style="font-size:11px;padding:6px 10px;"><i class="ri-refresh-line"></i> Refresh</button>
+          <input type="text" id="ocrSearchHistoryInput" class="form-input"
+            placeholder="🔍 Search receipts by merchant, category, or amount..."
+            style="padding:6px 10px;font-size:12px;width:60%;">
+          <button class="btn btn-secondary" id="refreshOcrHistoryBtn" style="font-size:11px;padding:6px 10px;"><i
+              class="ri-refresh-line"></i> Refresh</button>
         </div>
 
         <div style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
           <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">
             <thead>
-              <tr style="background:var(--surface-2, #f8fafc);border-bottom:1px solid var(--border);color:var(--muted);">
+              <tr
+                style="background:var(--surface-2, #f8fafc);border-bottom:1px solid var(--border);color:var(--muted);">
                 <th style="padding:8px 12px;">Date</th>
                 <th style="padding:8px 12px;">Merchant</th>
                 <th style="padding:8px 12px;">Category</th>
@@ -332,19 +769,25 @@ How can I assist you today? You can ask about your spending, run a what-if finan
               </tr>
             </thead>
             <tbody id="ocrHistoryTableBody">
-              <tr><td colspan="7" style="padding:20px;text-align:center;color:var(--muted);">Loading scanned receipts...</td></tr>
+              <tr>
+                <td colspan="7" style="padding:20px;text-align:center;color:var(--muted);">Loading scanned receipts...
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
 
         <!-- Receipt Raw OCR Preview Box -->
-        <div id="ocrDetailViewBox" style="display:none;background:#f8fafc;border:1px solid var(--border);padding:12px;border-radius:8px;font-size:11px;">
+        <div id="ocrDetailViewBox"
+          style="display:none;background:#f8fafc;border:1px solid var(--border);padding:12px;border-radius:8px;font-size:11px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <strong id="ocrDetailTitle" style="color:var(--text);font-size:12px;">Receipt OCR Inspection</strong>
-            <button id="closeOcrDetailBtn" style="background:none;border:none;cursor:pointer;font-weight:700;">✕</button>
+            <button id="closeOcrDetailBtn"
+              style="background:none;border:none;cursor:pointer;font-weight:700;">✕</button>
           </div>
           <div id="ocrDetailMeta" style="color:var(--muted);margin-bottom:6px;"></div>
-          <pre id="ocrDetailRawText" style="white-space:pre-wrap;font-family:monospace;background:#ffffff;border:1px solid #e2e8f0;padding:8px;border-radius:6px;max-height:140px;overflow-y:auto;font-size:10px;"></pre>
+          <pre id="ocrDetailRawText"
+            style="white-space:pre-wrap;font-family:monospace;background:#ffffff;border:1px solid #e2e8f0;padding:8px;border-radius:6px;max-height:140px;overflow-y:auto;font-size:10px;"></pre>
         </div>
       </div>
 
@@ -356,8 +799,10 @@ How can I assist you today? You can ask about your spending, run a what-if finan
     <div class="modal-box-wide">
       <div class="modal-head">
         <div>
-          <span class="modal-h3"><i class="ri-file-text-line" style="color:var(--primary);"></i> Bank Statement Analyzer</span>
-          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Cloud Ingestion Pipeline · PDF Text & Scanned OCR · Machine Learning Categorization · Duplicate Guard</div>
+          <span class="modal-h3"><i class="ri-file-text-line" style="color:var(--primary);"></i> Bank Statement
+            Analyzer</span>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Cloud Ingestion Pipeline · PDF Text & Scanned
+            OCR · Machine Learning Categorization · Duplicate Guard</div>
         </div>
         <button class="modal-x" id="closeImportModal">✕</button>
       </div>
@@ -366,24 +811,32 @@ How can I assist you today? You can ask about your spending, run a what-if finan
         <!-- Input Selector Options -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <!-- Option A: File Upload -->
-          <div style="border:1px dashed var(--border-dark, #cbd5e1);border-radius:12px;padding:16px;background:var(--surface-2, #f8fafc);text-align:center;">
-            <i class="ri-upload-cloud-2-line" style="font-size:28px;color:var(--primary);display:block;margin-bottom:6px;"></i>
+          <div
+            style="border:1px dashed var(--border-dark, #cbd5e1);border-radius:12px;padding:16px;background:var(--surface-2, #f8fafc);text-align:center;">
+            <i class="ri-upload-cloud-2-line"
+              style="font-size:28px;color:var(--primary);display:block;margin-bottom:6px;"></i>
             <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">Upload Statement File</div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Supported formats: <b>PDF</b> (Text / Scanned OCR), <b>CSV</b>, <b>XLSX</b></div>
-            <input type="file" id="statementFileInput" accept=".pdf,.csv,.xlsx,application/pdf,text/csv" style="display:none;">
-            <button type="button" class="btn btn-secondary" style="font-size:12px;" onclick="document.getElementById('statementFileInput').click()">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Supported formats: <b>PDF</b> (Text /
+              Scanned OCR), <b>CSV</b>, <b>XLSX</b></div>
+            <input type="file" id="statementFileInput" accept=".pdf,.csv,.xlsx,application/pdf,text/csv"
+              style="display:none;">
+            <button type="button" class="btn btn-secondary" style="font-size:12px;"
+              onclick="document.getElementById('statementFileInput').click()">
               <i class="ri-folder-open-line"></i> Browse File
             </button>
-            <div id="selectedFileName" style="font-size:11px;color:var(--primary);margin-top:6px;font-weight:600;display:none;"></div>
+            <div id="selectedFileName"
+              style="font-size:11px;color:var(--primary);margin-top:6px;font-weight:600;display:none;"></div>
           </div>
 
           <!-- Option B: Paste CSV or Account Options -->
-          <div style="border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--surface);display:flex;flex-direction:column;gap:8px;">
+          <div
+            style="border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--surface);display:flex;flex-direction:column;gap:8px;">
             <label style="font-size:12px;font-weight:600;color:var(--text);">Target Account & Raw CSV Paste</label>
             <select id="importAccountSelect" class="form-input" style="padding:6px 10px;font-size:12px;">
               <option value="">Primary Account (Auto)</option>
             </select>
-            <textarea id="csvInput" class="form-input" rows="2" style="font-size:11px;font-family:monospace;" placeholder="Or paste CSV: Date,Description,Amount,Type"></textarea>
+            <textarea id="csvInput" class="form-input" rows="2" style="font-size:11px;font-family:monospace;"
+              placeholder="Or paste CSV: Date,Description,Amount,Type"></textarea>
           </div>
         </div>
 
@@ -391,10 +844,13 @@ How can I assist you today? You can ask about your spending, run a what-if finan
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <button class="btn btn-primary" id="parseStatementBtn" style="padding:10px 20px;">
             <span id="parseStatementBtnText"><i class="ri-cpu-line"></i> Analyze Document & Classify with ML</span>
-            <span id="parseStatementSpinner" style="display:none;"><i class="ri-loader-4-line" style="animation:spin 1s infinite linear;display:inline-block;"></i> Ingesting Document & Running ML Model...</span>
+            <span id="parseStatementSpinner" style="display:none;"><i class="ri-loader-4-line"
+                style="animation:spin 1s infinite linear;display:inline-block;"></i> Ingesting Document & Running ML
+              Model...</span>
           </button>
           <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">
-            <i class="ri-shield-keyhole-line" style="color:var(--success);"></i> Cloud Storage User-Scoped Isolation Active
+            <i class="ri-shield-keyhole-line" style="color:var(--success);"></i> Cloud Storage User-Scoped Isolation
+            Active
           </div>
         </div>
 
@@ -402,34 +858,51 @@ How can I assist you today? You can ask about your spending, run a what-if finan
         <div id="analyzerResultArea" style="display:none;flex-direction:column;gap:12px;">
           <!-- Telemetry Summary Cards -->
           <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:10px;">
-            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
-              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Extraction Mode</div>
-              <div id="summaryMode" style="font-weight:700;font-size:12px;color:var(--primary);margin-top:2px;">PDF_TEXT</div>
+            <div
+              style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Extraction Mode
+              </div>
+              <div id="summaryMode" style="font-weight:700;font-size:12px;color:var(--primary);margin-top:2px;">PDF_TEXT
+              </div>
             </div>
-            <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
-              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Detected Rows</div>
+            <div
+              style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Detected Rows
+              </div>
               <div id="summaryTotal" style="font-weight:700;font-size:14px;color:var(--text);margin-top:2px;">0</div>
             </div>
-            <div style="background:rgba(5,150,105,0.08);border:1px solid rgba(5,150,105,0.25);border-radius:8px;padding:10px;text-align:center;">
-              <div style="font-size:10px;color:var(--success);text-transform:uppercase;font-weight:600;">Valid & Ready</div>
+            <div
+              style="background:rgba(5,150,105,0.08);border:1px solid rgba(5,150,105,0.25);border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-size:10px;color:var(--success);text-transform:uppercase;font-weight:600;">Valid & Ready
+              </div>
               <div id="summaryValid" style="font-weight:700;font-size:14px;color:var(--success);margin-top:2px;">0</div>
             </div>
-            <div style="background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.25);border-radius:8px;padding:10px;text-align:center;">
-              <div style="font-size:10px;color:var(--warning);text-transform:uppercase;font-weight:600;">Duplicates Guarded</div>
-              <div id="summaryDuplicates" style="font-weight:700;font-size:14px;color:var(--warning);margin-top:2px;">0</div>
+            <div
+              style="background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.25);border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-size:10px;color:var(--warning);text-transform:uppercase;font-weight:600;">Duplicates
+                Guarded</div>
+              <div id="summaryDuplicates" style="font-weight:700;font-size:14px;color:var(--warning);margin-top:2px;">0
+              </div>
             </div>
-            <div style="background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25);border-radius:8px;padding:10px;text-align:center;">
-              <div style="font-size:10px;color:var(--danger);text-transform:uppercase;font-weight:600;">Invalid / Skipped</div>
-              <div id="summaryInvalid" style="font-weight:700;font-size:14px;color:var(--danger);margin-top:2px;">0</div>
+            <div
+              style="background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25);border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-size:10px;color:var(--danger);text-transform:uppercase;font-weight:600;">Invalid /
+                Skipped</div>
+              <div id="summaryInvalid" style="font-weight:700;font-size:14px;color:var(--danger);margin-top:2px;">0
+              </div>
             </div>
           </div>
 
           <!-- Selection & Filter Toolbar -->
-          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-2);padding:8px 12px;border-radius:8px;border:1px solid var(--border);">
+          <div
+            style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-2);padding:8px 12px;border-radius:8px;border:1px solid var(--border);">
             <div style="display:flex;gap:8px;align-items:center;">
-              <button type="button" class="btn btn-secondary" style="font-size:11px;padding:4px 8px;" id="selectAllRowsBtn"><i class="ri-checkbox-line"></i> Select All</button>
-              <button type="button" class="btn btn-secondary" style="font-size:11px;padding:4px 8px;" id="deselectAllRowsBtn"><i class="ri-checkbox-blank-line"></i> Deselect All</button>
-              <button type="button" class="btn btn-secondary" style="font-size:11px;padding:4px 8px;" id="approveHighConfidenceBtn"><i class="ri-magic-line"></i> Select High-Confidence (≥70%)</button>
+              <button type="button" class="btn btn-secondary" style="font-size:11px;padding:4px 8px;"
+                id="selectAllRowsBtn"><i class="ri-checkbox-line"></i> Select All</button>
+              <button type="button" class="btn btn-secondary" style="font-size:11px;padding:4px 8px;"
+                id="deselectAllRowsBtn"><i class="ri-checkbox-blank-line"></i> Deselect All</button>
+              <button type="button" class="btn btn-secondary" style="font-size:11px;padding:4px 8px;"
+                id="approveHighConfidenceBtn"><i class="ri-magic-line"></i> Select High-Confidence (≥70%)</button>
             </div>
             <div style="font-size:12px;color:var(--muted);font-weight:600;" id="selectionStatusText">0 selected</div>
           </div>
@@ -437,7 +910,8 @@ How can I assist you today? You can ask about your spending, run a what-if finan
           <!-- Table Container -->
           <div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
             <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:left;">
-              <thead style="background:var(--surface-2);position:sticky;top:0;z-index:2;border-bottom:1px solid var(--border);">
+              <thead
+                style="background:var(--surface-2);position:sticky;top:0;z-index:2;border-bottom:1px solid var(--border);">
                 <tr>
                   <th style="padding:8px 10px;width:30px;"><input type="checkbox" id="masterRowCheckbox"></th>
                   <th style="padding:8px 10px;">Date</th>
@@ -459,7 +933,8 @@ How can I assist you today? You can ask about your spending, run a what-if finan
           <!-- Bottom Action Buttons -->
           <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px;">
             <button class="btn btn-secondary" id="cancelImportBtn">Cancel</button>
-            <button class="btn btn-primary" id="confirmSelectedImportBtn" style="background:var(--success);border-color:var(--success);">
+            <button class="btn btn-primary" id="confirmSelectedImportBtn"
+              style="background:var(--success);border-color:var(--success);">
               <i class="ri-check-double-line"></i> Commit Selected Transactions
             </button>
           </div>
@@ -473,8 +948,10 @@ How can I assist you today? You can ask about your spending, run a what-if finan
     <div class="modal-box" style="width:580px;">
       <div class="modal-head">
         <div>
-          <span class="modal-h3"><i class="ri-shield-check-line" style="color:#0284c7;"></i> FinPro Credit Health & CIBIL</span>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Layer 1 Internal Financial Telemetry & Layer 2 Credit Bureau Architecture</div>
+          <span class="modal-h3"><i class="ri-shield-check-line" style="color:#0284c7;"></i> FinPro Credit Health &
+            CIBIL</span>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Layer 1 Internal Financial Telemetry & Layer 2
+            Credit Bureau Architecture</div>
         </div>
         <button class="modal-x" id="closeCreditModal">✕</button>
       </div>
@@ -490,8 +967,10 @@ How can I assist you today? You can ask about your spending, run a what-if finan
     <div class="modal-box" style="width:580px;">
       <div class="modal-head">
         <div>
-          <span class="modal-h3"><i class="ri-bank-card-line" style="color:#7c3aed;"></i> GST Information & Tax Calculator</span>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">GSTIN Verification, Jurisdiction & Tax Breakdown Calculation</div>
+          <span class="modal-h3"><i class="ri-bank-card-line" style="color:#7c3aed;"></i> GST Information & Tax
+            Calculator</span>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">GSTIN Verification, Jurisdiction & Tax
+            Breakdown Calculation</div>
         </div>
         <button class="modal-x" id="closeGstModal">✕</button>
       </div>
@@ -499,20 +978,27 @@ How can I assist you today? You can ask about your spending, run a what-if finan
       <div style="display:flex;flex-direction:column;gap:14px;">
         <!-- Tabs -->
         <div style="display:flex;gap:6px;border-bottom:1px solid var(--border);padding-bottom:8px;">
-          <button class="btn btn-secondary" id="gstTabLookupBtn" style="padding:6px 12px;font-size:12px;background:var(--primary-light);color:var(--primary);font-weight:700;">GSTIN Lookup</button>
-          <button class="btn btn-secondary" id="gstTabCalcBtn" style="padding:6px 12px;font-size:12px;">Tax Calculator</button>
+          <button class="btn btn-secondary" id="gstTabLookupBtn"
+            style="padding:6px 12px;font-size:12px;background:var(--primary-light);color:var(--primary);font-weight:700;">GSTIN
+            Lookup</button>
+          <button class="btn btn-secondary" id="gstTabCalcBtn" style="padding:6px 12px;font-size:12px;">Tax
+            Calculator</button>
         </div>
 
         <!-- Tab 1: GSTIN Lookup -->
         <div id="gstLookupSection" style="display:flex;flex-direction:column;gap:10px;">
           <div>
-            <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:4px;">Enter 15-Digit GSTIN</label>
+            <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:4px;">Enter
+              15-Digit GSTIN</label>
             <div style="display:flex;gap:8px;">
-              <input type="text" id="gstinInput" class="form-input" placeholder="e.g. 27AAPFU0939F1ZV" maxlength="15" style="text-transform:uppercase;font-family:monospace;font-weight:600;">
+              <input type="text" id="gstinInput" class="form-input" placeholder="e.g. 27AAPFU0939F1ZV" maxlength="15"
+                style="text-transform:uppercase;font-family:monospace;font-weight:600;">
               <button class="btn btn-primary" id="btnVerifyGstin" style="flex-shrink:0;">Verify GSTIN</button>
             </div>
           </div>
-          <div id="gstinResultBox" style="display:none;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12px;line-height:1.6;"></div>
+          <div id="gstinResultBox"
+            style="display:none;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12px;line-height:1.6;">
+          </div>
         </div>
 
         <!-- Tab 2: GST Calculator -->
@@ -540,7 +1026,9 @@ How can I assist you today? You can ask about your spending, run a what-if finan
             </select>
           </div>
           <button class="btn btn-primary" id="btnCalculateGst">Compute Tax Breakdown</button>
-          <div id="gstCalcResultBox" style="display:none;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12px;"></div>
+          <div id="gstCalcResultBox"
+            style="display:none;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12px;">
+          </div>
         </div>
       </div>
     </div>
@@ -565,7 +1053,7 @@ How can I assist you today? You can ask about your spending, run a what-if finan
   <script type="module">
     import api, { formatINR, requireAuth, getUser } from '/assets/js/api.js';
 
-    if (!requireAuth()) {}
+    if (!requireAuth()) { }
 
     document.getElementById('sidebarRoot').innerHTML = getSidebar('ai-advisor');
     initSidebarUser();
@@ -891,7 +1379,7 @@ How can I assist you today? You can ask about your spending, run a what-if finan
         const taxBadge = gst.hasGst
           ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#e0f2fe;color:#0369a1;font-weight:600;" title="GSTIN: ${gst.gstin || 'Detected'}">₹${gst.totalGst || 0} (${gst.gstin ? gst.gstin.slice(0, 8) + '...' : 'GST'})</span>`
           : (r.taxAmount ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#f1f5f9;color:#475569;">₹${r.taxAmount}</span>` : '<span style="color:var(--muted);font-size:11px;">-</span>');
-        
+
         let statusBadge = '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(5,150,105,0.15);color:var(--success);font-weight:700;">PROCESSED</span>';
         if (r.status === 'CONFIRMED') {
           statusBadge = '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#dcfce7;color:#15803d;font-weight:700;">CONFIRMED</span>';
@@ -980,9 +1468,9 @@ How can I assist you today? You can ask about your spending, run a what-if finan
         }
         const filtered = cachedReceipts.filter(r => {
           return (r.merchant && r.merchant.toLowerCase().includes(term)) ||
-                 (r.category && r.category.toLowerCase().includes(term)) ||
-                 (String(r.amount).includes(term)) ||
-                 (r.rawText && r.rawText.toLowerCase().includes(term));
+            (r.category && r.category.toLowerCase().includes(term)) ||
+            (String(r.amount).includes(term)) ||
+            (r.rawText && r.rawText.toLowerCase().includes(term));
         });
         renderReceipts(filtered);
       });
@@ -1244,11 +1732,11 @@ How can I assist you today? You can ask about your spending, run a what-if finan
                 <td style="padding:8px 10px;">
                   <input type="text" class="form-input" style="padding:4px 6px;font-size:11px;min-width:140px;" value="${row.description || ''}" onchange="allExtractedRows[${idx}].description=this.value">
                 </td>
-                <td style="padding:8px 10px;font-weight:700;color:${row.type==='INCOME'?'#059669':'#0f172a'};">
-                  ₹${parseFloat(row.amount || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}
+                <td style="padding:8px 10px;font-weight:700;color:${row.type === 'INCOME' ? '#059669' : '#0f172a'};">
+                  ₹${parseFloat(row.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </td>
                 <td style="padding:8px 10px;">
-                  <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:${row.type==='INCOME'?'#ecfdf5':'#fef2f2'};color:${row.type==='INCOME'?'#059669':'#dc2626'};">${row.type}</span>
+                  <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:${row.type === 'INCOME' ? '#ecfdf5' : '#fef2f2'};color:${row.type === 'INCOME' ? '#059669' : '#dc2626'};">${row.type}</span>
                 </td>
                 <td style="padding:8px 10px;">
                   <input type="text" class="form-input" style="padding:4px 6px;font-size:11px;width:110px;" value="${row.category || 'General'}" onchange="handleCategoryCorrection(${idx}, this.value)">
@@ -1261,8 +1749,8 @@ How can I assist you today? You can ask about your spending, run a what-if finan
                 <td style="padding:8px 10px;font-size:10px;color:var(--muted);">${row.source || 'Statement'}</td>
                 <td style="padding:8px 10px;">
                   ${isDup ? `<span style="font-size:10px;color:#d97706;font-weight:600;" title="${row.duplicateReason}">Duplicate Guard</span>`
-                    : isInv ? `<span style="font-size:10px;color:#dc2626;font-weight:600;">${row.reason || 'Invalid'}</span>`
-                    : `<span style="font-size:10px;color:#059669;font-weight:600;">Ready</span>`}
+                : isInv ? `<span style="font-size:10px;color:#dc2626;font-weight:600;">${row.reason || 'Invalid'}</span>`
+                  : `<span style="font-size:10px;color:#059669;font-weight:600;">Ready</span>`}
                 </td>
               </tr>
             `;
@@ -1585,4 +2073,5 @@ How can I assist you today? You can ask about your spending, run a what-if finan
     loadSnapshot();
   </script>
 </body>
+
 </html>

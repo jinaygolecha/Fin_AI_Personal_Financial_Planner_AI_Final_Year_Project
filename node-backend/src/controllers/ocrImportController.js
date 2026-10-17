@@ -4,6 +4,8 @@ const { createWorker } = require('tesseract.js');
 const storageService = require('../services/storageService');
 const documentIngestionService = require('../services/documentIngestionService');
 const mlCategorizerService = require('../services/mlCategorizerService');
+const smsTransactionService = require('../services/smsTransactionService');
+const { createAppNotification } = require('../services/notificationService');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -620,6 +622,14 @@ const confirmBankStatementImport = async (req, res, next) => {
       });
     });
 
+    await createAppNotification({
+      userId,
+      title: '📄 Bank Statement Imported',
+      message: `Successfully imported ${totalImported} transactions into ${account.name}. Net balance impact: ${formatINR(netBalanceImpact)}.`,
+      type: 'SUCCESS',
+      link: '/transactions.html',
+    });
+
     return res.status(200).json({
       success: true,
       data: {
@@ -790,7 +800,7 @@ const deleteReceipt = async (req, res, next) => {
 
     // Try deleting linked image from storage if key exists
     if (receipt.items && typeof receipt.items === 'object' && receipt.items.storageKey) {
-      await storageService.delete(receipt.items.storageKey).catch(() => {});
+      await storageService.delete(receipt.items.storageKey).catch(() => { });
     }
 
     await prisma.receiptScan.delete({
@@ -800,6 +810,60 @@ const deleteReceipt = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       data: { message: 'Receipt scan deleted successfully.' },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/import/sms-parse
+ * Parses raw bank SMS text or simulated Android incoming SMS
+ */
+const parseBankSms = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { smsText, sender } = req.body;
+
+    if (!smsText || typeof smsText !== 'string' || !smsText.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'SMS text content is required.' },
+      });
+    }
+
+    const result = await smsTransactionService.parseSms(userId, smsText, sender);
+    if (!result.isValid) {
+      return res.status(422).json({
+        success: false,
+        error: {
+          code: result.exclusionType || 'INVALID_SMS',
+          message: result.message,
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/import/sms-confirm
+ * Commits a confirmed/user-edited SMS transaction to the database
+ */
+const confirmBankSms = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const transaction = await smsTransactionService.commitSmsTransaction(userId, req.body);
+    return res.status(201).json({
+      success: true,
+      data: transaction,
+      message: 'Bank SMS transaction recorded successfully.',
     });
   } catch (error) {
     next(error);
@@ -816,4 +880,6 @@ module.exports = {
   parseBankStatementPDF,
   confirmBankStatementImport,
   recordCategoryFeedback,
+  parseBankSms,
+  confirmBankSms,
 };

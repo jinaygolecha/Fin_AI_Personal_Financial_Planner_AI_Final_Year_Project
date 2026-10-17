@@ -5,8 +5,8 @@
  */
 
 const isDevLiveServer = window.location.port === '3000' || window.location.port === '5500' || window.location.protocol === 'file:';
-export const API_BASE = isDevLiveServer 
-  ? 'http://127.0.0.1:5000/api/v1' 
+export const API_BASE = isDevLiveServer
+  ? 'http://127.0.0.1:5000/api/v1'
   : '/api/v1';
 
 // ===== Token Management =====
@@ -34,7 +34,7 @@ export const logout = async () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: refresh }),
       });
-    } catch {}
+    } catch { }
   }
   clearTokens();
   window.location.href = '/login.html';

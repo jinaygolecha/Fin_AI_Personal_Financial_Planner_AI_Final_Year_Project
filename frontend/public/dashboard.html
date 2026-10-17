@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — FinPro</title>
   <meta name="description" content="AI-Powered Personal Finance & Real-Time Investment Decision Support System.">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js" defer></script>
   <link rel="stylesheet" href="/assets/css/app.css">
@@ -15,130 +17,334 @@
     document.documentElement.setAttribute('data-theme', savedTheme);
   </script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     :root {
-      --primary: #4f46e5; --primary-dark: #4338ca; --primary-light: #eef2ff;
-      --bg: #f8fafc; --surface: #ffffff; --surface-2: #f1f5f9;
-      --border: #e2e8f0; --text: #0f172a; --text-muted: #64748b;
-      --success: #059669; --warning: #d97706; --danger: #dc2626;
-      --gold: #d97706; --silver: #64748b;
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --primary-light: #eef2ff;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-2: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --success: #059669;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --gold: #d97706;
+      --silver: #64748b;
       --sidebar-width: 250px;
     }
-    * { -webkit-font-smoothing: antialiased; }
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; }
-    
+
+    * {
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
     /* ===== SIDEBAR ===== */
     .sidebar {
-      width: var(--sidebar-width); background: var(--surface);
+      width: var(--sidebar-width);
+      background: var(--surface);
       border-right: 1px solid var(--border);
-      display: flex; flex-direction: column;
-      position: fixed; left: 0; top: 0; height: 100vh;
-      z-index: 100; transition: transform 0.3s;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      z-index: 100;
+      transition: transform 0.3s;
     }
+
     .sidebar-brand {
       padding: 20px 18px;
-      display: flex; align-items: center; gap: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       border-bottom: 1px solid var(--border);
     }
+
     .brand-icon {
-      width: 36px; height: 36px;
+      width: 36px;
+      height: 36px;
       background: var(--primary);
-      border-radius: 8px; display: flex; align-items: center; justify-content: center;
-      font-size: 18px; color: white;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: white;
     }
-    .brand-text { font-size: 15px; font-weight: 700; color: var(--text); }
-    .brand-sub { font-size: 11px; color: var(--text-muted); }
-    .nav-section { padding: 12px 12px 0; }
-    .nav-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; padding: 0 8px 6px; }
+
+    .brand-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .nav-section {
+      padding: 12px 12px 0;
+    }
+
+    .nav-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0 8px 6px;
+    }
+
     .nav-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 12px; border-radius: 8px; margin-bottom: 2px;
-      color: var(--text-muted); text-decoration: none; font-size: 13px; font-weight: 500;
-      transition: all 0.15s ease; cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      margin-bottom: 2px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      cursor: pointer;
     }
-    .nav-item:hover { background: var(--surface-2); color: var(--text); }
-    .nav-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
-    .nav-item.active i { color: var(--primary); }
-    .nav-item i { font-size: 16px; width: 18px; }
+
+    .nav-item:hover {
+      background: var(--surface-2);
+      color: var(--text);
+    }
+
+    .nav-item.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .nav-item.active i {
+      color: var(--primary);
+    }
+
+    .nav-item i {
+      font-size: 16px;
+      width: 18px;
+    }
+
     .sidebar-footer {
-      margin-top: auto; padding: 14px 12px;
+      margin-top: auto;
+      padding: 14px 12px;
       border-top: 1px solid var(--border);
     }
+
     .user-info {
-      display: flex; align-items: center; gap: 10px;
-      padding: 8px 10px; border-radius: 8px;
-      background: var(--surface-2); cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      cursor: pointer;
       transition: background 0.15s;
     }
-    .user-info:hover { background: #e2e8f0; }
-    .avatar {
-      width: 32px; height: 32px; border-radius: 50%;
-      background: var(--primary-light); color: var(--primary);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700; flex-shrink: 0;
+
+    .user-info:hover {
+      background: #e2e8f0;
     }
-    .user-name { font-size: 12px; font-weight: 600; color: var(--text); }
-    .user-role { font-size: 11px; color: var(--text-muted); }
-    
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .user-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .user-role {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
     /* ===== MAIN CONTENT ===== */
-    .main-content { margin-left: var(--sidebar-width); flex: 1; min-height: 100vh; }
-    
+    .main-content {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      min-height: 100vh;
+    }
+
     .topbar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 28px; border-bottom: 1px solid var(--border);
-      background: var(--surface); position: sticky; top: 0; z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 50;
       box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     }
-    .topbar-left h1 { font-size: 20px; font-weight: 700; color: var(--text); }
-    .topbar-left p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-    .topbar-right { display: flex; align-items: center; gap: 12px; }
-    
+
+    .topbar-left h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .topbar-left p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     .btn-icon {
-      width: 36px; height: 36px; border-radius: 8px;
-      background: var(--surface); border: 1px solid var(--border);
-      color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
-      font-size: 16px; transition: all 0.15s; position: relative;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.15s;
+      position: relative;
     }
-    .btn-icon:hover { background: var(--surface-2); color: var(--text); }
-    
+
+    .btn-icon:hover {
+      background: var(--surface-2);
+      color: var(--text);
+    }
+
     .notif-badge {
-      position: absolute; top: -4px; right: -4px;
-      width: 16px; height: 16px; border-radius: 50%;
-      background: var(--danger); font-size: 9px; font-weight: 700;
-      color: white; display: flex; align-items: center; justify-content: center;
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--danger);
+      font-size: 9px;
+      font-weight: 700;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    
+
     /* ===== REAL-TIME MARKET TICKER ===== */
     .market-ticker-bar {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       padding: 10px 28px;
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 16px; overflow-x: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      overflow-x: auto;
       font-size: 12px;
     }
+
     .ticker-status-tag {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
-      background: #ecfdf5; color: var(--success);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      background: #ecfdf5;
+      color: var(--success);
       border: 1px solid #a7f3d0;
       flex-shrink: 0;
     }
+
     .ticker-status-tag.closed {
-      background: #fffbeb; color: var(--warning); border-color: #fde68a;
+      background: #fffbeb;
+      color: var(--warning);
+      border-color: #fde68a;
     }
+
     .ticker-items {
-      display: flex; align-items: center; gap: 20px; flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-shrink: 0;
     }
+
     .ticker-item {
-      display: flex; align-items: center; gap: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .ticker-sym { font-weight: 700; color: var(--text); }
-    .ticker-val { font-weight: 600; color: var(--text); }
-    .ticker-chg { font-size: 11px; font-weight: 600; }
-    .ticker-chg.pos { color: var(--success); }
-    .ticker-chg.neg { color: var(--danger); }
-    .ticker-time { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+
+    .ticker-sym {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .ticker-val {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .ticker-chg {
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .ticker-chg.pos {
+      color: var(--success);
+    }
+
+    .ticker-chg.neg {
+      color: var(--danger);
+    }
+
+    .ticker-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
 
     /* ===== ANOMALY BANNER ===== */
     .anomaly-banner {
@@ -148,160 +354,547 @@
       background: #fef2f2;
       border: 1px solid #fecaca;
       border-radius: 8px;
-      align-items: center; justify-content: space-between;
+      align-items: center;
+      justify-content: space-between;
       gap: 16px;
     }
-    .anomaly-content { display: flex; align-items: center; gap: 12px; }
-    .anomaly-icon { font-size: 20px; color: var(--danger); }
-    .anomaly-title { font-size: 13px; font-weight: 600; color: #991b1b; }
-    .anomaly-desc { font-size: 12px; color: #b91c1c; }
-    .anomaly-actions { display: flex; gap: 8px; }
-    .btn-anomaly {
-      padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600;
-      cursor: pointer; border: 1px solid transparent; transition: all 0.15s;
-    }
-    .btn-anomaly.confirm { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
-    .btn-anomaly.ignore { background: #ffffff; color: var(--text-muted); border-color: #cbd5e1; }
 
-    .content { padding: 24px 28px; max-width: 1400px; }
-    
+    .anomaly-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .anomaly-icon {
+      font-size: 20px;
+      color: var(--danger);
+    }
+
+    .anomaly-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #991b1b;
+    }
+
+    .anomaly-desc {
+      font-size: 12px;
+      color: #b91c1c;
+    }
+
+    .anomaly-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-anomaly {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .btn-anomaly.confirm {
+      background: #fee2e2;
+      color: #991b1b;
+      border-color: #fca5a5;
+    }
+
+    .btn-anomaly.ignore {
+      background: #ffffff;
+      color: var(--text-muted);
+      border-color: #cbd5e1;
+    }
+
+    .content {
+      padding: 24px 28px;
+      max-width: 1400px;
+    }
+
     /* ===== METRIC CARDS ===== */
-    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
     .metric-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; padding: 20px; position: relative; overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
       box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
       transition: transform 0.15s, box-shadow 0.15s;
     }
-    .metric-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06); }
-    .metric-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; font-weight: 600; }
-    .metric-value { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-    .metric-change { font-size: 12px; display: flex; align-items: center; gap: 4px; }
-    .metric-change.positive { color: var(--success); }
-    .metric-change.negative { color: var(--danger); }
-    .metric-icon {
-      position: absolute; top: 16px; right: 16px;
-      width: 36px; height: 36px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; font-size: 18px;
+
+    .metric-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
     }
-    .metric-card.blue .metric-icon { background: #eef2ff; color: var(--primary); }
-    .metric-card.green .metric-icon { background: #ecfdf5; color: var(--success); }
-    .metric-card.red .metric-icon { background: #fef2f2; color: var(--danger); }
-    .metric-card.orange .metric-icon { background: #fffbeb; color: var(--warning); }
-    
+
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .metric-change {
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .metric-change.positive {
+      color: var(--success);
+    }
+
+    .metric-change.negative {
+      color: var(--danger);
+    }
+
+    .metric-icon {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .metric-card.blue .metric-icon {
+      background: #eef2ff;
+      color: var(--primary);
+    }
+
+    .metric-card.green .metric-icon {
+      background: #ecfdf5;
+      color: var(--success);
+    }
+
+    .metric-card.red .metric-icon {
+      background: #fef2f2;
+      color: var(--danger);
+    }
+
+    .metric-card.orange .metric-icon {
+      background: #fffbeb;
+      color: var(--warning);
+    }
+
     /* ===== GRID LAYOUT ===== */
-    .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
-    .full-width { grid-column: 1 / -1; }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
     .card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; padding: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
       box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
     }
-    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .card-title { font-size: 14px; font-weight: 600; color: var(--text); }
-    .card-action { font-size: 12px; color: var(--primary); text-decoration: none; cursor: pointer; font-weight: 600; }
-    .card-action:hover { color: var(--primary-dark); }
-    
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .card-action {
+      font-size: 12px;
+      color: var(--primary);
+      text-decoration: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .card-action:hover {
+      color: var(--primary-dark);
+    }
+
     /* ===== CHART ===== */
-    #spendingChart { width: 100%; height: 220px; }
-    #cashFlowForecastChart { width: 100%; height: 220px; }
+    #spendingChart {
+      width: 100%;
+      height: 220px;
+    }
+
+    #cashFlowForecastChart {
+      width: 100%;
+      height: 220px;
+    }
 
     /* ===== HEALTH SCORE BREAKDOWN ===== */
-    .health-score-container { display: flex; align-items: center; gap: 20px; }
-    .health-ring { position: relative; width: 100px; height: 100px; flex-shrink: 0; }
-    .health-ring svg { transform: rotate(-90deg); }
-    .health-score-value {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      font-size: 22px; font-weight: 800; color: var(--text); text-align: center;
+    .health-score-container {
+      display: flex;
+      align-items: center;
+      gap: 20px;
     }
-    .health-score-label { font-size: 10px; color: var(--text-muted); display: block; }
-    .health-details { flex: 1; }
-    .health-metric { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
-    .health-metric:last-child { border-bottom: none; }
-    .health-metric-name { color: var(--text-muted); }
-    .health-metric-value { font-weight: 600; color: var(--text); }
+
+    .health-ring {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      flex-shrink: 0;
+    }
+
+    .health-ring svg {
+      transform: rotate(-90deg);
+    }
+
+    .health-score-value {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+      text-align: center;
+    }
+
+    .health-score-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      display: block;
+    }
+
+    .health-details {
+      flex: 1;
+    }
+
+    .health-metric {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .health-metric:last-child {
+      border-bottom: none;
+    }
+
+    .health-metric-name {
+      color: var(--text-muted);
+    }
+
+    .health-metric-value {
+      font-weight: 600;
+      color: var(--text);
+    }
 
     /* ===== RECENT TRANSACTIONS ===== */
-    .tx-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
-    .tx-item:last-child { border-bottom: none; padding-bottom: 0; }
-    .tx-icon {
-      width: 36px; height: 36px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+    .tx-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
     }
-    .tx-icon.income { background: #ecfdf5; color: var(--success); }
-    .tx-icon.expense { background: #fef2f2; color: var(--danger); }
-    .tx-desc { font-size: 13px; font-weight: 500; color: var(--text); }
-    .tx-cat { font-size: 11px; color: var(--text-muted); }
-    .tx-amount { margin-left: auto; font-size: 13px; font-weight: 600; }
-    .tx-amount.income { color: var(--success); }
-    .tx-amount.expense { color: var(--danger); }
-    
+
+    .tx-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .tx-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .tx-icon.income {
+      background: #ecfdf5;
+      color: var(--success);
+    }
+
+    .tx-icon.expense {
+      background: #fef2f2;
+      color: var(--danger);
+    }
+
+    .tx-desc {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .tx-cat {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .tx-amount {
+      margin-left: auto;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .tx-amount.income {
+      color: var(--success);
+    }
+
+    .tx-amount.expense {
+      color: var(--danger);
+    }
+
     /* ===== GOALS ===== */
-    .goal-item { margin-bottom: 16px; }
-    .goal-item:last-child { margin-bottom: 0; }
-    .goal-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; display: flex; justify-content: space-between; }
-    .goal-pct { font-size: 11px; color: var(--primary); font-weight: 600; }
-    .progress-bar { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; margin-bottom: 3px; border: 1px solid var(--border); }
-    .progress-fill { height: 100%; border-radius: 3px; background: var(--primary); transition: width 0.8s ease; }
-    .goal-amounts { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
-    
+    .goal-item {
+      margin-bottom: 16px;
+    }
+
+    .goal-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .goal-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .goal-pct {
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: var(--surface-2);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 3px;
+      border: 1px solid var(--border);
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--primary);
+      transition: width 0.8s ease;
+    }
+
+    .goal-amounts {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
     /* ===== ADD MONEY MODAL ===== */
     .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px);
-      z-index: 200; align-items: center; justify-content: center;
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(2px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
     }
-    .modal-overlay.show { display: flex; }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
     .modal {
-      background: var(--surface, #ffffff); border: 1px solid var(--border, #e2e8f0);
-      border-radius: 20px; padding: 28px; width: 400px; max-width: 95vw;
+      background: var(--surface, #ffffff);
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 20px;
+      padding: 28px;
+      width: 400px;
+      max-width: 95vw;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     }
-    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-    .modal-title { font-size: 16px; font-weight: 700; }
-    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; padding: 4px; }
-    .modal-close:hover { color: var(--text); }
-    .form-group { margin-bottom: 14px; }
-    .form-label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; font-weight: 500; }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .modal-close:hover {
+      color: var(--text);
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
     .form-input {
-      width: 100%; padding: 10px 14px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border); border-radius: 10px;
-      color: var(--text); font-size: 13px; font-family: 'Inter', sans-serif;
-      outline: none; transition: border-color 0.2s;
+      width: 100%;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
     }
-    .form-input:focus { border-color: var(--primary); }
+
+    .form-input:focus {
+      border-color: var(--primary);
+    }
+
     .btn-primary {
-      width: 100%; padding: 12px;
+      width: 100%;
+      padding: 12px;
       background: linear-gradient(135deg, var(--primary), #8b5cf6);
-      border: none; border-radius: 10px; color: white;
-      font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif;
-      cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.35); }
-    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-    
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     .btn-add-money {
       padding: 8px 16px;
       background: linear-gradient(135deg, var(--primary), #8b5cf6);
-      border: none; border-radius: 8px; color: white;
-      font-size: 13px; font-weight: 500; font-family: 'Inter', sans-serif;
-      cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
     }
-    .btn-add-money:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(99,102,241,0.4); }
 
-    .empty-state { text-align: center; padding: 32px 20px; color: var(--text-muted); }
-    .empty-state i { font-size: 32px; margin-bottom: 10px; display: block; }
-    .empty-state p { font-size: 13px; }
-    
-    @media (max-width: 1200px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
+    .btn-add-money:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state i {
+      font-size: 32px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .empty-state p {
+      font-size: 13px;
+    }
+
+    @media (max-width: 1200px) {
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 768px) {
-      .sidebar { transform: translateX(-100%); }
-      .main-content { margin-left: 0; }
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .main-content {
+        margin-left: 0;
+      }
     }
   </style>
 </head>
+
 <body>
   <!-- Sidebar -->
   <div id="sidebarRoot"></div>
@@ -334,11 +927,16 @@
         <i class="ri-radio-button-line"></i> <span id="tickerStatusText">LIVE (NSE/COMEX)</span>
       </div>
       <div class="ticker-items" id="tickerItems">
-        <div class="ticker-item"><span class="ticker-sym">RELIANCE</span> <span class="ticker-val" id="tickerRel">Loading...</span></div>
-        <div class="ticker-item"><span class="ticker-sym">TCS</span> <span class="ticker-val" id="tickerTcs">Loading...</span></div>
-        <div class="ticker-item"><span class="ticker-sym">HDFCBANK</span> <span class="ticker-val" id="tickerHdfc">Loading...</span></div>
-        <div class="ticker-item" style="color:var(--gold);"><span class="ticker-sym">GOLD 24K</span> <span class="ticker-val" id="tickerGold">Loading...</span></div>
-        <div class="ticker-item" style="color:var(--silver);"><span class="ticker-sym">SILVER</span> <span class="ticker-val" id="tickerSilver">Loading...</span></div>
+        <div class="ticker-item"><span class="ticker-sym">RELIANCE</span> <span class="ticker-val"
+            id="tickerRel">Loading...</span></div>
+        <div class="ticker-item"><span class="ticker-sym">TCS</span> <span class="ticker-val"
+            id="tickerTcs">Loading...</span></div>
+        <div class="ticker-item"><span class="ticker-sym">HDFCBANK</span> <span class="ticker-val"
+            id="tickerHdfc">Loading...</span></div>
+        <div class="ticker-item" style="color:var(--gold);"><span class="ticker-sym">GOLD 24K</span> <span
+            class="ticker-val" id="tickerGold">Loading...</span></div>
+        <div class="ticker-item" style="color:var(--silver);"><span class="ticker-sym">SILVER</span> <span
+            class="ticker-val" id="tickerSilver">Loading...</span></div>
       </div>
       <div class="ticker-time" id="tickerTimestamp">IST</div>
     </div>
@@ -357,7 +955,7 @@
         <button class="btn-anomaly ignore" id="anomalyDismissBtn">Dismiss</button>
       </div>
     </div>
-    
+
     <!-- Content Area -->
     <div class="content">
       <!-- Metric Cards -->
@@ -387,7 +985,7 @@
           <div class="metric-change" id="loanLine">Loan: ...</div>
         </div>
       </div>
-      
+
       <!-- Main Grid -->
       <div class="dashboard-grid">
         <!-- 30-Day Cash Flow Forecast -->
@@ -395,17 +993,22 @@
           <div class="card-header">
             <div>
               <span class="card-title">Predictive Cash Flow Forecast</span>
-              <span id="lowBalanceWarningTag" style="display:none;margin-left:8px;font-size:10px;padding:2px 8px;background:rgba(239,68,68,0.2);color:#f87171;border-radius:4px;font-weight:600;">Low Balance Alert</span>
+              <span id="lowBalanceWarningTag"
+                style="display:none;margin-left:8px;font-size:10px;padding:2px 8px;background:rgba(239,68,68,0.2);color:#f87171;border-radius:4px;font-weight:600;">Low
+                Balance Alert</span>
             </div>
             <div style="display:flex;gap:6px;">
-              <button onclick="loadCashFlow(7)" id="btnCf7" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#9ca3af;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;">7D</button>
-              <button onclick="loadCashFlow(30)" id="btnCf30" style="background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;">30D</button>
-              <button onclick="loadCashFlow(90)" id="btnCf90" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#9ca3af;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;">90D</button>
+              <button onclick="loadCashFlow(7)" id="btnCf7"
+                style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#9ca3af;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;">7D</button>
+              <button onclick="loadCashFlow(30)" id="btnCf30"
+                style="background:rgba(99,102,241,0.2);border:1px solid rgba(99,102,241,0.4);color:#a5b4fc;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;">30D</button>
+              <button onclick="loadCashFlow(90)" id="btnCf90"
+                style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#9ca3af;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;">90D</button>
             </div>
           </div>
           <div id="cashFlowForecastChart"></div>
         </div>
-        
+
         <!-- 10-Factor AI Financial Health Score -->
         <div class="card">
           <div class="card-header">
@@ -415,9 +1018,9 @@
           <div class="health-score-container">
             <div class="health-ring">
               <svg width="100" height="100" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"/>
+                <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8" />
                 <circle id="healthRingFill" cx="50" cy="50" r="42" fill="none" stroke="#6366f1" stroke-width="8"
-                  stroke-dasharray="264" stroke-dashoffset="264" stroke-linecap="round"/>
+                  stroke-dasharray="264" stroke-dashoffset="264" stroke-linecap="round" />
               </svg>
               <div class="health-score-value" id="healthScore">
                 <span id="hsNum">--</span>
@@ -444,7 +1047,7 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Recent Transactions -->
         <div class="card">
           <div class="card-header">
@@ -452,10 +1055,12 @@
             <a href="/transactions.html" class="card-action">View all →</a>
           </div>
           <div id="txList">
-            <div class="empty-state"><p>Loading transactions...</p></div>
+            <div class="empty-state">
+              <p>Loading transactions...</p>
+            </div>
           </div>
         </div>
-        
+
         <!-- Savings Goals -->
         <div class="card">
           <div class="card-header">
@@ -463,13 +1068,15 @@
             <a href="/goals.html" class="card-action">Manage →</a>
           </div>
           <div id="goalsList">
-            <div class="empty-state"><p>Loading goals...</p></div>
+            <div class="empty-state">
+              <p>Loading goals...</p>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </main>
-  
+
   <!-- Add Money Modal -->
   <div class="modal-overlay" id="addMoneyModal">
     <div class="modal">
@@ -512,14 +1119,17 @@
   <div class="modal-overlay" id="notifModal">
     <div class="modal" style="max-width:480px;">
       <div class="modal-header">
-        <span class="modal-title"><i class="ri-notification-3-line" style="color:#6366f1;"></i> Notifications & Activity</span>
+        <span class="modal-title"><i class="ri-notification-3-line" style="color:#6366f1;"></i> Notifications &
+          Activity</span>
         <button class="modal-close" id="closeNotifModal">✕</button>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <span style="font-size:12px;color:#94a3b8;" id="notifModalCount">Loading notifications...</span>
         <div style="display:flex;gap:6px;">
-          <button type="button" class="btn btn-secondary" id="testChimeBtn" style="padding:4px 8px;font-size:11px;"><i class="ri-volume-up-line"></i> Test Sound</button>
-          <button type="button" class="btn btn-secondary" id="markAllReadBtn" style="padding:4px 8px;font-size:11px;"><i class="ri-check-double-line"></i> Mark all read</button>
+          <button type="button" class="btn btn-secondary" id="testChimeBtn" style="padding:4px 8px;font-size:11px;"><i
+              class="ri-volume-up-line"></i> Test Sound</button>
+          <button type="button" class="btn btn-secondary" id="markAllReadBtn" style="padding:4px 8px;font-size:11px;"><i
+              class="ri-check-double-line"></i> Mark all read</button>
         </div>
       </div>
       <div id="notifListContainer" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
@@ -542,7 +1152,7 @@
     }
 
     const now = new Date();
-    document.getElementById('currentDate').textContent = now.toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    document.getElementById('currentDate').textContent = now.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const hour = now.getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -611,7 +1221,7 @@
         if (d.lowBalanceWarning) {
           const warningEl = document.getElementById('lowBalanceWarningTag');
           warningEl.style.display = 'inline-block';
-          warningEl.textContent = `Warning: Balance < ₹10K on ${new Date(d.lowBalanceWarning.date).toLocaleDateString('en-IN', { day:'numeric', month:'short' })}`;
+          warningEl.textContent = `Warning: Balance < ₹10K on ${new Date(d.lowBalanceWarning.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`;
         }
 
         if (!forecastChart) {
@@ -624,13 +1234,13 @@
           grid: { top: 15, right: 10, bottom: 25, left: 65 },
           xAxis: {
             type: 'category',
-            data: d.projections.map(p => new Date(p.date).toLocaleDateString('en-IN', { day:'numeric', month:'short' })),
+            data: d.projections.map(p => new Date(p.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })),
             axisLabel: { color: '#6b7280', fontSize: 10 },
             axisLine: { show: false },
           },
           yAxis: {
             type: 'value',
-            axisLabel: { color: '#6b7280', fontSize: 10, formatter: (v) => '₹' + (v >= 1000 ? (v/1000).toFixed(0) + 'K' : v) },
+            axisLabel: { color: '#6b7280', fontSize: 10, formatter: (v) => '₹' + (v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v) },
             splitLine: { lineStyle: { color: 'rgba(255,255,255,0.05)' } },
           },
           series: [{
@@ -839,10 +1449,10 @@
         }
 
         list.innerHTML = notifs.map(n => `
-          <div style="padding:10px 12px;background:${n.isRead ? 'var(--surface-2, #f1f5f9)' : '#ffffff'};border:1px solid var(--border, #e2e8f0);border-radius:8px;border-left:4px solid ${n.type==='ERROR'?'#ef4444':n.type==='WARNING'?'#f59e0b':'#6366f1'};display:flex;flex-direction:column;gap:3px;margin-bottom:8px;">
+          <div style="padding:10px 12px;background:${n.isRead ? 'var(--surface-2, #f1f5f9)' : '#ffffff'};border:1px solid var(--border, #e2e8f0);border-radius:8px;border-left:4px solid ${n.type === 'ERROR' ? '#ef4444' : n.type === 'WARNING' ? '#f59e0b' : '#6366f1'};display:flex;flex-direction:column;gap:3px;margin-bottom:8px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-weight:700;font-size:13px;color:${n.isRead?'#64748b':'#0f172a'}">${n.title}</span>
-              <span style="font-size:10px;color:#64748b;font-weight:500;">${new Date(n.createdAt).toLocaleDateString('en-IN', {month:'short', day:'numeric'})}</span>
+              <span style="font-weight:700;font-size:13px;color:${n.isRead ? '#64748b' : '#0f172a'}">${n.title}</span>
+              <span style="font-size:10px;color:#64748b;font-weight:500;">${new Date(n.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</span>
             </div>
             <div style="font-size:12px;color:#334155;line-height:1.4;">${n.message}</div>
           </div>
@@ -873,7 +1483,7 @@
     });
 
     document.getElementById('markAllReadBtn').addEventListener('click', async () => {
-      await api.notificationsAPI.markAllRead().catch(() => {});
+      await api.notificationsAPI.markAllRead().catch(() => { });
       playAudioChime('success');
       loadNotifications();
     });
@@ -882,7 +1492,7 @@
     document.getElementById('logoutBtn').addEventListener('click', async (e) => {
       e.stopPropagation();
       const refresh = localStorage.getItem('jf_refresh_token');
-      await api.authAPI.logout(refresh).catch(() => {});
+      await api.authAPI.logout(refresh).catch(() => { });
       api.clearTokens();
       window.location.href = '/login.html';
     });
@@ -894,4 +1504,5 @@
     loadAnomalies();
   </script>
 </body>
+
 </html>

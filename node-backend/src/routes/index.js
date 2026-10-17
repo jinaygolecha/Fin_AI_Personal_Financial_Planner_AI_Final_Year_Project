@@ -180,6 +180,7 @@ router.get('/ai/insurance-review', ai.getInsuranceReview);
 router.get('/ai/recommendations', ai.getRecommendations);
 router.post('/ai/recommendations/:id/feedback', ai.submitRecommendationFeedback);
 router.post('/ai/voice-intent', ai.parseVoiceIntent);
+router.post('/ai/voice-commit', ai.commitVoiceTransaction);
 
 // Simulations & Forecasting
 router.post('/ai/simulate', simulations.simulateScenario);
@@ -197,6 +198,8 @@ router.post('/import/bank-statement', ocrImport.parseBankStatement);
 router.post('/import/statement-pdf', ocrImport.parseBankStatementPDF);
 router.post('/import/confirm', ocrImport.confirmBankStatementImport);
 router.post('/import/feedback', ocrImport.recordCategoryFeedback);
+router.post('/import/sms-parse', ocrImport.parseBankSms);
+router.post('/import/sms-confirm', ocrImport.confirmBankSms);
 
 // CIBIL & Credit Score Intelligence (Requirement 18)
 router.get('/credit-score', creditHealth.getCreditScore);

@@ -173,6 +173,45 @@ class DocumentIngestionService {
   }
 
   /**
+   * Deterministically classifies transaction type (INCOME | EXPENSE | TRANSFER)
+   * Prevents outgoing bills / UPI debits from ever being classified as INCOME.
+   */
+  detectTransactionType({ rawType = '', rawAmount = '', description = '', isDebitCol = false, isCreditCol = false }) {
+    const desc = String(description || '').toLowerCase();
+    const typeStr = String(rawType || '').toUpperCase();
+    const amtStr = String(rawAmount || '').toUpperCase();
+
+    // 1. Internal Transfer Check (e.g. self transfer, own account transfer, transfer between accounts)
+    if (/\b(self transfer|own account|internal transfer|to self|from self|transfer to own|transfer between accounts|transfer from sbi|transfer to sbi|transfer from hdfc|transfer to hdfc)\b/i.test(desc)) {
+      return 'TRANSFER';
+    }
+
+    // 2. Explicit Column Origin
+    if (isCreditCol) return 'INCOME';
+    if (isDebitCol) return 'EXPENSE';
+
+    // 3. Explicit Type Column or Amount Suffix (CR / DR)
+    if (typeStr.includes('CR') || typeStr.includes('CREDIT') || typeStr.includes('INCOME') || amtStr.includes('CR') || amtStr.startsWith('+')) {
+      return 'INCOME';
+    }
+    if (typeStr.includes('DR') || typeStr.includes('DEBIT') || typeStr.includes('EXPENSE') || amtStr.includes('DR') || amtStr.startsWith('-')) {
+      return 'EXPENSE';
+    }
+
+    // 4. Description Semantic Clues for Indian Banking
+    if (/\b(salary|interest|dividend|refund|cashback|bonus|stipend|received from|credited by|upi\/cr|neft cr|rtgs cr|imps cr|customer payment|received payment)\b/i.test(desc)) {
+      return 'INCOME';
+    }
+
+    if (/\b(paid to|payment to|spent|bill|electricity|water|wifi|recharge|dth|broadband|rent|emi|loan|tax|fee|charge|pos|purchase|swiggy|zomato|amazon|flipkart|uber|ola|upi\/dr|neft dr|rtgs dr|imps dr|atm|withdrawal)\b/i.test(desc)) {
+      return 'EXPENSE';
+    }
+
+    // 5. Default
+    return 'EXPENSE';
+  }
+
+  /**
    * Process Bank Statement CSV
    */
   async processStatementCSV({ userId, csvContent, accountId }) {
@@ -217,22 +256,17 @@ class DocumentIngestionService {
       const rawDesc = descIdx >= 0 ? cols[descIdx] : `Transaction #${i}`;
 
       let amount = null;
-      let type = 'EXPENSE';
+      let isDebitCol = false;
+      let isCreditCol = false;
 
       if (debitIdx >= 0 && cols[debitIdx] && this.normalizeAmount(cols[debitIdx])) {
         amount = this.normalizeAmount(cols[debitIdx]);
-        type = 'EXPENSE';
+        isDebitCol = true;
       } else if (creditIdx >= 0 && cols[creditIdx] && this.normalizeAmount(cols[creditIdx])) {
         amount = this.normalizeAmount(cols[creditIdx]);
-        type = 'INCOME';
+        isCreditCol = true;
       } else if (amountIdx >= 0 && cols[amountIdx]) {
         amount = this.normalizeAmount(cols[amountIdx]);
-        const rawTypeStr = typeIdx >= 0 ? cols[typeIdx].toUpperCase() : '';
-        if (rawTypeStr.includes('CR') || rawTypeStr.includes('INC') || (parseFloat(cols[amountIdx]) > 0 && debitIdx < 0)) {
-          type = rawTypeStr.includes('DR') ? 'EXPENSE' : 'INCOME';
-        } else {
-          type = 'EXPENSE';
-        }
       }
 
       if (!amount || amount <= 0) {
@@ -240,8 +274,19 @@ class DocumentIngestionService {
         continue;
       }
 
-      const normalizedDate = this.normalizeDate(rawDate);
+      const rawTypeStr = typeIdx >= 0 ? cols[typeIdx] : '';
+      const rawAmtStr = amountIdx >= 0 ? cols[amountIdx] : (debitIdx >= 0 ? cols[debitIdx] : (creditIdx >= 0 ? cols[creditIdx] : ''));
       const cleanDesc = (rawDesc || 'Bank Transaction').trim();
+
+      const type = this.detectTransactionType({
+        rawType: rawTypeStr,
+        rawAmount: rawAmtStr,
+        description: cleanDesc,
+        isDebitCol,
+        isCreditCol,
+      });
+
+      const normalizedDate = this.normalizeDate(rawDate);
       const rawBalance = balanceIdx >= 0 ? cols[balanceIdx] : null;
       const runningBalance = rawBalance ? this.normalizeAmount(rawBalance) : null;
       const rawRef = refIdx >= 0 ? cols[refIdx] : null;
@@ -263,7 +308,7 @@ class DocumentIngestionService {
         remarks: (rawRemarks || '').trim(),
         userCorrected: false,
         predictedCategory: mlPrediction.predictedCategory,
-        confidence: mlPrediction.confidence,
+        confidence: Math.min(100, Math.max(0, Math.round(mlPrediction.confidence || 80))),
         mlStatus: mlPrediction.status,
         source: 'CSV Import',
       };

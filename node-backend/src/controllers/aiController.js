@@ -336,23 +336,18 @@ const parseVoiceIntent = async (req, res, next) => {
     const text = speechText.toLowerCase().trim();
     const ctx = await aiService.getUserFinancialContext(userId);
 
-    // 1. Command: Add expense (Requires confirmation!)
-    const addExpenseMatch = text.match(/(?:add|record|spent)\s*(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d{1,2})?)\s*(?:rupees|for|on)?\s*([a-z\s]+)?/i) || text.match(/(?:add|record)\s*(?:a|an)?\s*(\d+(?:\.\d{1,2})?)\s*([a-z\s]+)?/i);
-    if ((text.startsWith('add') || text.startsWith('record') || text.includes('spent ')) && addExpenseMatch && parseFloat(addExpenseMatch[1]) > 0) {
-      const amount = parseFloat(addExpenseMatch[1]);
-      let rawCat = (addExpenseMatch[2] || 'Food').replace(/^(?:for|on|in|at)\s+/i, '').replace(/expense/i, '').trim();
-      let category = rawCat ? rawCat.charAt(0).toUpperCase() + rawCat.slice(1) : 'Food';
+    // 1. Check voice transaction parser for financial intents
+    const voiceTxService = require('../services/voiceTransactionService');
+    const voiceTxResult = await voiceTxService.parseVoiceTransaction(userId, speechText);
+    if (voiceTxResult && voiceTxResult.amount && voiceTxResult.amount > 0) {
       return res.status(200).json({
         success: true,
         data: {
-          intent: 'CREATE_EXPENSE',
+          intent: 'RECORD_TRANSACTION',
           requiresConfirmation: true,
-          confirmationMessage: `Do you want to record an expense of ${formatINR(amount)} for ${category}?`,
-          pendingPayload: {
-            amount,
-            category,
-            transactionType: 'EXPENSE',
-          },
+          confirmationMessage: voiceTxResult.confirmationMessage || `Record ${voiceTxResult.transactionType} of ${formatINR(voiceTxResult.amount)}?`,
+          preview: voiceTxResult,
+          pendingPayload: voiceTxResult.pendingPayload || voiceTxResult,
         },
       });
     }
@@ -424,6 +419,25 @@ const parseVoiceIntent = async (req, res, next) => {
   }
 };
 
+/**
+ * POST /api/v1/ai/voice-commit
+ * Commits a confirmed/user-edited voice transaction to the database
+ */
+const commitVoiceTransaction = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const voiceTxService = require('../services/voiceTransactionService');
+    const transaction = await voiceTxService.commitVoiceTransaction(userId, req.body);
+    return res.status(201).json({
+      success: true,
+      data: transaction,
+      message: 'Transaction recorded successfully via voice command.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   chat,
   getChatHistory,
@@ -434,4 +448,5 @@ module.exports = {
   getRecommendations,
   submitRecommendationFeedback,
   parseVoiceIntent,
+  commitVoiceTransaction,
 };
