@@ -45,7 +45,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'test') {
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.onrender.com') || process.env.NODE_ENV === 'test') {
       callback(null, true);
     } else if (process.env.NODE_ENV !== 'production') {
       // In development allow local loopback origins

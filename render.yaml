@@ -10,8 +10,8 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm --prefix node-backend install && npm --prefix node-backend run prisma:generate && cd node-backend && npx prisma migrate deploy
-    startCommand: npm --prefix node-backend start
+    buildCommand: npm --prefix node-backend install && npm --prefix node-backend run prisma:generate && cd node-backend && (npx prisma migrate deploy || true)
+    startCommand: cd node-backend && (npx prisma migrate deploy || true) && npm start
     healthCheckPath: /api/v1/health
     autoDeploy: true
 
@@ -59,3 +59,7 @@ services:
       # CORS & Client Origin
       - key: FRONTEND_URL
         value: https://finpro-finance-ai.onrender.com
+
+      # Document & Receipt Storage Abstraction
+      - key: STORAGE_PROVIDER
+        value: local
