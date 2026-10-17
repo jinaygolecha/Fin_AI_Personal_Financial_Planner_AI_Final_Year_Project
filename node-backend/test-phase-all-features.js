@@ -194,7 +194,7 @@ async function runComprehensiveFeaturesTest() {
         amount: 540,
         merchant: 'Starbucks Coffee',
         category: 'Food',
-        date: '2026-09-12',
+        date: new Date().toISOString().slice(0, 10),
       });
     assert(confirmRes.status === 201 && confirmRes.body.data.transaction, 'POST /api/v1/receipts/confirm persists transaction to PostgreSQL');
     const createdTxId = confirmRes.body.data.transaction.id;

@@ -179,7 +179,6 @@ class GSTService {
         grossAmount,
       };
     } else {
-      const halfRate = rate / 2;
       const cgst = Math.round((totalGst / 2) * 100) / 100;
       const sgst = Math.round((totalGst - cgst) * 100) / 100;
       return {
@@ -193,6 +192,160 @@ class GSTService {
         grossAmount,
       };
     }
+  }
+
+  /**
+   * Complete Itemized GST Invoice Calculator
+   * Supports:
+   * - Intra-state (CGST + SGST) vs Inter-state (IGST)
+   * - Tax-inclusive vs Tax-exclusive line pricing
+   * - Multiple tax rates per invoice
+   * - Rounding adjustments & legal disclaimers
+   */
+  calculateDetailedTaxInvoice({
+    merchant = 'Merchant',
+    gstin = null,
+    invoiceNumber = null,
+    invoiceDate = null,
+    placeOfSupply = null,
+    supplierStateCode = null,
+    isTaxInclusive = false,
+    lineItems = [],
+    otherCharges = 0,
+    amountPaid = null,
+  }) {
+    const validatedGstin = gstin ? this.validateGSTIN(gstin) : { valid: false };
+    const detectedStateCode = supplierStateCode || (validatedGstin.valid ? validatedGstin.stateCode : null);
+
+    // Intra vs Inter-state detection:
+    // If supplier state is known and place of supply is known:
+    // same state = Intra-state (CGST + SGST). Different state = Inter-state (IGST).
+    let isInterState = false;
+    if (detectedStateCode && placeOfSupply) {
+      const posClean = String(placeOfSupply).trim();
+      isInterState = !posClean.includes(detectedStateCode) && !posClean.toLowerCase().includes((STATE_CODES[detectedStateCode] || '').toLowerCase());
+    }
+
+    const itemsCalculated = [];
+    let totalTaxableValue = 0;
+    let totalCGST = 0;
+    let totalSGST = 0;
+    let totalIGST = 0;
+    let totalDiscount = 0;
+    const warnings = [];
+
+    if (!lineItems || lineItems.length === 0) {
+      warnings.push('No itemized rows detected; calculations based on invoice summary totals.');
+    }
+
+    const defaultItems = (lineItems && lineItems.length > 0) ? lineItems : [
+      { description: 'Recorded Supply', quantity: 1, unitPrice: 0, gstRate: 18, hsn: null }
+    ];
+
+    defaultItems.forEach((item, idx) => {
+      const desc = item.description || `Item #${idx + 1}`;
+      const qty = parseFloat(item.quantity) || 1;
+      const rawPrice = parseFloat(item.unitPrice || item.price || item.amount || 0);
+      const discount = parseFloat(item.discount || 0);
+      const rate = parseFloat(item.gstRate !== undefined ? item.gstRate : (item.rate || 18));
+      const hsn = item.hsn || item.hsnCode || null;
+
+      if (!hsn) {
+        warnings.push(`Item "${desc}": Missing HSN/SAC code.`);
+      }
+
+      totalDiscount += discount;
+      let taxableVal = 0;
+      let itemTax = 0;
+
+      if (isTaxInclusive) {
+        // Price includes GST: Base = (Price * Qty - Discount) / (1 + Rate / 100)
+        const grossPreDiscount = Math.max(0, rawPrice * qty - discount);
+        taxableVal = Math.round((grossPreDiscount / (1 + rate / 100)) * 100) / 100;
+        itemTax = Math.round((grossPreDiscount - taxableVal) * 100) / 100;
+      } else {
+        // Price is exclusive of GST: Base = Price * Qty - Discount
+        taxableVal = Math.round((Math.max(0, rawPrice * qty - discount)) * 100) / 100;
+        itemTax = Math.round((taxableVal * (rate / 100)) * 100) / 100;
+      }
+
+      totalTaxableValue += taxableVal;
+
+      let itemCGST = 0;
+      let itemSGST = 0;
+      let itemIGST = 0;
+
+      if (isInterState) {
+        itemIGST = itemTax;
+        totalIGST += itemIGST;
+      } else {
+        itemCGST = Math.round((itemTax / 2) * 100) / 100;
+        itemSGST = Math.round((itemTax - itemCGST) * 100) / 100;
+        totalCGST += itemCGST;
+        totalSGST += itemSGST;
+      }
+
+      const itemGrandTotal = Math.round((taxableVal + itemTax) * 100) / 100;
+
+      itemsCalculated.push({
+        itemIndex: idx + 1,
+        description: desc,
+        hsnCode: hsn,
+        quantity: qty,
+        unitPrice: rawPrice,
+        discount,
+        taxableValue: taxableVal,
+        gstRatePct: rate,
+        isTaxInclusive,
+        cgst: itemCGST,
+        sgst: itemSGST,
+        igst: itemIGST,
+        totalItemTax: itemTax,
+        finalItemAmount: itemGrandTotal,
+      });
+    });
+
+    const totalTax = Math.round((totalCGST + totalSGST + totalIGST) * 100) / 100;
+    const subtotal = Math.round(totalTaxableValue * 100) / 100;
+    const unroundedFinal = subtotal + totalTax + (parseFloat(otherCharges) || 0);
+    const finalInvoiceAmount = Math.round(unroundedFinal);
+    const roundingAdjustment = Math.round((finalInvoiceAmount - unroundedFinal) * 100) / 100;
+
+    const paid = amountPaid !== null ? parseFloat(amountPaid) : finalInvoiceAmount;
+    const outstandingBalance = Math.max(0, Math.round((finalInvoiceAmount - paid) * 100) / 100);
+
+    return {
+      merchant: merchant || 'Retail Supplier',
+      invoiceNumber: invoiceNumber || null,
+      invoiceDate: invoiceDate || null,
+      supplierDetails: {
+        gstin: validatedGstin.valid ? validatedGstin.gstin : (gstin || 'Not Provided'),
+        isValidGSTIN: validatedGstin.valid,
+        stateCode: detectedStateCode,
+        stateName: STATE_CODES[detectedStateCode] || 'Unknown Jurisdiction',
+        pan: validatedGstin.pan || null,
+        entityType: validatedGstin.entityType || null,
+      },
+      supplyType: isInterState ? 'INTER_STATE (IGST)' : 'INTRA_STATE (CGST + SGST)',
+      pricingBasis: isTaxInclusive ? 'TAX_INCLUSIVE_PRICING' : 'TAX_EXCLUSIVE_PRICING',
+      lineItems: itemsCalculated,
+      taxSummary: {
+        taxableSubtotal: subtotal,
+        totalDiscount: Math.round(totalDiscount * 100) / 100,
+        cgstAmount: Math.round(totalCGST * 100) / 100,
+        sgstAmount: Math.round(totalSGST * 100) / 100,
+        igstAmount: Math.round(totalIGST * 100) / 100,
+        totalTaxAmount: totalTax,
+        otherCharges: parseFloat(otherCharges) || 0,
+        unroundedTotal: Math.round(unroundedFinal * 100) / 100,
+        roundingAdjustment,
+        finalInvoiceAmount,
+        amountPaid: paid,
+        outstandingBalance,
+      },
+      warnings,
+      legalDisclaimer: 'Algorithmic tax analysis for personal expense estimation. Not an official statutory tax audit or legal certificate.',
+    };
   }
 }
 

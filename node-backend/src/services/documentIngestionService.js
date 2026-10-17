@@ -193,6 +193,9 @@ class DocumentIngestionService {
     const creditIdx = headers.findIndex(h => h.includes('credit') || h.includes('deposit'));
     const typeIdx = headers.findIndex(h => h.includes('type'));
     const catIdx = headers.findIndex(h => h.includes('category'));
+    const balanceIdx = headers.findIndex(h => h.includes('balance') || h.includes('bal'));
+    const refIdx = headers.findIndex(h => h.includes('ref') || h.includes('chq') || h.includes('cheque') || h.includes('utr') || h.includes('txn') || h.includes('transaction id'));
+    const remarksIdx = headers.findIndex(h => h.includes('remark') || h.includes('note') || h.includes('comment'));
 
     // Fetch existing user transactions for strict multi-attribute duplicate checking
     const existing = await prisma.transaction.findMany({
@@ -239,6 +242,10 @@ class DocumentIngestionService {
 
       const normalizedDate = this.normalizeDate(rawDate);
       const cleanDesc = (rawDesc || 'Bank Transaction').trim();
+      const rawBalance = balanceIdx >= 0 ? cols[balanceIdx] : null;
+      const runningBalance = rawBalance ? this.normalizeAmount(rawBalance) : null;
+      const rawRef = refIdx >= 0 ? cols[refIdx] : null;
+      const rawRemarks = remarksIdx >= 0 ? cols[remarksIdx] : '';
 
       // ML Category Prediction
       const mlPrediction = mlCategorizerService.predict(cleanDesc, amount, type);
@@ -251,6 +258,10 @@ class DocumentIngestionService {
         amount,
         type,
         category,
+        runningBalance,
+        referenceId: rawRef ? rawRef.trim() : null,
+        remarks: (rawRemarks || '').trim(),
+        userCorrected: false,
         predictedCategory: mlPrediction.predictedCategory,
         confidence: mlPrediction.confidence,
         mlStatus: mlPrediction.status,

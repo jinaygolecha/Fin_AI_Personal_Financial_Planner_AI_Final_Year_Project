@@ -62,6 +62,7 @@ router.get('/transactions', transactions.getTransactions);
 router.post('/transactions', transactions.createTransaction);
 router.get('/transactions/:id', transactions.getTransaction);
 router.patch('/transactions/:id', transactions.updateTransaction);
+router.put('/transactions/:id', transactions.updateTransaction);
 router.delete('/transactions/:id', transactions.deleteTransaction);
 router.post('/transactions/voice', transactions.parseVoiceEntry);
 router.post('/transactions/parse-text', transactions.parseTextEntry);

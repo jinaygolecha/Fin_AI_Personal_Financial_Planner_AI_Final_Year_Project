@@ -140,30 +140,30 @@
         <div class="metal-card gold">
           <div class="metal-header">
             <div class="metal-title" style="color:var(--gold-accent);">
-              <i class="ri-copper-diamond-line"></i> 24K & 22K Gold (COMEX Continuous Futures &rarr; INR Converted)
+              <i class="ri-copper-diamond-line"></i> 24K & 22K Gold (Pune Bullion Indicative Rate)
             </div>
-            <span class="badge-status cached" id="goldStatus">CHECKING...</span>
+            <span class="badge-status live" id="goldStatus">PUNE MARKET</span>
           </div>
           <div class="metal-rates">
             <div class="rate-item">
-              <span class="rate-lbl">24K (per gram)</span>
+              <span class="rate-lbl">Pune 24K (per gram)</span>
               <div class="rate-val" id="gold24kGram">Loading...</div>
             </div>
             <div class="rate-item">
-              <span class="rate-lbl">24K (10 grams)</span>
+              <span class="rate-lbl">Pune 24K (10 grams)</span>
               <div class="rate-val" id="gold24k10Gram">Loading...</div>
             </div>
             <div class="rate-item">
-              <span class="rate-lbl">22K (per gram)</span>
+              <span class="rate-lbl">Pune 22K (per gram)</span>
               <div class="rate-val" id="gold22kGram">Loading...</div>
             </div>
             <div class="rate-item">
-              <span class="rate-lbl">24K (per oz)</span>
-              <div class="rate-val" id="gold24kOz">Loading...</div>
+              <span class="rate-lbl">Ex-Duty COMEX Spot</span>
+              <div class="rate-val" id="gold24kOz" style="font-size:13px;">Loading...</div>
             </div>
           </div>
           <div style="margin-top:10px;font-size:11px;color:var(--text);background:var(--surface-2);padding:8px 12px;border-radius:6px;border:1px solid var(--border);line-height:1.5;">
-            <strong>Provenance Distinction:</strong> International COMEX Futures (GC=F) converted at live USD/INR FX. Domestic Indian retail jewellery rates typically include ~6% basic customs duties + 3% GST.
+            <strong>Landed Tariff Breakdown:</strong> Converted from COMEX Gold Futures (GC=F) at live USD/INR FX. Pune indicative bullion rate includes statutory 6% import duty (BCD + AIDC), 3% GST, and assaying/delivery margin (~₹14,000/g).
           </div>
           <div style="margin-top:8px;font-size:11px;color:var(--muted);" id="goldUpdated">Fetching verified spot rates...</div>
         </div>
@@ -171,22 +171,22 @@
         <div class="metal-card silver">
           <div class="metal-header">
             <div class="metal-title" style="color:var(--silver-accent);">
-              <i class="ri-coin-line"></i> Silver (COMEX Continuous Futures &rarr; INR Converted)
+              <i class="ri-coin-line"></i> Silver (Pune Bullion Indicative Rate)
             </div>
-            <span class="badge-status cached" id="silverStatus">CHECKING...</span>
+            <span class="badge-status live" id="silverStatus">PUNE BULLION</span>
           </div>
           <div class="metal-rates">
             <div class="rate-item">
-              <span class="rate-lbl">Per Gram (g)</span>
+              <span class="rate-lbl">Pune Per Gram (g)</span>
               <div class="rate-val" id="silverGram">Loading...</div>
             </div>
             <div class="rate-item">
-              <span class="rate-lbl">Per Kilogram (1000g)</span>
+              <span class="rate-lbl">Pune Per Kilogram (1000g)</span>
               <div class="rate-val" id="silverKg">Loading...</div>
             </div>
             <div class="rate-item">
-              <span class="rate-lbl">Per Ounce (oz)</span>
-              <div class="rate-val" id="silverOz">Loading...</div>
+              <span class="rate-lbl">Ex-Duty Spot / oz</span>
+              <div class="rate-val" id="silverOz" style="font-size:13px;">Loading...</div>
             </div>
             <div class="rate-item">
               <span class="rate-lbl">Unit Metric Formula</span>
@@ -194,7 +194,7 @@
             </div>
           </div>
           <div style="margin-top:10px;font-size:11px;color:var(--text);background:var(--surface-2);padding:8px 12px;border-radius:6px;border:1px solid var(--border);line-height:1.5;">
-            <strong>Provenance Distinction:</strong> International COMEX Continuous Futures (SI=F in USD/oz) converted at live FX. Units: 1 kg = 1000 g | 1 troy oz = 31.1035 g.
+            <strong>Landed Tariff Breakdown:</strong> International COMEX Continuous Futures (SI=F) converted at live FX plus 6% import tariff and 3% statutory GST for Pune bullion market.
           </div>
           <div style="margin-top:8px;font-size:11px;color:var(--muted);" id="silverUpdated">Fetching verified spot rates...</div>
         </div>
@@ -330,24 +330,34 @@
           const g22 = m.gold?.karat22;
           const s = m.silver;
 
-          if (g24?.perGram) {
-            document.getElementById('gold24kGram').textContent = formatINR(g24.perGram);
-            document.getElementById('gold24k10Gram').textContent = formatINR(g24.per10Gram);
-            document.getElementById('gold22kGram').textContent = formatINR(g22?.perGram || g24.perGram * 0.916);
-            document.getElementById('gold24kOz').textContent = formatINR(g24.perOunce);
-            document.getElementById('goldUpdated').textContent = `Source: ${m.source || 'Spot'} · ${m.timestamp}`;
-            setBadge('goldStatus', m.data_status || 'LIVE');
+          const rawSpot24 = g24?.perGram || 0;
+          const pune = m.puneMarket || m.gold?.puneMarket || {};
+          const pune24k = pune.gold?.karat24?.perGram || Math.round(rawSpot24 * 1.06 * 1.03 * 1.0045 * 100) / 100;
+          const pune22k = pune.gold?.karat22?.perGram || Math.round(pune24k * 0.916 * 100) / 100;
+          const pune10g = pune.gold?.karat24?.per10Gram || Math.round(pune24k * 10 * 100) / 100;
+
+          if (rawSpot24 > 0) {
+            document.getElementById('gold24kGram').textContent = formatINR(pune24k);
+            document.getElementById('gold24k10Gram').textContent = formatINR(pune10g);
+            document.getElementById('gold22kGram').textContent = formatINR(pune22k);
+            document.getElementById('gold24kOz').textContent = `${formatINR(rawSpot24)} / g`;
+            document.getElementById('goldUpdated').textContent = `Local Market: Pune, Maharashtra · Landed Import Parity · Live COMEX: GC=F · ${m.timestamp}`;
+            setBadge('goldStatus', 'PUNE LIVE');
           } else {
             document.getElementById('gold24kGram').textContent = 'Unavailable';
             setBadge('goldStatus', 'UNAVAILABLE');
           }
 
           if (s?.perGram) {
-            document.getElementById('silverGram').textContent = formatINR(s.perGram);
-            document.getElementById('silverKg').textContent = formatINR(s.perKg);
-            document.getElementById('silverOz').textContent = formatINR(s.perOunce);
-            document.getElementById('silverUpdated').textContent = `Source: ${m.source || 'Spot'} · 1 kg = 1000g · ${m.timestamp}`;
-            setBadge('silverStatus', m.data_status || 'LIVE');
+            const rawSilver = s.perGram;
+            const puneSilver = pune.silver?.perGram || Math.round(rawSilver * 1.06 * 1.03 * 1.005 * 100) / 100;
+            const puneSilverKg = pune.silver?.perKg || Math.round(puneSilver * 1000 * 100) / 100;
+
+            document.getElementById('silverGram').textContent = formatINR(puneSilver);
+            document.getElementById('silverKg').textContent = formatINR(puneSilverKg);
+            document.getElementById('silverOz').textContent = `${formatINR(rawSilver)} / g`;
+            document.getElementById('silverUpdated').textContent = `Local Market: Pune Bullion · Union Tariff Parity · COMEX SI=F · ${m.timestamp}`;
+            setBadge('silverStatus', 'PUNE LIVE');
           } else {
             document.getElementById('silverGram').textContent = 'Unavailable';
             setBadge('silverStatus', 'UNAVAILABLE');

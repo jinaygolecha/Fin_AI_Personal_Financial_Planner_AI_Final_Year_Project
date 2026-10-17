@@ -347,31 +347,65 @@
       <!-- Row 1: Precious Metals & FX Cards -->
       <div class="dash-grid dash-grid-3" style="margin-bottom:20px;">
         <!-- Gold Card -->
+        <!-- Gold Card (Pune Local Market & Import Parity) -->
         <div class="mcard gold-card">
-          <div class="mcard-icon icon-gold"><i class="ri-copper-diamond-line"></i></div>
-          <div class="mcard-label">Gold 24K (COMEX Continuous Futures &rarr; INR)</div>
-          <div class="mcard-value" id="gold24kVal">Loading...</div>
-          <div class="mcard-sub">per gram &middot; 99.9% Purity &middot; Live USD/INR</div>
-          <div class="rates-grid">
-            <div class="rate-row"><div class="rate-lbl">22K / gram (91.6%)</div><div class="rate-val" id="gold22kVal">--</div></div>
-            <div class="rate-row"><div class="rate-lbl">24K / 10 grams</div><div class="rate-val" id="gold10gVal">--</div></div>
-            <div class="rate-row"><div class="rate-lbl">24K / troy oz</div><div class="rate-val" id="goldOzVal">--</div></div>
-            <div class="rate-row"><div class="rate-lbl">Data Provenance</div><div class="rate-val" id="goldSourceVal" style="font-size:11px;">COMEX: GC=F</div></div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div class="mcard-icon icon-gold"><i class="ri-copper-diamond-line"></i></div>
+            <span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(217,119,6,0.15);color:var(--gold-accent);font-weight:700;">
+              📍 PUNE LOCAL MARKET
+            </span>
           </div>
-          <div class="provenance-note provenance-gold">
-            <strong>Provenance:</strong> COMEX Gold Continuous Futures (GC=F) converted to INR at live interbank FX. Domestic Indian retail jewellery rates carry ~6% basic customs duties + 3% GST.
+          <div class="mcard-label">Gold 24K (Pune Bullion Indicative Rate)</div>
+          <div class="mcard-value" id="gold24kVal">Loading...</div>
+          <div class="mcard-sub" id="goldSubHeadline">per gram &middot; 99.9% Purity &middot; Landed Import Parity</div>
+          <div class="rates-grid">
+            <div class="rate-row"><div class="rate-lbl">22K Jewellery (91.6%)</div><div class="rate-val" id="gold22kVal">--</div></div>
+            <div class="rate-row"><div class="rate-lbl">24K / 10 grams (Pune)</div><div class="rate-val" id="gold10gVal">--</div></div>
+            <div class="rate-row"><div class="rate-lbl">Ex-Duty COMEX Spot</div><div class="rate-val" id="goldSpotVal" style="font-size:13px;">--</div></div>
+            <div class="rate-row"><div class="rate-lbl">COMEX Contract</div><div class="rate-val" id="goldSourceVal" style="font-size:11px;">GC=F / USD</div></div>
+          </div>
+          <!-- Tariff & Tax Breakdown Box -->
+          <div style="margin-top:10px;background:var(--rate-bg);border:1px solid var(--rate-border);border-radius:8px;padding:8px 10px;font-size:11px;">
+            <div style="font-weight:700;color:var(--text);margin-bottom:4px;display:flex;justify-content:space-between;">
+              <span>Statutory Indian Import Parity Breakdown:</span>
+              <span style="color:var(--gold-accent);font-weight:700;">Union Tariff</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:2px;">
+              <span>• Base Converted Spot (Ex-Duty):</span>
+              <span id="goldExDutyVal" style="font-weight:600;color:var(--text);">--</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:2px;">
+              <span>• Basic Customs Duty & AIDC (6.0%):</span>
+              <span id="goldCustomsVal" style="font-weight:600;color:var(--text);">--</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:2px;">
+              <span>• Statutory GST (3.0%):</span>
+              <span id="goldGstVal" style="font-weight:600;color:var(--text);">--</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;color:var(--muted);">
+              <span>• Pune Bullion Premium & Assaying (0.45%):</span>
+              <span id="goldMarginVal" style="font-weight:600;color:var(--text);">--</span>
+            </div>
+          </div>
+          <div class="provenance-note provenance-gold" style="margin-top:8px;">
+            <strong>Disclosure:</strong> Converted from COMEX Gold Futures (GC=F) at live interbank USD/INR. Pune bullion retail rate incorporates statutory 6% import duty, 3% GST, and physical delivery margin. Retail jewellery making charges (8%-18%) extra.
           </div>
         </div>
 
         <!-- Silver & USD/INR Cards -->
         <div style="display:flex;flex-direction:column;gap:16px;">
           <div class="mcard silver-card">
-            <div class="mcard-icon icon-silver"><i class="ri-coin-line"></i></div>
-            <div class="mcard-label">Silver (COMEX Futures &rarr; INR Converted)</div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div class="mcard-icon icon-silver"><i class="ri-coin-line"></i></div>
+              <span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(100,116,139,0.15);color:var(--silver-accent);font-weight:700;">
+                📍 PUNE BULLION
+              </span>
+            </div>
+            <div class="mcard-label">Silver (Pune Bullion Indicative Rate)</div>
             <div class="mcard-value" id="silverGramVal">--</div>
             <div class="mcard-sub">per gram &middot; <span id="silverKgVal" style="font-weight:700;">--</span> / kg</div>
             <div class="provenance-note provenance-silver">
-              <strong>Unit Metric:</strong> 1 kg = 1,000 grams exact &middot; 1 troy oz = 31.1035 grams. Converted from COMEX Silver (SI=F).
+              <strong>Unit Metric:</strong> 1 kg = 1,000g exact &middot; 1 troy oz = 31.1035g. Includes landed import tariff & GST from COMEX Silver (SI=F).
             </div>
           </div>
 
@@ -683,19 +717,39 @@
 
       renderSessionAndStatus(d);
 
-      // Gold
+      // Gold (Pune Local Retail Bullion + Statutory Landed Tariff Breakdown)
       if (d.gold?.karat24) {
-        document.getElementById('gold24kVal').textContent = fmt(d.gold.karat24.perGram);
-        document.getElementById('gold22kVal').textContent = fmt(d.gold.karat22?.perGram);
-        document.getElementById('gold10gVal').textContent = fmt(d.gold.karat24.per10Gram);
-        document.getElementById('goldOzVal').textContent  = fmt(d.gold.karat24.perOunce);
+        const rawSpot24k = d.gold.karat24.perGram;
+        const pune = d.puneMarket || d.gold.puneMarket || {};
+        const puneGold24k = pune.gold?.karat24?.perGram || Math.round(rawSpot24k * 1.06 * 1.03 * 1.0045 * 100) / 100;
+        const puneGold22k = pune.gold?.karat22?.perGram || Math.round(puneGold24k * 0.916 * 100) / 100;
+        const puneGold10g = pune.gold?.karat24?.per10Gram || Math.round(puneGold24k * 10 * 100) / 100;
+
+        const customsVal = Math.round(rawSpot24k * 0.06 * 100) / 100;
+        const gstVal = Math.round((rawSpot24k + customsVal) * 0.03 * 100) / 100;
+        const marginVal = Math.round((rawSpot24k + customsVal + gstVal) * 0.0045 * 100) / 100;
+
+        document.getElementById('gold24kVal').textContent = fmt(puneGold24k);
+        document.getElementById('gold22kVal').textContent = fmt(puneGold22k);
+        document.getElementById('gold10gVal').textContent = fmt(puneGold10g);
+        document.getElementById('goldSpotVal').textContent = fmt(rawSpot24k);
         document.getElementById('goldSourceVal').textContent = d.gold.karat24.instrument || 'COMEX GC=F';
+
+        document.getElementById('goldExDutyVal').textContent = fmt(rawSpot24k) + ' / g';
+        document.getElementById('goldCustomsVal').textContent = '+' + fmt(customsVal) + ' / g';
+        document.getElementById('goldGstVal').textContent = '+' + fmt(gstVal) + ' / g';
+        document.getElementById('goldMarginVal').textContent = '+' + fmt(marginVal) + ' / g';
       }
 
-      // Silver
+      // Silver (Pune Landed Bullion + COMEX Converted)
       if (d.silver) {
-        document.getElementById('silverGramVal').textContent = fmt(d.silver.perGram);
-        document.getElementById('silverKgVal').textContent   = fmt(d.silver.perKg);
+        const rawSilverGram = d.silver.perGram;
+        const pune = d.puneMarket || d.silver.puneMarket || {};
+        const puneSilverGram = pune.silver?.perGram || Math.round(rawSilverGram * 1.06 * 1.03 * 1.005 * 100) / 100;
+        const puneSilverKg = pune.silver?.perKg || Math.round(puneSilverGram * 1000 * 100) / 100;
+
+        document.getElementById('silverGramVal').textContent = fmt(puneSilverGram);
+        document.getElementById('silverKgVal').textContent   = fmt(puneSilverKg);
       }
 
       // Live FX

@@ -8,6 +8,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js" defer></script>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <script src="/assets/js/sidebar.js"></script>
+  <script>
+    const savedTheme = localStorage.getItem('finpro_theme') || ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -298,46 +304,7 @@
 </head>
 <body>
   <!-- Sidebar -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-icon"><i class="ri-funds-box-fill"></i></div>
-      <div>
-        <div class="brand-text">FinPro</div>
-        <div class="brand-sub">Decision Support Platform</div>
-      </div>
-    </div>
-    
-    <div class="nav-section">
-      <div class="nav-label">Core</div>
-      <a href="/dashboard.html" class="nav-item active"><i class="ri-dashboard-3-line"></i> Dashboard</a>
-      <a href="/transactions.html" class="nav-item"><i class="ri-exchange-dollar-line"></i> Transactions</a>
-      <a href="/budget.html" class="nav-item"><i class="ri-pie-chart-line"></i> Budgets</a>
-      <a href="/goals.html" class="nav-item"><i class="ri-flag-line"></i> Goals</a>
-    </div>
-    
-    <div class="nav-section">
-      <div class="nav-label">Wealth & Intelligence</div>
-      <a href="/investments.html" class="nav-item"><i class="ri-line-chart-line"></i> Investments & Metals</a>
-      <a href="/loans.html" class="nav-item"><i class="ri-bank-card-line"></i> Loans & EMI</a>
-      <a href="/insurance.html" class="nav-item"><i class="ri-shield-check-line"></i> Insurance & Subscriptions</a>
-      <a href="/ai-advisor.html" class="nav-item"><i class="ri-robot-2-line"></i> AI Advisor & Simulator</a>
-      <a href="/training.html" class="nav-item"><i class="ri-brain-line"></i> AI Training & ML Studio</a>
-      <a href="/analytics.html" class="nav-item"><i class="ri-bar-chart-box-line"></i> Analytics & Reports</a>
-      <a href="/calendar.html" class="nav-item"><i class="ri-calendar-event-line"></i> Financial Calendar</a>
-      <a href="/profile.html" class="nav-item"><i class="ri-user-settings-line"></i> Profile & Settings</a>
-    </div>
-    
-    <div class="sidebar-footer">
-      <div class="user-info" id="userMenuBtn" style="cursor:pointer;" title="View Profile" onclick="window.location.href='/profile.html'">
-        <div class="avatar" id="userAvatar">J</div>
-        <div>
-          <div class="user-name" id="userName">Jinay Golecha</div>
-          <div class="user-role" id="userRole">Free User</div>
-        </div>
-        <i class="ri-logout-box-r-line" id="logoutBtn" style="margin-left:auto;color:var(--text-muted);font-size:16px;" title="Logout"></i>
-      </div>
-    </div>
-  </aside>
+  <div id="sidebarRoot"></div>
 
   <!-- Main Content -->
   <main class="main-content">
@@ -569,6 +536,11 @@
       // redirected
     }
 
+    if (window.getSidebar) {
+      document.getElementById('sidebarRoot').innerHTML = getSidebar('dashboard');
+      initSidebarUser();
+    }
+
     const now = new Date();
     document.getElementById('currentDate').textContent = now.toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
     const hour = now.getHours();
@@ -597,11 +569,15 @@
 
         if (metalsRes?.success && metalsRes.data) {
           const m = metalsRes.data;
-          if (m.gold?.karat24?.perGram) {
-            document.getElementById('tickerGold').textContent = `${formatINR(m.gold.karat24.perGram)}/g`;
+          const pune = m.puneMarket || m.gold?.puneMarket || {};
+          const puneGold = pune.gold?.karat24?.perGram || (m.gold?.karat24?.perGram ? Math.round(m.gold.karat24.perGram * 1.06 * 1.03 * 1.0045 * 100) / 100 : null);
+          const puneSilver = pune.silver?.perGram || (m.silver?.perGram ? Math.round(m.silver.perGram * 1.06 * 1.03 * 1.005 * 100) / 100 : null);
+
+          if (puneGold) {
+            document.getElementById('tickerGold').textContent = `${formatINR(puneGold)}/g (Pune)`;
           }
-          if (m.silver?.perGram) {
-            document.getElementById('tickerSilver').textContent = `${formatINR(m.silver.perGram)}/g`;
+          if (puneSilver) {
+            document.getElementById('tickerSilver').textContent = `${formatINR(puneSilver)}/g (Pune)`;
           }
           document.getElementById('tickerTimestamp').textContent = m.timestamp || 'IST';
           const isOpen = m.marketStatus === 'OPEN' || m.marketStatus === 'LIVE';

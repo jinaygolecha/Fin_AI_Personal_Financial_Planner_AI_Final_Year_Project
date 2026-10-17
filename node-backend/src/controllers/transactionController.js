@@ -64,6 +64,8 @@ const getTransactions = async (req, res, next) => {
           account: t.account?.name || 'Unknown',
           description: t.description || '',
           merchant: t.merchant || '',
+          notes: t.notes || '',
+          remarks: t.notes || '',
           date: t.date,
           currency: t.currency,
           createdAt: t.createdAt,
@@ -96,8 +98,11 @@ const createTransaction = async (req, res, next) => {
       merchant,
       date,
       notes,
+      remarks,
       paymentMethod,
     } = req.body;
+
+    const finalNotes = (notes !== undefined ? notes : remarks) || null;
 
     const amountNum = parseFloat(amount);
     if (!amount || isNaN(amountNum) || amountNum <= 0) {
@@ -165,7 +170,7 @@ const createTransaction = async (req, res, next) => {
           transactionType,
           description: description?.trim() || null,
           merchant: merchant?.trim() || null,
-          notes: notes?.trim() || null,
+          notes: finalNotes?.trim() || null,
           paymentMethod: paymentMethod || null,
           date: date ? new Date(date) : new Date(),
           currency: 'INR',
@@ -285,7 +290,8 @@ const updateTransaction = async (req, res, next) => {
       });
     }
 
-    const { amount, description, merchant, notes, category: newCategoryName } = req.body;
+    const { amount, description, merchant, notes, remarks, category: newCategoryName } = req.body;
+    const finalNotes = notes !== undefined ? notes : remarks;
 
     // ML Feedback Learning: If user changed the category, store correction
     if (newCategoryName && existing.category?.name && newCategoryName.toLowerCase() !== existing.category.name.toLowerCase()) {
@@ -324,7 +330,10 @@ const updateTransaction = async (req, res, next) => {
           ...(amount !== undefined && { amount: newAmountNum }),
           ...(description !== undefined && { description: description?.trim() || null }),
           ...(merchant !== undefined && { merchant: merchant?.trim() || null }),
-          ...(notes !== undefined && { notes: notes?.trim() || null }),
+          ...(finalNotes !== undefined && { notes: finalNotes?.trim() || null }),
+          ...(req.body.date && { date: new Date(req.body.date) }),
+          ...(req.body.paymentMethod !== undefined && { paymentMethod: req.body.paymentMethod || null }),
+          ...(req.body.type && { transactionType: req.body.type }),
           ...(categoryId && { categoryId }),
         },
         include: { category: true, account: true },

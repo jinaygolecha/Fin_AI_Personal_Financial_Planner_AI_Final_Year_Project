@@ -177,7 +177,7 @@ const retrieveFinancialKnowledge = async (userId, intents) => {
         id: `tx-${tx.id}`,
         sourceType: 'TRANSACTION',
         sourceTitle: `Transactions — ${monthName}`,
-        metadata: { userId, sourceType: 'Transaction', sourceId: tx.id, createdAt: tx.createdAt },
+        metadata: { userId, sourceType: 'Transaction', sourceId: tx.id, createdAt: tx.createdAt, amount: amt, category: catName, merchant: tx.merchant || tx.description },
         text: `Transaction on ${dStr}: ${tx.transactionType} ${formatINR(amt)} at "${tx.merchant || tx.description || 'Merchant'}" [Category: ${catName}].`,
       });
       sources.add(`Transactions — ${monthName}`);

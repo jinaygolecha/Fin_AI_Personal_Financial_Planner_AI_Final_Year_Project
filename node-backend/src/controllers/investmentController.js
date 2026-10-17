@@ -441,6 +441,8 @@ const getGold = async (req, res, next) => {
         provider_timestamp: metals.provider_timestamp,
         fetched_at: metals.fetched_at,
         usdToInr: metals.usdToInr,
+        puneMarket: metals.puneMarket,
+        pune_market: metals.pune_market,
       },
     });
   } catch (error) {
@@ -468,6 +470,8 @@ const getSilver = async (req, res, next) => {
         provider_timestamp: metals.provider_timestamp,
         fetched_at: metals.fetched_at,
         usdToInr: metals.usdToInr,
+        puneMarket: metals.puneMarket,
+        pune_market: metals.pune_market,
       },
     });
   } catch (error) {

@@ -20,8 +20,8 @@
       </div>
       <div class="topbar-actions">
         <button class="btn btn-primary" id="addTxBtn"><i class="ri-add-line"></i>Add Transaction</button>
-        <button class="btn btn-secondary" onclick="window.location.href='/ai-advisor.html'" title="Bank Statement Analyzer (PDF / CSV)"><i class="ri-file-text-line"></i> Statement Analyzer</button>
-        <button class="btn btn-secondary" onclick="window.location.href='/ai-advisor.html'" title="OCR Receipt Scanner & GST"><i class="ri-scan-2-line"></i> Receipt OCR</button>
+        <button class="btn btn-secondary" id="openStatementBtn" title="Bank Statement Analyzer (PDF / CSV / XLSX)"><i class="ri-file-text-line"></i> Statement Analyzer</button>
+        <button class="btn btn-secondary" id="openReceiptOcrBtn" title="OCR Receipt Scanner & GST Inspector"><i class="ri-scan-2-line"></i> Receipt OCR</button>
         <button class="btn btn-secondary" id="smsReaderBtn" title="Parse Bank SMS / Message"><i class="ri-message-3-line"></i> SMS Reader</button>
         <button class="btn btn-secondary" id="voiceBtn" title="Voice Entry"><i class="ri-mic-line"></i>Voice</button>
       </div>
@@ -147,10 +147,285 @@
           <option>Net Banking</option><option>Cash</option><option>NEFT/RTGS</option>
         </select>
       </div>
+      <div class="form-group">
+        <label class="form-label">Remarks / Notes</label>
+        <input type="text" id="txRemarks" class="form-input" placeholder="e.g. Office dinner, deductible, tax remark">
+      </div>
       <div id="txError" style="color:#fca5a5;font-size:12px;margin-bottom:8px;display:none;"></div>
       <button class="btn btn-primary" style="width:100%" id="saveTxBtn" onclick="saveTransaction()">
         <i class="ri-check-line"></i> Save Transaction
       </button>
+    </div>
+  </div>
+
+  <!-- Edit Transaction Modal -->
+  <div class="modal-overlay" id="editTxModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Edit Transaction</span>
+        <button class="modal-close" onclick="closeModal('editTxModal')">✕</button>
+      </div>
+      <input type="hidden" id="editTxId">
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select id="editTxType" class="form-select">
+          <option value="EXPENSE">Expense</option>
+          <option value="INCOME">Income</option>
+          <option value="TRANSFER">Transfer</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount (₹) *</label>
+        <input type="number" id="editTxAmount" class="form-input" min="0.01" step="0.01">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <input type="text" id="editTxCategory" class="form-input" placeholder="e.g. Food, Transport, Salary">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Account</label>
+        <select id="editTxAccount" class="form-select"><option value="">No specific account</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <input type="text" id="editTxDescription" class="form-input" placeholder="Brief description">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Merchant / Vendor</label>
+        <input type="text" id="editTxMerchant" class="form-input" placeholder="e.g. Zomato, Amazon">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" id="editTxDate" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Payment Method</label>
+        <select id="editTxPayment" class="form-select">
+          <option value="">Not specified</option>
+          <option>UPI</option><option>Credit Card</option><option>Debit Card</option>
+          <option>Net Banking</option><option>Cash</option><option>NEFT/RTGS</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Remarks / Notes</label>
+        <input type="text" id="editTxRemarks" class="form-input" placeholder="Add custom remarks or tax notes">
+      </div>
+      <div id="editTxError" style="color:#fca5a5;font-size:12px;margin-bottom:8px;display:none;"></div>
+      <button class="btn btn-primary" style="width:100%" id="updateTxBtn" onclick="updateExistingTx()">
+        <i class="ri-check-line"></i> Update Transaction
+      </button>
+    </div>
+  </div>
+
+  <!-- Bank Statement Analyser & Editable Review Table Modal -->
+  <div class="modal-overlay" id="statementModal">
+    <div class="modal" style="max-width:1150px;width:96vw;">
+      <div class="modal-header">
+        <div>
+          <span class="modal-title" style="display:flex;align-items:center;gap:8px;">
+            <i class="ri-file-text-line" style="color:var(--primary);"></i> Bank Statement Analyser & Ingestion
+          </span>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+            Extracts Indian bank statements (PDF Text & Scanned OCR, CSV, XLSX) with editable review table & remarks persistence.
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('statementModal')">✕</button>
+      </div>
+
+      <!-- Ingestion Inputs -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <div style="border:1px dashed var(--border-dark);border-radius:10px;padding:16px;background:var(--surface-2);text-align:center;">
+          <i class="ri-upload-cloud-2-line" style="font-size:28px;color:var(--primary);display:block;margin-bottom:6px;"></i>
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">Upload Statement Document</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Supported: <b>PDF</b> (Native / Scanned OCR), <b>CSV</b>, <b>XLSX</b></div>
+          <input type="file" id="stFileInput" accept=".pdf,.csv,.xlsx,application/pdf,text/csv" style="display:none;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('stFileInput').click()">
+            <i class="ri-folder-open-line"></i> Browse File
+          </button>
+          <div id="stSelectedFileName" style="font-size:11px;color:var(--primary);margin-top:6px;font-weight:600;display:none;"></div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--surface);display:flex;flex-direction:column;gap:8px;">
+          <label style="font-size:12px;font-weight:600;color:var(--text);">Target Account & Raw CSV Paste</label>
+          <select id="stTargetAccount" class="form-select" style="font-size:12px;padding:6px 10px;">
+            <option value="">Auto-Assign Primary Account</option>
+          </select>
+          <textarea id="stCsvText" class="form-input" rows="2" style="font-size:11px;font-family:monospace;" placeholder="Or paste statement CSV text: Date,Description,Amount,Type"></textarea>
+        </div>
+      </div>
+
+      <!-- Analyze Action -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <button class="btn btn-primary" id="analyzeStatementBtn" onclick="analyzeBankStatement()">
+          <span id="stBtnText"><i class="ri-cpu-line"></i> Parse & Extract Statement Rows</span>
+          <span id="stSpinner" style="display:none;"><i class="ri-loader-4-line" style="animation:spin 1s infinite linear;display:inline-block;"></i> Ingesting & Categorizing...</span>
+        </button>
+        <div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">
+          <i class="ri-shield-check-line" style="color:var(--success);"></i> User-Scoped Cloud Storage Isolation Active
+        </div>
+      </div>
+
+      <!-- Telemetry Metrics & Status -->
+      <div id="stTelemetryCards" style="display:none;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;">
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Mode</div>
+          <div id="stSummaryMode" style="font-weight:700;font-size:12px;color:var(--primary);">DOCUMENT</div>
+        </div>
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:600;">Detected</div>
+          <div id="stSummaryTotal" style="font-weight:700;font-size:14px;color:var(--text);">0</div>
+        </div>
+        <div style="background:rgba(5,150,105,0.08);border:1px solid rgba(5,150,105,0.25);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--success);text-transform:uppercase;font-weight:600;">Valid / Ready</div>
+          <div id="stSummaryValid" style="font-weight:700;font-size:14px;color:var(--success);">0</div>
+        </div>
+        <div style="background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.25);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--warning);text-transform:uppercase;font-weight:600;">Duplicates</div>
+          <div id="stSummaryDuplicates" style="font-weight:700;font-size:14px;color:var(--warning);">0</div>
+        </div>
+        <div style="background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.25);border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:10px;color:var(--danger);text-transform:uppercase;font-weight:600;">Invalid</div>
+          <div id="stSummaryInvalid" style="font-weight:700;font-size:14px;color:var(--danger);">0</div>
+        </div>
+      </div>
+
+      <!-- Editable Review Table -->
+      <div id="stReviewTableContainer" style="display:none;flex-direction:column;gap:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-2);padding:6px 12px;border-radius:8px;border:1px solid var(--border);">
+          <div style="display:flex;gap:6px;">
+            <button type="button" class="btn btn-secondary" style="font-size:11px;padding:4px 8px;" onclick="stSelectAll(true)">Select All</button>
+            <button type="button" class="btn btn-secondary" style="font-size:11px;padding:4px 8px;" onclick="stSelectAll(false)">Deselect All</button>
+            <button type="button" class="btn btn-secondary" style="font-size:11px;padding:4px 8px;" onclick="stSelectHighConfidence()">Approve Valid Only</button>
+          </div>
+          <div style="font-size:12px;font-weight:600;color:var(--muted);" id="stSelectionStatus">0 selected</div>
+        </div>
+
+        <div style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+          <table style="width:100%;font-size:11px;border-collapse:collapse;">
+            <thead style="position:sticky;top:0;background:var(--surface-2);z-index:2;border-bottom:1px solid var(--border);">
+              <tr>
+                <th style="padding:6px 8px;width:30px;"><input type="checkbox" id="stMasterCb" onchange="stToggleMasterCb(this.checked)"></th>
+                <th style="padding:6px 8px;width:110px;">Date</th>
+                <th style="padding:6px 8px;">Description</th>
+                <th style="padding:6px 8px;width:80px;">Type</th>
+                <th style="padding:6px 8px;width:95px;">Amount (₹)</th>
+                <th style="padding:6px 8px;width:110px;">Category</th>
+                <th style="padding:6px 8px;width:140px;">Remarks</th>
+                <th style="padding:6px 8px;width:90px;">Balance (₹)</th>
+                <th style="padding:6px 8px;width:90px;">Ref ID</th>
+                <th style="padding:6px 8px;width:80px;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="stTableBody"></tbody>
+          </table>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:6px;">
+          <button class="btn btn-secondary" onclick="closeModal('statementModal')">Cancel</button>
+          <button class="btn btn-primary" id="stCommitBtn" onclick="commitStatementTransactions()">
+            <i class="ri-check-double-line"></i> Confirm & Import Selected to Database
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OCR Receipt Scanner & GST Inspector Modal -->
+  <div class="modal-overlay" id="receiptOcrModal">
+    <div class="modal" style="max-width:760px;width:95vw;">
+      <div class="modal-header">
+        <div>
+          <span class="modal-title" style="display:flex;align-items:center;gap:8px;">
+            <i class="ri-scan-2-line" style="color:var(--success);"></i> OCR Receipt Scanner & GST Inspector
+          </span>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">
+            Extracts merchant, amount, category, date, and detailed tax breakdown (CGST, SGST, IGST).
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('receiptOcrModal')">✕</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <label class="form-label" style="font-size:11px;">Upload Receipt Image (PNG / JPEG / WebP)</label>
+        <input type="file" id="ocrImgInput" class="form-input" accept="image/png,image/jpeg,image/webp" style="padding:6px;">
+        <div id="ocrImgPreviewBox" style="display:none;text-align:center;">
+          <img id="ocrImgPreview" style="max-height:160px;max-width:100%;border-radius:8px;border:1px solid var(--border);object-fit:contain;">
+        </div>
+
+        <div style="font-size:11px;color:var(--muted);text-align:center;">— or paste receipt text —</div>
+        <textarea id="ocrReceiptText" class="form-input" rows="2" placeholder="e.g. STARBUCKS COFFEE Invoice #1029 Date: 2026-08-16 Total: Rs 450.00 CGST: 11.25 SGST: 11.25"></textarea>
+
+        <button class="btn btn-primary" id="scanReceiptBtn" onclick="runReceiptScan()">
+          <span id="scanBtnText"><i class="ri-scan-2-line"></i> Scan & Extract with OCR</span>
+          <span id="scanSpinner" style="display:none;"><i class="ri-loader-4-line" style="animation:spin 1s infinite linear;display:inline-block;"></i> Processing OCR...</span>
+        </button>
+
+        <!-- Preview & Edit Extracted Results -->
+        <div id="ocrResultCard" style="display:none;background:var(--surface-2);border:1px solid var(--border);padding:14px;border-radius:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-weight:700;color:var(--success);font-size:12px;">Review Extracted Receipt & Tax Details:</span>
+            <span id="ocrConfidenceBadge" class="badge badge-green">Confidence: 100%</span>
+          </div>
+
+          <!-- GST Itemized Breakdown Box -->
+          <div id="ocrGstTaxBox" style="display:none;background:var(--surface);border:1px solid var(--border);padding:12px;border-radius:8px;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-weight:700;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;">
+                <i class="ri-shield-check-line" style="color:var(--success);"></i> GST Itemized Tax Breakdown
+              </span>
+              <span id="ocrGstinTag" style="font-family:monospace;font-size:11px;padding:2px 6px;border-radius:4px;background:var(--primary-light);color:var(--primary);font-weight:700;">GSTIN: -</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:11px;text-align:center;">
+              <div style="background:var(--surface-2);border:1px solid var(--border);padding:6px;border-radius:6px;">
+                <div style="color:var(--muted);font-size:10px;">Taxable Value</div>
+                <div id="ocrGstTaxable" style="font-weight:700;color:var(--text);">₹0</div>
+              </div>
+              <div style="background:var(--surface-2);border:1px solid var(--border);padding:6px;border-radius:6px;">
+                <div style="color:var(--muted);font-size:10px;">CGST</div>
+                <div id="ocrGstCgst" style="font-weight:700;color:var(--text);">₹0</div>
+              </div>
+              <div style="background:var(--surface-2);border:1px solid var(--border);padding:6px;border-radius:6px;">
+                <div style="color:var(--muted);font-size:10px;">SGST / UTGST</div>
+                <div id="ocrGstSgst" style="font-weight:700;color:var(--text);">₹0</div>
+              </div>
+              <div style="background:var(--surface-2);border:1px solid var(--border);padding:6px;border-radius:6px;">
+                <div style="color:var(--muted);font-size:10px;">Total GST</div>
+                <div id="ocrGstTotal" style="font-weight:700;color:var(--success);">₹0</div>
+              </div>
+            </div>
+            <div id="ocrLineItemsText" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
+          </div>
+
+          <!-- Editable Fields Before Saving -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div>
+              <label class="form-label" style="font-size:11px;">Merchant</label>
+              <input type="text" id="ocrResMerchant" class="form-input" style="padding:6px 10px;font-size:12px;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size:11px;">Amount (₹) *</label>
+              <input type="number" step="0.01" id="ocrResAmount" class="form-input" style="padding:6px 10px;font-size:12px;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size:11px;">Category</label>
+              <input type="text" id="ocrResCategory" class="form-input" style="padding:6px 10px;font-size:12px;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size:11px;">Date</label>
+              <input type="date" id="ocrResDate" class="form-input" style="padding:6px 10px;font-size:12px;">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label" style="font-size:11px;">Remarks / Notes</label>
+            <input type="text" id="ocrResRemarks" class="form-input" style="padding:6px 10px;font-size:12px;" placeholder="Add remarks or notes...">
+          </div>
+
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-secondary" style="flex:1;" onclick="document.getElementById('ocrResultCard').style.display='none'">Cancel</button>
+            <button class="btn btn-primary" style="flex:1;" onclick="confirmOcrExpense()"><i class="ri-check-line"></i> Confirm & Save Expense</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   
@@ -366,32 +641,43 @@
         return;
       }
 
+      window.currentTxsList = txs;
       document.getElementById('txTableBody').innerHTML = txs.map(t => `
         <tr>
           <td>${new Date(t.date).toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'})}</td>
-          <td><div style="font-weight:500">${t.description || t.merchant || '—'}</div>${t.merchant && t.description ? `<div style="font-size:11px;color:#6b7280">${t.merchant}</div>` : ''}</td>
-          <td><span class="badge badge-blue">${t.category}</span></td>
-          <td style="color:#6b7280;font-size:12px">${t.account || '—'}</td>
-          <td><span class="badge ${t.type==='INCOME'?'badge-green':t.type==='TRANSFER'?'badge-blue':'badge-red'}">${t.type}</span></td>
-          <td style="font-weight:600;color:${t.type==='INCOME'?'#10b981':'#ef4444'}">${t.type==='INCOME'?'+':'-'}${fmt(t.amount)}</td>
           <td>
-            <button class="btn-icon-only" onclick="deleteTx('${t.id}')" title="Delete" style="color:#ef4444"><i class="ri-delete-bin-line"></i></button>
+            <div style="font-weight:600">${t.description || t.merchant || '—'}</div>
+            ${t.merchant && t.description ? `<div style="font-size:11px;color:var(--muted)">${t.merchant}</div>` : ''}
+            ${(t.remarks || t.notes) ? `<div style="font-size:11px;color:var(--primary);margin-top:2px;"><i class="ri-sticky-note-line"></i> ${escapeHtml(t.remarks || t.notes)}</div>` : ''}
+          </td>
+          <td><span class="badge badge-blue">${t.category || 'General'}</span></td>
+          <td style="color:var(--muted);font-size:12px">${t.account || '—'}</td>
+          <td><span class="badge ${t.type==='INCOME'?'badge-green':t.type==='TRANSFER'?'badge-blue':'badge-red'}">${t.type}</span></td>
+          <td style="font-weight:700;color:${t.type==='INCOME'?'#10b981':'#ef4444'}">${t.type==='INCOME'?'+':'-'}${fmt(t.amount)}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn-icon-only" onclick="openEditTxModal('${t.id}')" title="Edit Transaction" style="display:inline-flex;margin-right:4px;"><i class="ri-edit-line"></i></button>
+            <button class="btn-icon-only" onclick="deleteTx('${t.id}')" title="Delete" style="color:#ef4444;display:inline-flex;"><i class="ri-delete-bin-line"></i></button>
           </td>
         </tr>
       `).join('');
     };
 
-    // Load accounts for modal dropdown
+    const escapeHtml = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    // Load accounts for modal dropdowns
     const loadAccounts = async () => {
       const data = await apiFetch('/accounts');
       if (data?.success) {
         accounts = data.data.accounts;
-        const sel = document.getElementById('txAccount');
-        sel.innerHTML = '<option value="">No specific account</option>' + accounts.map(a => `<option value="${a.id}">${a.name} (${fmt(a.balance)})</option>`).join('');
+        const optionsHtml = '<option value="">No specific account</option>' + accounts.map(a => `<option value="${a.id}">${a.name} (${fmt(a.balance)})</option>`).join('');
+        ['txAccount', 'editTxAccount', 'stTargetAccount'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerHTML = optionsHtml;
+        });
       }
     };
 
-    // Save transaction
+    // Save new transaction
     const saveTransaction = async () => {
       const amount = parseFloat(document.getElementById('txAmount').value);
       const type = document.getElementById('txType').value;
@@ -401,6 +687,7 @@
       const merchant = document.getElementById('txMerchant').value.trim();
       const date = document.getElementById('txDate').value;
       const paymentMethod = document.getElementById('txPayment').value;
+      const remarks = document.getElementById('txRemarks').value.trim();
       const errEl = document.getElementById('txError');
 
       if (!amount || amount <= 0) { errEl.textContent = 'Please enter a valid amount.'; errEl.style.display='block'; return; }
@@ -411,7 +698,18 @@
 
       const res = await apiFetch('/transactions', {
         method:'POST',
-        body: JSON.stringify({ amount, type, category: category || undefined, accountId: account || undefined, description: description || undefined, merchant: merchant || undefined, date: date || undefined, paymentMethod: paymentMethod || undefined }),
+        body: JSON.stringify({
+          amount,
+          type,
+          category: category || undefined,
+          accountId: account || undefined,
+          description: description || undefined,
+          merchant: merchant || undefined,
+          date: date || undefined,
+          paymentMethod: paymentMethod || undefined,
+          remarks: remarks || undefined,
+          notes: remarks || undefined
+        }),
       });
 
       btn.disabled = false; btn.innerHTML = '<i class="ri-check-line"></i> Save Transaction';
@@ -428,8 +726,83 @@
       }
     };
 
+    // Open & Update Existing Transaction Modal
+    window.openEditTxModal = (id) => {
+      const tx = (window.currentTxsList || []).find(t => t.id === id);
+      if (!tx) return;
+      document.getElementById('editTxId').value = tx.id;
+      document.getElementById('editTxType').value = tx.type || 'EXPENSE';
+      document.getElementById('editTxAmount').value = tx.amount || '';
+      document.getElementById('editTxCategory').value = tx.category || '';
+      document.getElementById('editTxAccount').value = tx.accountId || '';
+      document.getElementById('editTxDescription').value = tx.description || '';
+      document.getElementById('editTxMerchant').value = tx.merchant || '';
+      document.getElementById('editTxDate').value = tx.date ? tx.date.slice(0, 10) : '';
+      document.getElementById('editTxPayment').value = tx.paymentMethod || '';
+      document.getElementById('editTxRemarks').value = tx.remarks || tx.notes || '';
+      document.getElementById('editTxError').style.display = 'none';
+      showModal('editTxModal');
+    };
+
+    window.updateExistingTx = async () => {
+      const id = document.getElementById('editTxId').value;
+      const amount = parseFloat(document.getElementById('editTxAmount').value);
+      const type = document.getElementById('editTxType').value;
+      const category = document.getElementById('editTxCategory').value.trim();
+      const accountId = document.getElementById('editTxAccount').value;
+      const description = document.getElementById('editTxDescription').value.trim();
+      const merchant = document.getElementById('editTxMerchant').value.trim();
+      const date = document.getElementById('editTxDate').value;
+      const paymentMethod = document.getElementById('editTxPayment').value;
+      const remarks = document.getElementById('editTxRemarks').value.trim();
+      const errEl = document.getElementById('editTxError');
+
+      if (!amount || amount <= 0) {
+        errEl.textContent = 'Please enter a valid amount.';
+        errEl.style.display = 'block';
+        return;
+      }
+      errEl.style.display = 'none';
+
+      const btn = document.getElementById('updateTxBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ri-loader-line"></i> Updating...';
+
+      const res = await apiFetch(`/transactions/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          amount,
+          type,
+          category: category || undefined,
+          accountId: accountId || undefined,
+          description: description || undefined,
+          merchant: merchant || undefined,
+          date: date || undefined,
+          paymentMethod: paymentMethod || undefined,
+          remarks: remarks || undefined,
+          notes: remarks || undefined,
+        }),
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ri-check-line"></i> Update Transaction';
+
+      if (res?.success) {
+        closeModal('editTxModal');
+        showToast('Transaction updated successfully!', 'success');
+        loadTransactions();
+        loadSummary();
+      } else {
+        errEl.textContent = res?.error?.message || 'Failed to update transaction.';
+        errEl.style.display = 'block';
+      }
+    };
+
     const clearTxForm = () => {
-      ['txAmount','txCategory','txDescription','txMerchant'].forEach(id => document.getElementById(id).value = '');
+      ['txAmount','txCategory','txDescription','txMerchant','txRemarks'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
       document.getElementById('txType').value = 'EXPENSE';
       document.getElementById('txDate').value = '';
     };
@@ -660,6 +1033,349 @@
         sel.innerHTML = '<option value="">No specific account</option>' + accounts.map(a => `<option value="${a.id}">${a.name} (${fmt(a.balance)})</option>`).join('');
       }
       showModal('smsModal');
+    };
+
+    document.getElementById('openStatementBtn').onclick = () => {
+      loadAccounts();
+      showModal('statementModal');
+    };
+
+    document.getElementById('openReceiptOcrBtn').onclick = () => {
+      showModal('receiptOcrModal');
+    };
+
+    // ===== Bank Statement Analyser & Editable Review Table Logic =====
+    let stExtractedRows = [];
+    const stFileInput = document.getElementById('stFileInput');
+    const stSelectedFileName = document.getElementById('stSelectedFileName');
+
+    if (stFileInput) {
+      stFileInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          stSelectedFileName.style.display = 'block';
+          stSelectedFileName.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        } else {
+          stSelectedFileName.style.display = 'none';
+        }
+      };
+    }
+
+    window.analyzeBankStatement = async () => {
+      const file = stFileInput.files[0];
+      const csvText = document.getElementById('stCsvText').value.trim();
+      const accountId = document.getElementById('stTargetAccount').value || undefined;
+
+      if (!file && !csvText) {
+        showToast('Please select a statement file (PDF/CSV/XLSX) or paste CSV text.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('analyzeStatementBtn');
+      const btnText = document.getElementById('stBtnText');
+      const spinner = document.getElementById('stSpinner');
+      btn.disabled = true;
+      btnText.style.display = 'none';
+      spinner.style.display = 'inline-block';
+
+      try {
+        let res = null;
+        if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
+          const base64Data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          res = await apiFetch('/import/statement-pdf', {
+            method: 'POST',
+            body: JSON.stringify({ pdfData: base64Data, filename: file.name, accountId })
+          });
+        } else if (file) {
+          const textContent = await file.text();
+          res = await apiFetch('/import/bank-statement', {
+            method: 'POST',
+            body: JSON.stringify({ csvData: textContent, accountId })
+          });
+        } else {
+          res = await apiFetch('/import/bank-statement', {
+            method: 'POST',
+            body: JSON.stringify({ csvData: csvText, accountId })
+          });
+        }
+
+        if (res?.success) {
+          const d = res.data;
+          document.getElementById('stTelemetryCards').style.display = 'grid';
+          document.getElementById('stReviewTableContainer').style.display = 'flex';
+
+          document.getElementById('stSummaryMode').textContent = d.documentType || 'DOCUMENT';
+          document.getElementById('stSummaryTotal').textContent = (d.validCount || 0) + (d.duplicateCount || 0) + (d.invalidCount || 0);
+          document.getElementById('stSummaryValid').textContent = d.validCount || 0;
+          document.getElementById('stSummaryDuplicates').textContent = d.duplicateCount || 0;
+          document.getElementById('stSummaryInvalid').textContent = d.invalidCount || 0;
+
+          const combined = [
+            ...(d.validRows || []).map(r => ({ ...r, status: 'VALID', approved: true, remarks: r.remarks || '' })),
+            ...(d.duplicateRows || []).map(r => ({ ...r, status: 'DUPLICATE', approved: false, remarks: r.remarks || '' })),
+            ...(d.invalidRows || []).map(r => ({ ...r, status: 'INVALID', approved: false, remarks: r.remarks || '' })),
+          ];
+          stExtractedRows = combined;
+          renderStatementRows();
+          showToast(`Analysis complete: ${d.validCount || 0} valid records detected for review.`, 'success');
+        } else {
+          showToast(res?.error?.message || 'Failed to analyze statement.', 'error');
+        }
+      } catch (err) {
+        showToast('Analysis error: ' + (err.message || 'Check document format'), 'error');
+      } finally {
+        btn.disabled = false;
+        btnText.style.display = 'inline';
+        spinner.style.display = 'none';
+      }
+    };
+
+    function renderStatementRows() {
+      const tbody = document.getElementById('stTableBody');
+      if (!tbody) return;
+
+      tbody.innerHTML = stExtractedRows.map((row, idx) => {
+        const isDup = row.status === 'DUPLICATE';
+        const isInv = row.status === 'INVALID';
+        const confPct = Math.round((row.confidence || 0.8) * 100);
+
+        return `
+          <tr style="border-bottom:1px solid var(--border);background:${isDup ? 'rgba(217,119,6,0.06)' : isInv ? 'rgba(220,38,38,0.06)' : 'var(--surface)'};">
+            <td style="padding:6px 8px;text-align:center;">
+              <input type="checkbox" class="st-row-cb" data-idx="${idx}" ${row.approved ? 'checked' : ''} ${isInv ? 'disabled' : ''} onchange="stExtractedRows[${idx}].approved=this.checked;updateStSelectionCount();">
+            </td>
+            <td style="padding:6px 8px;">
+              <input type="date" class="form-input" style="padding:3px 6px;font-size:11px;width:110px;" value="${row.date ? row.date.slice(0, 10) : ''}" onchange="stExtractedRows[${idx}].date=this.value;">
+            </td>
+            <td style="padding:6px 8px;">
+              <input type="text" class="form-input" style="padding:3px 6px;font-size:11px;min-width:140px;" value="${escapeHtml(row.description || '')}" onchange="stExtractedRows[${idx}].description=this.value;">
+            </td>
+            <td style="padding:6px 8px;">
+              <select class="form-select" style="padding:3px 6px;font-size:11px;width:80px;" onchange="stExtractedRows[${idx}].type=this.value;">
+                <option value="EXPENSE" ${row.type==='EXPENSE'?'selected':''}>EXPENSE</option>
+                <option value="INCOME" ${row.type==='INCOME'?'selected':''}>INCOME</option>
+              </select>
+            </td>
+            <td style="padding:6px 8px;">
+              <input type="number" step="0.01" class="form-input" style="padding:3px 6px;font-size:11px;width:95px;font-weight:700;color:${row.type==='INCOME'?'#10b981':'#ef4444'};" value="${row.amount || 0}" onchange="stExtractedRows[${idx}].amount=parseFloat(this.value)||0;">
+            </td>
+            <td style="padding:6px 8px;">
+              <input type="text" class="form-input" style="padding:3px 6px;font-size:11px;width:105px;" value="${escapeHtml(row.category || 'General')}" onchange="stExtractedRows[${idx}].category=this.value;">
+            </td>
+            <td style="padding:6px 8px;">
+              <input type="text" class="form-input" style="padding:3px 6px;font-size:11px;width:135px;" placeholder="Add remarks..." value="${escapeHtml(row.remarks || '')}" onchange="stExtractedRows[${idx}].remarks=this.value;">
+            </td>
+            <td style="padding:6px 8px;font-size:11px;color:var(--muted);white-space:nowrap;">
+              ${row.runningBalance !== null && row.runningBalance !== undefined ? fmt(row.runningBalance) : '—'}
+            </td>
+            <td style="padding:6px 8px;font-size:10px;font-family:monospace;color:var(--muted);white-space:nowrap;">
+              ${row.referenceId ? escapeHtml(row.referenceId) : '—'}
+            </td>
+            <td style="padding:6px 8px;white-space:nowrap;">
+              ${isDup ? `<span class="badge badge-amber" title="${escapeHtml(row.duplicateReason || 'Potential duplicate record')}">Duplicate</span>` :
+                isInv ? `<span class="badge badge-red" title="${escapeHtml(row.reason || 'Invalid record')}">Invalid</span>` :
+                `<span class="badge badge-green" title="Confidence: ${confPct}%">Ready</span>`}
+            </td>
+          </tr>
+        `;
+      }).join('');
+      updateStSelectionCount();
+    }
+
+    function updateStSelectionCount() {
+      const approvedCount = stExtractedRows.filter(r => r.approved && r.status !== 'INVALID').length;
+      document.getElementById('stSelectionStatus').textContent = `${approvedCount} of ${stExtractedRows.length} selected for commit`;
+    }
+
+    window.stSelectAll = (flag) => {
+      stExtractedRows.forEach(r => {
+        if (r.status !== 'INVALID') r.approved = flag;
+      });
+      renderStatementRows();
+    };
+
+    window.stSelectHighConfidence = () => {
+      stExtractedRows.forEach(r => {
+        r.approved = (r.status === 'VALID');
+      });
+      renderStatementRows();
+    };
+
+    window.stToggleMasterCb = (flag) => {
+      stSelectAll(flag);
+    };
+
+    window.commitStatementTransactions = async () => {
+      const approved = stExtractedRows.filter(r => r.approved && r.status !== 'INVALID');
+      if (approved.length === 0) {
+        showToast('Please select at least 1 valid transaction row to import.', 'error');
+        return;
+      }
+
+      const accountId = document.getElementById('stTargetAccount').value || undefined;
+      const btn = document.getElementById('stCommitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ri-loader-line"></i> Committing...';
+
+      const res = await apiFetch('/import/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ rows: approved, accountId })
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ri-check-double-line"></i> Confirm & Import Selected to Database';
+
+      if (res?.success) {
+        closeModal('statementModal');
+        showToast(`✅ ${res.data.message || 'Imported transactions successfully!'}`, 'success');
+        stExtractedRows = [];
+        document.getElementById('stFileInput').value = '';
+        document.getElementById('stCsvText').value = '';
+        document.getElementById('stSelectedFileName').style.display = 'none';
+        document.getElementById('stTelemetryCards').style.display = 'none';
+        document.getElementById('stReviewTableContainer').style.display = 'none';
+        loadTransactions();
+        loadSummary();
+      } else {
+        showToast(res?.error?.message || 'Failed to import transactions.', 'error');
+      }
+    };
+
+    // ===== OCR Receipt Scanner & GST Inspector Logic =====
+    let currentReceiptImgB64 = null;
+    let pendingReceiptScanId = null;
+
+    const ocrImgInput = document.getElementById('ocrImgInput');
+    if (ocrImgInput) {
+      ocrImgInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+          currentReceiptImgB64 = null;
+          document.getElementById('ocrImgPreviewBox').style.display = 'none';
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          currentReceiptImgB64 = ev.target.result;
+          document.getElementById('ocrImgPreview').src = currentReceiptImgB64;
+          document.getElementById('ocrImgPreviewBox').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      };
+    }
+
+    window.runReceiptScan = async () => {
+      const text = document.getElementById('ocrReceiptText').value.trim();
+      if (!currentReceiptImgB64 && !text) {
+        showToast('Please select an image file or paste receipt text.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('scanReceiptBtn');
+      const btnText = document.getElementById('scanBtnText');
+      const spinner = document.getElementById('scanSpinner');
+      btn.disabled = true;
+      btnText.style.display = 'none';
+      spinner.style.display = 'inline-block';
+
+      try {
+        const payload = {};
+        if (currentReceiptImgB64) payload.imageData = currentReceiptImgB64;
+        if (text) payload.receiptText = text;
+
+        const res = await apiFetch('/receipts/scan', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        if (res?.success) {
+          const d = res.data;
+          pendingReceiptScanId = d.scanId;
+          document.getElementById('ocrResultCard').style.display = 'block';
+          document.getElementById('ocrConfidenceBadge').textContent = `Confidence: ${d.ocrConfidence || 100}%`;
+          document.getElementById('ocrResMerchant').value = d.merchant || '';
+          document.getElementById('ocrResAmount').value = d.amount || '';
+          document.getElementById('ocrResCategory').value = d.category || 'General';
+          document.getElementById('ocrResDate').value = d.date ? d.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+          document.getElementById('ocrResRemarks').value = '';
+
+          // Detailed GST Breakdown
+          const gstBox = document.getElementById('ocrGstTaxBox');
+          if (d.gstBreakdown && d.gstBreakdown.hasGst) {
+            gstBox.style.display = 'block';
+            document.getElementById('ocrGstinTag').textContent = `GSTIN: ${d.gstBreakdown.gstin || 'Detected'}`;
+            document.getElementById('ocrGstTaxable').textContent = fmt(d.gstBreakdown.taxableAmount || 0);
+            document.getElementById('ocrGstCgst').textContent = fmt(d.gstBreakdown.cgst || 0);
+            document.getElementById('ocrGstSgst').textContent = fmt(d.gstBreakdown.sgst || 0);
+            document.getElementById('ocrGstTotal').textContent = fmt(d.gstBreakdown.totalGst || 0);
+          } else {
+            gstBox.style.display = 'none';
+          }
+
+          const lineItemsEl = document.getElementById('ocrLineItemsText');
+          if (d.items && d.items.length) {
+            lineItemsEl.innerHTML = `Extracted Line Items: <i>${escapeHtml(d.items.join(', '))}</i>`;
+            lineItemsEl.style.display = 'block';
+          } else {
+            lineItemsEl.style.display = 'none';
+          }
+
+          showToast('Receipt details extracted! Please review and confirm.', 'success');
+        } else {
+          showToast(res?.error?.message || 'Could not extract receipt details.', 'error');
+        }
+      } catch (err) {
+        showToast('Scan failed: ' + (err.message || 'Verify image'), 'error');
+      } finally {
+        btn.disabled = false;
+        btnText.style.display = 'inline';
+        spinner.style.display = 'none';
+      }
+    };
+
+    window.confirmOcrExpense = async () => {
+      const merchant = document.getElementById('ocrResMerchant').value.trim();
+      const amount = parseFloat(document.getElementById('ocrResAmount').value);
+      const category = document.getElementById('ocrResCategory').value.trim() || 'General';
+      const date = document.getElementById('ocrResDate').value;
+      const remarks = document.getElementById('ocrResRemarks').value.trim();
+
+      if (!amount || isNaN(amount) || amount <= 0) {
+        showToast('Please enter a valid positive expense amount.', 'error');
+        return;
+      }
+
+      const res = await apiFetch('/receipts/confirm', {
+        method: 'POST',
+        body: JSON.stringify({
+          scanId: pendingReceiptScanId,
+          amount,
+          merchant: merchant || 'Receipt Merchant',
+          category,
+          date: date || new Date().toISOString(),
+          notes: remarks || undefined,
+          remarks: remarks || undefined
+        })
+      });
+
+      if (res?.success) {
+        closeModal('receiptOcrModal');
+        showToast(`✅ ${res.data.message || 'Receipt expense recorded successfully!'}`, 'success');
+        document.getElementById('ocrImgInput').value = '';
+        currentReceiptImgB64 = null;
+        document.getElementById('ocrImgPreviewBox').style.display = 'none';
+        document.getElementById('ocrReceiptText').value = '';
+        document.getElementById('ocrResultCard').style.display = 'none';
+        loadTransactions();
+        loadSummary();
+      } else {
+        showToast(res?.error?.message || 'Failed to confirm receipt expense.', 'error');
+      }
     };
 
     // Export

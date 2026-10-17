@@ -57,7 +57,7 @@ const exportTransactionsCSV = async (req, res, next) => {
     });
 
     const rows = [
-      ['Date', 'Type', 'Amount (INR)', 'Category', 'Account', 'Description', 'Merchant', 'Payment Method'],
+      ['Date', 'Type', 'Amount (INR)', 'Category', 'Account', 'Description', 'Merchant', 'Payment Method', 'Remarks'],
       ...transactions.map(t => [
         new Date(t.date).toLocaleDateString('en-IN'),
         t.transactionType,
@@ -67,6 +67,7 @@ const exportTransactionsCSV = async (req, res, next) => {
         t.description || '',
         t.merchant || '',
         t.paymentMethod || '',
+        t.notes || '',
       ]),
     ];
 

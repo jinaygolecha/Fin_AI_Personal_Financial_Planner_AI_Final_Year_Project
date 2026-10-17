@@ -598,7 +598,10 @@ const confirmBankStatementImport = async (req, res, next) => {
             categoryId,
             amount: amt,
             transactionType: txType,
-            description: row.description || 'Imported statement transaction',
+            description: (row.description || 'Imported statement transaction').trim(),
+            merchant: (row.merchant || row.description || null)?.trim(),
+            notes: (row.remarks || row.notes || null)?.trim(),
+            paymentMethod: row.referenceId ? `Ref: ${row.referenceId}` : (row.paymentMethod || null),
             date: row.date ? new Date(row.date) : new Date(),
           },
         });
