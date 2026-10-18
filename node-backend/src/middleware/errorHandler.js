@@ -60,15 +60,16 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Default 500 internal server error
+  // Default error handler: preserve safe client error messages (4xx), mask unhandled server crashes (5xx)
   const statusCode = err.statusCode || err.status || 500;
+  const isClientError = statusCode >= 400 && statusCode < 500;
   return res.status(statusCode).json({
     success: false,
     error: {
-      code: err.code || 'INTERNAL_ERROR',
-      message: process.env.NODE_ENV === 'production'
-        ? 'An internal server error occurred.'
-        : err.message || 'An internal server error occurred.',
+      code: err.code || (isClientError ? 'CLIENT_ERROR' : 'INTERNAL_ERROR'),
+      message: (isClientError || process.env.NODE_ENV !== 'production')
+        ? (err.message || 'Request failed.')
+        : 'An internal server error occurred.',
     },
   });
 };

@@ -444,7 +444,9 @@
     if (searchParams.get('session_expired')) {
       showAlert('error', 'Your session has expired. Please sign in again.');
     }
-    if (searchParams.get('error') === 'google_auth_failed') {
+    if (searchParams.get('error') === 'google_not_configured') {
+      showAlert('error', 'Google Sign-In is not configured yet. Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or sign in with your email and password.');
+    } else if (searchParams.get('error') === 'google_auth_failed') {
       showAlert('error', 'Google Sign-In failed or is not configured. Please use email and password.');
     }
 

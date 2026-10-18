@@ -294,10 +294,19 @@ const getAuthProviders = (req, res) => {
  * Redirects to Google OAuth
  */
 const googleAuthRedirect = (req, res, next) => {
+  const host = req.get('host') || '127.0.0.1:5000';
+  const protocol = req.protocol || 'http';
+  const frontendUrl = (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes(':3000'))
+    ? process.env.FRONTEND_URL
+    : `${protocol}://${host}`;
+
   try {
     const url = authService.getGoogleAuthUrl();
     return res.redirect(url);
   } catch (error) {
+    if (error.code === 'GOOGLE_NOT_CONFIGURED') {
+      return res.redirect(`${frontendUrl}/login.html?error=google_not_configured`);
+    }
     next(error);
   }
 };

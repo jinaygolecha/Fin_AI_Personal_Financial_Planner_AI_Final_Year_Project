@@ -242,7 +242,7 @@ const googleAuth = async (idToken) => {
  */
 const getGoogleAuthUrl = () => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || process.env.GOOGLE_CALLBACK_URL;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || process.env.GOOGLE_CALLBACK_URL || `${process.env.FRONTEND_URL || 'https://finpro-finance-ai-olvt.onrender.com'}/api/v1/auth/google/callback`;
 
   if (!clientId || clientId === 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com') {
     throw Object.assign(new Error('Google OAuth is not configured. Please set GOOGLE_CLIENT_ID in .env'), { statusCode: 503, code: 'GOOGLE_NOT_CONFIGURED' });
@@ -264,7 +264,7 @@ const getGoogleAuthUrl = () => {
  * Exchange Google auth code for tokens
  */
 const handleGoogleCallback = async (code) => {
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || process.env.GOOGLE_CALLBACK_URL;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || process.env.GOOGLE_CALLBACK_URL || `${process.env.FRONTEND_URL || 'https://finpro-finance-ai-olvt.onrender.com'}/api/v1/auth/google/callback`;
   const tokenRes = await axios.post('https://oauth2.googleapis.com/token', {
     code,
     client_id: process.env.GOOGLE_CLIENT_ID,
