@@ -31,36 +31,21 @@ process.on('unhandledRejection', (reason) => {
 // Start server
 const startServer = async () => {
   try {
-    // Verify database connection with retry for cloud latency
-    let retries = 5;
-    while (retries > 0) {
-      try {
-        await prisma.$connect();
-        console.log('[Database] Connected to PostgreSQL (Cloud Supabase) ✓');
-        break;
-      } catch (err) {
-        retries--;
-        if (retries === 0) throw err;
-        console.warn(`[Database] Connection attempt failed (${err.message}). Retrying in 2s... (${retries} left)`);
-        await new Promise(r => setTimeout(r, 2000));
-      }
-    }
-
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log('\n╔════════════════════════════════════════════════════════╗');
       console.log('║     FinPro — Personal Finance & Decision Support Platform ║');
       console.log('║     Owner: Jinay Golecha (jinay_golecha)               ║');
       console.log('╚════════════════════════════════════════════════════════╝');
-      console.log(`\n🚀 Server running at http://127.0.0.1:${PORT}`);
+      console.log(`\n🚀 Server running at http://0.0.0.0:${PORT}`);
       console.log(`📋 Environment: ${NODE_ENV}`);
       console.log(`🔒 Auth: JWT + Google OAuth`);
-      console.log(`🤖 AI: ${process.env.GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY' ? 'Gemini (configured)' : 'Rule-based (configure GEMINI_API_KEY)'}`);
-      console.log(`📈 Market: ${process.env.FINNHUB_API_KEY !== 'YOUR_FINNHUB_API_KEY' ? 'Finnhub (live)' : 'Reference prices (configure FINNHUB_API_KEY)'}`);
+      console.log(`🤖 AI: ${process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'YOUR_GEMINI_API_KEY' ? 'Gemini (configured)' : 'Rule-based (configure GEMINI_API_KEY)'}`);
+      console.log(`📈 Market: ${process.env.FINNHUB_API_KEY && process.env.FINNHUB_API_KEY !== 'YOUR_FINNHUB_API_KEY' ? 'Finnhub (live)' : 'Reference prices'}`);
       console.log(`\n📡 API Endpoints:`);
-      console.log(`   Health:    GET  http://127.0.0.1:${PORT}/api/v1/health`);
-      console.log(`   Auth:      POST http://127.0.0.1:${PORT}/api/v1/auth/register`);
-      console.log(`   Dashboard: GET  http://127.0.0.1:${PORT}/api/v1/dashboard`);
-      console.log(`   Frontend:  http://127.0.0.1:${PORT}/\n`);
+      console.log(`   Health:    GET  http://0.0.0.0:${PORT}/api/v1/health`);
+      console.log(`   Auth:      POST http://0.0.0.0:${PORT}/api/v1/auth/register`);
+      console.log(`   Dashboard: GET  http://0.0.0.0:${PORT}/api/v1/dashboard`);
+      console.log(`   Frontend:  http://0.0.0.0:${PORT}/\n`);
 
       // Proactive 60-second market cache warmup worker
       startMarketBackgroundWorker(60000);
@@ -74,10 +59,20 @@ const startServer = async () => {
       throw err;
     });
 
+    // Asynchronously connect to PostgreSQL with resilient retry loop
+    const connectWithRetry = async () => {
+      try {
+        await prisma.$connect();
+        console.log('[Database] Connected to PostgreSQL (Cloud Supabase) ✓');
+      } catch (err) {
+        console.warn(`[Database] Connection notice: ${err.message}. Retrying in 5s...`);
+        setTimeout(connectWithRetry, 5000);
+      }
+    };
+    connectWithRetry();
+
   } catch (error) {
     console.error('[Server] Failed to start:', error.message);
-    console.error('[Server] Check DATABASE_URL in .env and ensure PostgreSQL is running.');
-    await prisma.$disconnect();
     process.exit(1);
   }
 };

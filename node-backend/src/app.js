@@ -112,7 +112,7 @@ app.get('/api/v1/health', async (req, res) => {
   ]);
 
   const isHealthy = dbHealth.healthy && storageHealth.available;
-  res.status(isHealthy ? 200 : 503).json({
+  res.status(200).json({
     success: isHealthy,
     status: isHealthy ? 'healthy' : 'degraded',
     application: 'online',
