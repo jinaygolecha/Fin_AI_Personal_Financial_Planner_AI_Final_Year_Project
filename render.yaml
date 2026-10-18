@@ -11,7 +11,7 @@ services:
     plan: free
     region: oregon
     buildCommand: npm --prefix node-backend install && npm --prefix node-backend run prisma:generate
-    startCommand: cd node-backend && (npx prisma migrate deploy || true) && npm start
+    startCommand: cd node-backend && npm start
     healthCheckPath: /api/v1/health
     autoDeploy: true
 
