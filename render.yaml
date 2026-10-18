@@ -10,7 +10,7 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm --prefix node-backend install && npm --prefix node-backend run prisma:generate && cd node-backend && (npx prisma migrate deploy || true)
+    buildCommand: npm --prefix node-backend install && npm --prefix node-backend run prisma:generate
     startCommand: cd node-backend && (npx prisma migrate deploy || true) && npm start
     healthCheckPath: /api/v1/health
     autoDeploy: true
@@ -19,8 +19,6 @@ services:
       # Server Runtime
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 5000
 
       # Supabase PostgreSQL Database URL
       # NOTE: For Supabase, use the pooled connection string (port 6543 or port 5432 with pgbouncer)
