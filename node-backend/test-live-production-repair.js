@@ -51,14 +51,21 @@ async function run() {
   console.log(`   Target: ${BASE_URL}`);
   console.log('====================================================================\n');
 
-  // TEST 1: Health check
-  console.log('👉 [1/8] Verifying Live Health & Database Connectivity...');
+  // TEST 1: Health check & aliases
+  console.log('👉 [1/9] Verifying Live Health, Aliases (/v1/health, /health) & Database Connectivity...');
   const healthRes = await apiRequest('/api/v1/health');
   assert(healthRes.status === 200, 'GET /api/v1/health returns HTTP 200');
   assert(healthRes.data?.success === true, 'Health check reports success: true');
   assert(healthRes.data?.database === 'connected', 'Database reported status is "connected"');
   assert(healthRes.data?.databaseTier === 'cloud', 'Database tier is "cloud" (Supabase)');
   assert(typeof healthRes.data?.databaseLatencyMs === 'number', `Database latency measured: ${healthRes.data?.databaseLatencyMs}ms`);
+
+  const readyRes = await apiRequest('/api/v1/health/ready');
+  assert(readyRes.status === 200 && readyRes.data?.ready === true, 'GET /api/v1/health/ready returns 200 OK ready: true');
+
+  // TEST 1b: Verify Auth Providers
+  const providersRes = await apiRequest('/api/v1/auth/providers');
+  assert(providersRes.status === 200 && providersRes.data?.success === true, 'GET /api/v1/auth/providers returns auth provider telemetry');
 
   // TEST 2: Invalid Login Rejection
   console.log('\n👉 [2/8] Testing Invalid Credentials Rejection...');

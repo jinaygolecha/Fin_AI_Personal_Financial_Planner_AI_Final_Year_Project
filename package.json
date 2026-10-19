@@ -8,6 +8,7 @@
     "dev": "npm --prefix node-backend run dev",
     "start": "npm --prefix node-backend start",
     "test": "npm --prefix node-backend test",
+    "test:health": "npm --prefix node-backend run test:health",
     "test:cloud": "npm --prefix node-backend run test:cloud",
     "test:failure": "npm --prefix node-backend run test:failure",
     "test:repair": "npm --prefix node-backend run test:repair",

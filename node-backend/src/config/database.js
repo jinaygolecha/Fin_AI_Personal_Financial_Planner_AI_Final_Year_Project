@@ -2,6 +2,11 @@ const { PrismaClient } = require('@prisma/client');
 
 let prisma;
 
+// Ensure DIRECT_URL is populated for Prisma migrations and direct connections
+if (!process.env.DIRECT_URL && process.env.DATABASE_URL) {
+  process.env.DIRECT_URL = process.env.DATABASE_URL;
+}
+
 if (process.env.NODE_ENV === 'production') {
   prisma = new PrismaClient({
     log: ['error'],

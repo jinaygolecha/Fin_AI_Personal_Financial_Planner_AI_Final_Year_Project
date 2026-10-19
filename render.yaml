@@ -21,9 +21,11 @@ services:
         value: production
 
       # Supabase PostgreSQL Database URL
-      # NOTE: For Supabase, use the pooled connection string (port 6543 or port 5432 with pgbouncer)
-      # e.g., postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
+      # Pooled connection string (port 6543 with pgbouncer=true or port 5432)
       - key: DATABASE_URL
+        sync: false
+      # Direct connection URL for migrations and schema synchronization (port 5432)
+      - key: DIRECT_URL
         sync: false
 
       # Authentication Secrets
@@ -66,6 +68,16 @@ services:
       - key: GOOGLE_REDIRECT_URI
         value: https://finpro-finance-ai-olvt.onrender.com/api/v1/auth/google/callback
 
-      # Document & Receipt Storage Abstraction
+      # Document & Receipt Storage Abstraction (Supabase Cloud Object Storage)
       - key: STORAGE_PROVIDER
-        value: local
+        value: s3
+      - key: S3_ENDPOINT
+        value: https://qpnghccwcebrlgmjbibe.storage.supabase.co/storage/v1/s3
+      - key: S3_REGION
+        value: ap-northeast-2
+      - key: S3_BUCKET
+        value: finpro-documents
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
