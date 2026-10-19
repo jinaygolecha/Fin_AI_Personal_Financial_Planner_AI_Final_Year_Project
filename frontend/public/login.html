@@ -321,6 +321,7 @@
     .alert.show { display: flex; }
     .alert.error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
     .alert.success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+    .alert.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
     
     .spinner {
       width: 16px;
@@ -412,6 +413,12 @@
         </svg>
         Continue with Google
       </a>
+
+      <div style="margin-top: 14px; text-align: center;">
+        <button type="button" id="fillDemoBtn" style="background: none; border: 1px dashed var(--border); color: var(--text-muted); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.15s ease;">
+          <i class="ri-user-shared-line" style="vertical-align: middle;"></i> Fill Demo Account (jinay@test.com)
+        </button>
+      </div>
     </div>
     
     <div class="auth-footer">
@@ -423,6 +430,13 @@
     const isDevLiveServer = window.location.port === '3000' || window.location.port === '5500' || window.location.protocol === 'file:';
     const API_BASE = isDevLiveServer ? 'http://127.0.0.1:5000/api/v1' : '/api/v1';
     
+    // Quick Demo Account autofill
+    document.getElementById('fillDemoBtn')?.addEventListener('click', () => {
+      document.getElementById('emailInput').value = 'jinay@test.com';
+      document.getElementById('passwordInput').value = 'TestPassword123!';
+      showAlert('info', 'Demo credentials loaded: jinay@test.com. Click "Sign In" to continue.');
+    });
+
     // Google callback & hash fragment token handling (secure OAuth transfer)
     const hashParams = new URLSearchParams(window.location.hash ? window.location.hash.substring(1) : '');
     const searchParams = new URLSearchParams(window.location.search);
@@ -445,7 +459,7 @@
       showAlert('error', 'Your session has expired. Please sign in again.');
     }
     if (searchParams.get('error') === 'google_not_configured') {
-      showAlert('error', 'Google Sign-In is not configured yet. Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or sign in with your email and password.');
+      showAlert('info', 'Google Sign-In is optional and not currently configured. Please sign in with your email and password.');
     } else if (searchParams.get('error') === 'google_auth_failed') {
       showAlert('error', 'Google Sign-In failed or is not configured. Please use email and password.');
     }
@@ -464,7 +478,7 @@
     document.getElementById('googleLoginBtn').addEventListener('click', async (e) => {
       e.preventDefault();
       if (!googleOAuthEnabled) {
-        showAlert('error', 'Google Sign-In is not configured. To enable Google OAuth, please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in node-backend/.env. Please sign in with your email and password.');
+        showAlert('info', 'Google Sign-In can be enabled by configuring GOOGLE_CLIENT_ID & GOOGLE_CLIENT_SECRET. Please sign in or register with email and password below.');
         return;
       }
       window.location.href = `${API_BASE}/auth/google`;
@@ -556,7 +570,7 @@
       const icon = document.getElementById('alertIcon');
       alert.className = `alert show ${type}`;
       msg.textContent = message;
-      icon.className = type === 'error' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line';
+      icon.className = type === 'error' ? 'ri-error-warning-line' : (type === 'info' ? 'ri-information-line' : 'ri-checkbox-circle-line');
     }
     
     function clearAlert() {
