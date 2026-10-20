@@ -223,10 +223,17 @@ const handleCloudDetailedCheck = async (req, res) => {
 const handleMarketHealthCheck = (req, res) => {
   const apiKey = process.env.FINNHUB_API_KEY;
   const configured = !!(apiKey && apiKey !== 'YOUR_FINNHUB_API_KEY');
+  let metalsStatus = null;
+  try {
+    const metalPriceService = require('./services/metalPriceService');
+    metalsStatus = metalPriceService.getProviderStatus();
+  } catch {}
+
   res.json({
     success: true,
     status: configured ? 'configured' : 'not_configured',
     provider: 'Finnhub',
+    metalsProvider: metalsStatus,
     note: configured ? 'Live market data available.' : 'Set FINNHUB_API_KEY in .env for live NSE/BSE data. Fallback active.',
   });
 };

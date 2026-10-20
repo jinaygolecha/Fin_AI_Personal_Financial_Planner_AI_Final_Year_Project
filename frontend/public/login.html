@@ -459,9 +459,17 @@
       showAlert('error', 'Your session has expired. Please sign in again.');
     }
     if (searchParams.get('error') === 'google_not_configured') {
-      showAlert('info', 'Google Sign-In is optional and not currently configured. Please sign in with your email and password.');
+      showAlert('info', 'Google Sign-In is not configured in this environment. To enable Google OAuth, please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Render Environment Variables. Please sign in with email and password.');
+    } else if (searchParams.get('error') === 'consent_denied') {
+      showAlert('error', 'Google authentication was cancelled or consent was denied. Please try again.');
+    } else if (searchParams.get('error') === 'invalid_oauth_state') {
+      showAlert('error', 'Authentication security check failed (invalid or expired session). Please try again.');
+    } else if (searchParams.get('error') === 'account_conflict') {
+      showAlert('error', 'Account conflict detected: An account with this email is already linked to another sign-in method. Please use email/password.');
     } else if (searchParams.get('error') === 'google_auth_failed') {
-      showAlert('error', 'Google Sign-In failed or is not configured. Please use email and password.');
+      showAlert('error', 'Google Sign-In failed or was interrupted. Please use email and password.');
+    } else if (searchParams.get('error')) {
+      showAlert('error', `Sign-in notice: ${searchParams.get('error')}`);
     }
 
     // Check auth providers status

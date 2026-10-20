@@ -195,6 +195,82 @@ class GSTService {
   }
 
   /**
+   * Quick GSTIN verification helper
+   */
+  verifyGstin(gstin) {
+    const val = this.validateGSTIN(gstin);
+    return {
+      isValid: val.valid,
+      stateCode: val.stateCode,
+      state: val.stateName,
+      pan: val.pan,
+      taxpayerType: val.entityType,
+      error: val.error,
+    };
+  }
+
+  /**
+   * Unified GST Calculator with discounts, other charges, and tax inclusive/exclusive modes
+   */
+  calculateGST({ taxableAmount, amount, rate = 18, isInterState = false, isInclusive = false, discount = 0, otherCharges = 0, lineItems, items }) {
+    const rawItems = lineItems || items;
+    if (rawItems && Array.isArray(rawItems) && rawItems.length > 0) {
+      return this.calculateDetailedTaxInvoice({
+        lineItems: rawItems,
+        discount,
+        otherCharges,
+        isInterState: Boolean(isInterState),
+        isTaxInclusive: Boolean(isInclusive),
+      });
+    }
+
+    const baseInput = parseFloat(taxableAmount !== undefined ? taxableAmount : amount) || 0;
+    const discountVal = parseFloat(discount) || 0;
+    const chargesVal = parseFloat(otherCharges) || 0;
+    const gstRate = parseFloat(rate) || 0;
+
+    let taxable = 0;
+    let totalGst = 0;
+    let totalPayable = 0;
+
+    if (isInclusive) {
+      const netAfterCharges = Math.max(0, baseInput - chargesVal);
+      taxable = Math.round((netAfterCharges / (1 + gstRate / 100)) * 100) / 100;
+      totalGst = Math.round((netAfterCharges - taxable) * 100) / 100;
+      totalPayable = baseInput;
+    } else {
+      taxable = Math.max(0, baseInput - discountVal);
+      totalGst = Math.round((taxable * (gstRate / 100)) * 100) / 100;
+      totalPayable = Math.round((taxable + totalGst + chargesVal) * 100) / 100;
+    }
+
+    let cgst = 0;
+    let sgst = 0;
+    let igst = 0;
+
+    if (isInterState) {
+      igst = totalGst;
+    } else {
+      cgst = Math.round((totalGst / 2) * 100) / 100;
+      sgst = Math.round((totalGst - cgst) * 100) / 100;
+    }
+
+    return {
+      taxableAmount: taxable,
+      rate: gstRate,
+      isInterState: Boolean(isInterState),
+      isInclusive: Boolean(isInclusive),
+      discount: discountVal,
+      otherCharges: chargesVal,
+      cgst,
+      sgst,
+      igst,
+      totalGst,
+      totalAmount: totalPayable,
+    };
+  }
+
+  /**
    * Complete Itemized GST Invoice Calculator
    * Supports:
    * - Intra-state (CGST + SGST) vs Inter-state (IGST)
@@ -211,17 +287,19 @@ class GSTService {
     supplierStateCode = null,
     isTaxInclusive = false,
     lineItems = [],
+    items = null,
+    discount = 0,
     otherCharges = 0,
     amountPaid = null,
+    isInterState: forcedInterState = null,
   }) {
     const validatedGstin = gstin ? this.validateGSTIN(gstin) : { valid: false };
     const detectedStateCode = supplierStateCode || (validatedGstin.valid ? validatedGstin.stateCode : null);
 
-    // Intra vs Inter-state detection:
-    // If supplier state is known and place of supply is known:
-    // same state = Intra-state (CGST + SGST). Different state = Inter-state (IGST).
     let isInterState = false;
-    if (detectedStateCode && placeOfSupply) {
+    if (forcedInterState !== null) {
+      isInterState = Boolean(forcedInterState);
+    } else if (detectedStateCode && placeOfSupply) {
       const posClean = String(placeOfSupply).trim();
       isInterState = !posClean.includes(detectedStateCode) && !posClean.toLowerCase().includes((STATE_CODES[detectedStateCode] || '').toLowerCase());
     }
@@ -231,14 +309,15 @@ class GSTService {
     let totalCGST = 0;
     let totalSGST = 0;
     let totalIGST = 0;
-    let totalDiscount = 0;
+    let totalDiscount = parseFloat(discount) || 0;
     const warnings = [];
 
-    if (!lineItems || lineItems.length === 0) {
+    const activeItems = (lineItems && lineItems.length > 0) ? lineItems : (items && items.length > 0 ? items : []);
+    if (activeItems.length === 0) {
       warnings.push('No itemized rows detected; calculations based on invoice summary totals.');
     }
 
-    const defaultItems = (lineItems && lineItems.length > 0) ? lineItems : [
+    const defaultItems = activeItems.length > 0 ? activeItems : [
       { description: 'Recorded Supply', quantity: 1, unitPrice: 0, gstRate: 18, hsn: null }
     ];
 
@@ -329,6 +408,12 @@ class GSTService {
       supplyType: isInterState ? 'INTER_STATE (IGST)' : 'INTRA_STATE (CGST + SGST)',
       pricingBasis: isTaxInclusive ? 'TAX_INCLUSIVE_PRICING' : 'TAX_EXCLUSIVE_PRICING',
       lineItems: itemsCalculated,
+      itemCount: itemsCalculated.length,
+      subtotal,
+      discount: Math.round(totalDiscount * 100) / 100,
+      otherCharges: parseFloat(otherCharges) || 0,
+      totalGst: totalTax,
+      totalAmount: finalInvoiceAmount,
       taxSummary: {
         taxableSubtotal: subtotal,
         totalDiscount: Math.round(totalDiscount * 100) / 100,

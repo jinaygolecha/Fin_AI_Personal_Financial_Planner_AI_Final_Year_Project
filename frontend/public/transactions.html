@@ -411,7 +411,10 @@
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <span style="font-weight:700;color:var(--success);font-size:12px;">Review Extracted Receipt & Tax
               Details:</span>
-            <span id="ocrConfidenceBadge" class="badge badge-green">Confidence: 100%</span>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span id="ocrValidationBadge" class="badge badge-blue" style="font-size:10px;">VALIDATED</span>
+              <span id="ocrConfidenceBadge" class="badge badge-green" style="font-size:10px;">Confidence: 100%</span>
+            </div>
           </div>
 
           <!-- GST Itemized Breakdown Box -->
@@ -443,6 +446,11 @@
                 <div id="ocrGstTotal" style="font-weight:700;color:var(--success);">₹0</div>
               </div>
             </div>
+            <div id="ocrTaxExtraDetails" style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);">
+              <span>Subtotal: <b id="ocrSubtotalVal" style="color:var(--text);">₹0</b></span>
+              <span>Discount: <b id="ocrDiscountVal" style="color:#dc2626;">-₹0</b></span>
+              <span>Other Charges: <b id="ocrOtherVal" style="color:var(--text);">+₹0</b></span>
+            </div>
             <div id="ocrLineItemsText" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
           </div>
 
@@ -464,6 +472,20 @@
             <div>
               <label class="form-label" style="font-size:11px;">Date</label>
               <input type="date" id="ocrResDate" class="form-input" style="padding:6px 10px;font-size:12px;">
+            </div>
+            <div>
+              <label class="form-label" style="font-size:11px;">Invoice / Receipt #</label>
+              <input type="text" id="ocrResInvoice" class="form-input" style="padding:6px 10px;font-size:12px;" placeholder="Optional">
+            </div>
+            <div>
+              <label class="form-label" style="font-size:11px;">Payment Method</label>
+              <select id="ocrResPaymentMethod" class="form-input" style="padding:6px 10px;font-size:12px;">
+                <option value="UPI">UPI</option>
+                <option value="CARD">Credit/Debit Card</option>
+                <option value="NET_BANKING">Net Banking</option>
+                <option value="CASH">Cash</option>
+                <option value="OTHER">Other</option>
+              </select>
             </div>
           </div>
           <div class="form-group" style="margin-bottom:12px;">
@@ -1371,29 +1393,61 @@
           const d = res.data;
           pendingReceiptScanId = d.scanId;
           document.getElementById('ocrResultCard').style.display = 'block';
-          document.getElementById('ocrConfidenceBadge').textContent = `Confidence: ${d.ocrConfidence || 100}%`;
+          document.getElementById('ocrConfidenceBadge').textContent = `Confidence: ${d.ocrConfidence || d.confidence || 100}%`;
+          
+          const valBadge = document.getElementById('ocrValidationBadge');
+          const valStatus = d.validationStatus || 'VALIDATED';
+          valBadge.textContent = valStatus;
+          valBadge.className = valStatus === 'VALIDATED' ? 'badge badge-green' : (valStatus === 'INCONSISTENT_TOTALS' ? 'badge badge-yellow' : 'badge badge-blue');
+
           document.getElementById('ocrResMerchant').value = d.merchant || '';
-          document.getElementById('ocrResAmount').value = d.amount || '';
+          document.getElementById('ocrResAmount').value = d.totalAmount || d.amount || '';
           document.getElementById('ocrResCategory').value = d.category || 'General';
           document.getElementById('ocrResDate').value = d.date ? d.date.slice(0, 10) : new Date().toISOString().slice(0, 10);
+          document.getElementById('ocrResInvoice').value = d.invoiceNumber || '';
+          
+          if (d.paymentMethod) {
+            const pmUpper = String(d.paymentMethod).toUpperCase();
+            const pmSelect = document.getElementById('ocrResPaymentMethod');
+            if (pmUpper.includes('UPI')) pmSelect.value = 'UPI';
+            else if (pmUpper.includes('CARD') || pmUpper.includes('VISA') || pmUpper.includes('MASTER') || pmUpper.includes('DEBIT') || pmUpper.includes('CREDIT')) pmSelect.value = 'CARD';
+            else if (pmUpper.includes('CASH')) pmSelect.value = 'CASH';
+            else if (pmUpper.includes('NET') || pmUpper.includes('BANK')) pmSelect.value = 'NET_BANKING';
+            else pmSelect.value = 'OTHER';
+          }
           document.getElementById('ocrResRemarks').value = '';
 
           // Detailed GST Breakdown
           const gstBox = document.getElementById('ocrGstTaxBox');
-          if (d.gstBreakdown && d.gstBreakdown.hasGst) {
+          const gstBreakdown = d.gstBreakdown || {};
+          const hasGst = gstBreakdown.hasGst || (d.cgst > 0 || d.sgst > 0 || d.igst > 0 || d.totalGst > 0 || d.gstin);
+          if (hasGst) {
             gstBox.style.display = 'block';
-            document.getElementById('ocrGstinTag').textContent = `GSTIN: ${d.gstBreakdown.gstin || 'Detected'}`;
-            document.getElementById('ocrGstTaxable').textContent = fmt(d.gstBreakdown.taxableAmount || 0);
-            document.getElementById('ocrGstCgst').textContent = fmt(d.gstBreakdown.cgst || 0);
-            document.getElementById('ocrGstSgst').textContent = fmt(d.gstBreakdown.sgst || 0);
-            document.getElementById('ocrGstTotal').textContent = fmt(d.gstBreakdown.totalGst || 0);
+            document.getElementById('ocrGstinTag').textContent = `GSTIN: ${d.gstin || gstBreakdown.gstin || 'Detected'}`;
+            document.getElementById('ocrGstTaxable').textContent = fmt(d.taxableValue || gstBreakdown.taxableAmount || 0);
+            document.getElementById('ocrGstCgst').textContent = fmt(d.cgst || gstBreakdown.cgst || 0);
+            document.getElementById('ocrGstSgst').textContent = fmt(d.sgst || gstBreakdown.sgst || 0);
+            document.getElementById('ocrGstTotal').textContent = fmt(d.totalGst || gstBreakdown.totalGst || 0);
+            
+            document.getElementById('ocrSubtotalVal').textContent = fmt(d.subtotal || 0);
+            document.getElementById('ocrDiscountVal').textContent = '-' + fmt(d.discount || 0);
+            document.getElementById('ocrOtherVal').textContent = '+' + fmt(d.otherCharges || 0);
           } else {
             gstBox.style.display = 'none';
           }
 
           const lineItemsEl = document.getElementById('ocrLineItemsText');
           if (d.items && d.items.length) {
-            lineItemsEl.innerHTML = `Extracted Line Items: <i>${escapeHtml(d.items.join(', '))}</i>`;
+            const renderedItems = d.items.map(it => {
+              if (typeof it === 'object' && it !== null) {
+                const desc = it.description || it.name || 'Item';
+                const qty = it.quantity ? ` x${it.quantity}` : '';
+                const price = it.amount || it.total || it.unitPrice ? ` (₹${it.amount || it.total || it.unitPrice})` : '';
+                return `${escapeHtml(desc)}${qty}${price}`;
+              }
+              return escapeHtml(String(it));
+            }).join(' · ');
+            lineItemsEl.innerHTML = `<b>Line Items:</b> <i>${renderedItems}</i>`;
             lineItemsEl.style.display = 'block';
           } else {
             lineItemsEl.style.display = 'none';
@@ -1417,6 +1471,8 @@
       const amount = parseFloat(document.getElementById('ocrResAmount').value);
       const category = document.getElementById('ocrResCategory').value.trim() || 'General';
       const date = document.getElementById('ocrResDate').value;
+      const invoiceNumber = document.getElementById('ocrResInvoice')?.value?.trim() || undefined;
+      const paymentMethod = document.getElementById('ocrResPaymentMethod')?.value || 'UPI';
       const remarks = document.getElementById('ocrResRemarks').value.trim();
 
       if (!amount || isNaN(amount) || amount <= 0) {
@@ -1432,6 +1488,8 @@
           merchant: merchant || 'Receipt Merchant',
           category,
           date: date || new Date().toISOString(),
+          paymentMethod,
+          invoiceNumber,
           notes: remarks || undefined,
           remarks: remarks || undefined
         })

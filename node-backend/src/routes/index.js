@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth');
+const { authenticate, optionalAuth } = require('../middleware/auth');
 
 const dashboard = require('../controllers/dashboardController');
 const accounts = require('../controllers/accountController');
@@ -25,7 +25,28 @@ const storage = require('../controllers/storageController');
 const creditHealth = require('../controllers/creditHealthController');
 const gst = require('../controllers/gstController');
 
-// Apply auth to all routes below
+// =========================================================================
+// Public / Semi-Public Market & Metals Endpoints (supports guests & users)
+// =========================================================================
+router.get('/market/metals', optionalAuth, investments.getMetals);
+router.get('/market/metals/status', optionalAuth, investments.getMetalsStatus);
+router.get('/market/metals/pune', optionalAuth, investments.getPuneRetailMetals);
+router.get('/market/gold', optionalAuth, investments.getGold);
+router.get('/market/silver', optionalAuth, investments.getSilver);
+router.get('/market/quote', optionalAuth, investments.getStockQuote);
+router.get('/market/history', optionalAuth, investments.getStockHistory);
+router.get('/market/search', optionalAuth, investments.searchStocks);
+router.get('/market/popular', optionalAuth, investments.getPopularStocks);
+router.get('/market/news', optionalAuth, investments.getMarketNews);
+router.get('/market/profile', optionalAuth, investments.getCompanyProfile);
+router.get('/market/dashboard', optionalAuth, investments.getMarketDashboard);
+router.get('/market/technicals', optionalAuth, investments.getTechnicals);
+router.get('/market/overview', optionalAuth, investments.getCompanyOverview);
+router.get('/market/earnings', optionalAuth, investments.getEarnings);
+router.get('/market/fx', optionalAuth, investments.getFXRate);
+router.get('/market/commodity', optionalAuth, investments.getCommodity);
+
+// Apply strict authentication to all user-scoped routes below
 router.use(authenticate);
 
 // Dashboard
@@ -87,26 +108,9 @@ router.get('/investments/portfolio', investments.getPortfolio);
 router.post('/investments/buy', investments.buyInvestment);
 router.patch('/investments/:id', investments.updateInvestment);
 router.delete('/investments/:id', investments.deleteInvestment);
-router.get('/market/quote', investments.getStockQuote);
-router.get('/market/history', investments.getStockHistory);
-router.get('/market/search', investments.searchStocks);
-router.get('/market/metals', investments.getMetals);
-router.get('/market/gold', investments.getGold);
-router.get('/market/silver', investments.getSilver);
-router.get('/market/popular', investments.getPopularStocks);
-router.get('/market/news', investments.getMarketNews);
-router.get('/market/profile', investments.getCompanyProfile);
 router.get('/market/watchlist', investments.getWatchlist);
 router.post('/market/watchlist', investments.addToWatchlist);
 router.delete('/market/watchlist/:symbol', investments.removeFromWatchlist);
-
-// Alpha Vantage — Advanced Market Data Routes
-router.get('/market/dashboard', investments.getMarketDashboard);
-router.get('/market/technicals', investments.getTechnicals);
-router.get('/market/overview', investments.getCompanyOverview);
-router.get('/market/earnings', investments.getEarnings);
-router.get('/market/fx', investments.getFXRate);
-router.get('/market/commodity', investments.getCommodity);
 
 // Loans & Prepayment Simulator
 router.get('/loans', loans.getLoans);

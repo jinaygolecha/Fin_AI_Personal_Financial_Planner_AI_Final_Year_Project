@@ -349,33 +349,55 @@
         <!-- Gold Card -->
         <!-- Gold Card (Pune Local Market & Import Parity) -->
         <div class="mcard gold-card">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
             <div class="mcard-icon icon-gold"><i class="ri-copper-diamond-line"></i></div>
-            <span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(217,119,6,0.15);color:var(--gold-accent);font-weight:700;">
-              📍 PUNE LOCAL MARKET
-            </span>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span id="goldFreshnessBadge" class="badge-status live" style="font-size:10px;padding:2px 8px;">LIVE</span>
+              <span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(217,119,6,0.15);color:var(--gold-accent);font-weight:700;">
+                📍 PUNE RETAIL ESTIMATE
+              </span>
+            </div>
           </div>
-          <div class="mcard-label">Gold 24K (Pune Bullion Indicative Rate)</div>
+          <div class="mcard-label">Gold 24K (Pune Bullion Retail Estimate)</div>
           <div class="mcard-value" id="gold24kVal">Loading...</div>
-          <div class="mcard-sub" id="goldSubHeadline">per gram &middot; 99.9% Purity &middot; Landed Import Parity</div>
-          <div class="rates-grid">
-            <div class="rate-row"><div class="rate-lbl">22K Jewellery (91.6%)</div><div class="rate-val" id="gold22kVal">--</div></div>
-            <div class="rate-row"><div class="rate-lbl">24K / 10 grams (Pune)</div><div class="rate-val" id="gold10gVal">--</div></div>
-            <div class="rate-row"><div class="rate-lbl">Ex-Duty COMEX Spot</div><div class="rate-val" id="goldSpotVal" style="font-size:13px;">--</div></div>
-            <div class="rate-row"><div class="rate-lbl">COMEX Contract</div><div class="rate-val" id="goldSourceVal" style="font-size:11px;">GC=F / USD</div></div>
+          <div class="mcard-sub" id="goldSubHeadline">per gram &middot; 99.9% Fine Gold &middot; Landed Import Parity</div>
+
+          <!-- Section A: International Spot Reference -->
+          <div style="margin-top:10px;background:var(--rate-bg);border:1px solid var(--rate-border);border-radius:8px;padding:8px 10px;font-size:11px;">
+            <div style="font-weight:700;color:var(--text);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+              <span>A. International Spot Reference (MetalpriceAPI)</span>
+              <span id="goldProviderBadge" style="font-size:10px;color:var(--gold-accent);font-weight:700;">XAU / INR</span>
+            </div>
+            <div class="rates-grid" style="margin-top:4px;">
+              <div class="rate-row"><div class="rate-lbl">Spot 24K (per gram)</div><div class="rate-val" id="goldSpotVal">--</div></div>
+              <div class="rate-row"><div class="rate-lbl">Spot 24K (10 grams)</div><div class="rate-val" id="goldSpot10gVal">--</div></div>
+              <div class="rate-row"><div class="rate-lbl">Spot / troy oz (31.1035g)</div><div class="rate-val" id="goldSpotOzVal" style="font-size:12px;">--</div></div>
+              <div class="rate-row"><div class="rate-lbl">Theoretical 22K (22/24)</div><div class="rate-val" id="goldSpot22kVal">--</div></div>
+              <div class="rate-row"><div class="rate-lbl">Theoretical 18K (18/24)</div><div class="rate-val" id="goldSpot18kVal">--</div></div>
+              <div class="rate-row"><div class="rate-lbl">Provider Contract</div><div class="rate-val" id="goldSourceVal" style="font-size:11px;">MetalpriceAPI (XAU)</div></div>
+            </div>
           </div>
-          <!-- Tariff & Tax Breakdown Box -->
+
+          <!-- Section B: Pune Retail Bullion & Jewellery Estimates -->
           <div style="margin-top:10px;background:var(--rate-bg);border:1px solid var(--rate-border);border-radius:8px;padding:8px 10px;font-size:11px;">
             <div style="font-weight:700;color:var(--text);margin-bottom:4px;display:flex;justify-content:space-between;">
-              <span>Statutory Indian Import Parity Breakdown:</span>
-              <span style="color:var(--gold-accent);font-weight:700;">Union Tariff</span>
+              <span>B. Pune Retail Estimates (Landed Duties & Making):</span>
+              <span style="color:var(--gold-accent);font-weight:700;">Pune Parity</span>
             </div>
             <div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:2px;">
-              <span>• Base Converted Spot (Ex-Duty):</span>
+              <span>• Pune 24K Bullion (10 grams):</span>
+              <span id="gold10gVal" style="font-weight:700;color:var(--text);">--</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:2px;">
+              <span>• Pune 22K Jewellery (incl. 8% making):</span>
+              <span id="gold22kVal" style="font-weight:700;color:var(--gold-accent);">--</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:2px;">
+              <span>• Base Ex-Duty Spot:</span>
               <span id="goldExDutyVal" style="font-weight:600;color:var(--text);">--</span>
             </div>
             <div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:2px;">
-              <span>• Basic Customs Duty & AIDC (6.0%):</span>
+              <span>• Customs Duty & AIDC (6.0%):</span>
               <span id="goldCustomsVal" style="font-weight:600;color:var(--text);">--</span>
             </div>
             <div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:2px;">
@@ -383,12 +405,13 @@
               <span id="goldGstVal" style="font-weight:600;color:var(--text);">--</span>
             </div>
             <div style="display:flex;justify-content:space-between;color:var(--muted);">
-              <span>• Pune Bullion Premium & Assaying (0.45%):</span>
+              <span>• Assaying & Local Handling (0.45%):</span>
               <span id="goldMarginVal" style="font-weight:600;color:var(--text);">--</span>
             </div>
           </div>
           <div class="provenance-note provenance-gold" style="margin-top:8px;">
-            <strong>Disclosure:</strong> Converted from COMEX Gold Futures (GC=F) at live interbank USD/INR. Pune bullion retail rate incorporates statutory 6% import duty, 3% GST, and physical delivery margin. Retail jewellery making charges (8%-18%) extra.
+            <strong>Disclosure:</strong> Spot reference from MetalpriceAPI. Exact constant: 1 troy oz = 31.1034768g. Pune retail estimate applies statutory 6% BCD/AIDC, 3% GST, 0.45% delivery margin. Retail jewellery assumes 8% making charges.
+            <div style="margin-top:4px;font-size:10px;color:var(--muted);" id="goldProviderTime">Provider Feed: Live &middot; Updated: --</div>
           </div>
         </div>
 
@@ -397,15 +420,64 @@
           <div class="mcard silver-card">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;">
               <div class="mcard-icon icon-silver"><i class="ri-coin-line"></i></div>
-              <span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(100,116,139,0.15);color:var(--silver-accent);font-weight:700;">
-                📍 PUNE BULLION
-              </span>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <span id="silverFreshnessBadge" class="badge-status live" style="font-size:10px;padding:2px 8px;">LIVE</span>
+                <span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(100,116,139,0.15);color:var(--silver-accent);font-weight:700;">
+                  📍 PUNE BULLION
+                </span>
+              </div>
             </div>
-            <div class="mcard-label">Silver (Pune Bullion Indicative Rate)</div>
+            <div class="mcard-label">Silver (Pune Bullion Retail Estimate)</div>
             <div class="mcard-value" id="silverGramVal">--</div>
             <div class="mcard-sub">per gram &middot; <span id="silverKgVal" style="font-weight:700;">--</span> / kg</div>
+
+            <!-- Silver Reconciled Units Box -->
+            <div style="margin-top:10px;background:var(--rate-bg);border:1px solid var(--rate-border);border-radius:8px;padding:8px 10px;font-size:11px;">
+              <div style="font-weight:700;color:var(--text);margin-bottom:4px;display:flex;justify-content:space-between;">
+                <span>Spot Reconciliation (MetalpriceAPI XAG):</span>
+                <span style="color:var(--silver-accent);font-weight:700;">Reconciled</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:2px;">
+                <span>• Spot per gram:</span>
+                <span id="silverSpotGram" style="font-weight:600;color:var(--text);">--</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:2px;">
+                <span>• Spot per 10 grams:</span>
+                <span id="silverSpot10g" style="font-weight:600;color:var(--text);">--</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;color:var(--muted);margin-bottom:2px;">
+                <span>• Spot per kilogram (1,000g):</span>
+                <span id="silverSpotKg" style="font-weight:600;color:var(--text);">--</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;color:var(--muted);">
+                <span>• Spot per troy ounce (31.1035g):</span>
+                <span id="silverSpotOz" style="font-weight:600;color:var(--text);">--</span>
+              </div>
+            </div>
+
             <div class="provenance-note provenance-silver">
-              <strong>Unit Metric:</strong> 1 kg = 1,000g exact &middot; 1 troy oz = 31.1035g. Includes landed import tariff & GST from COMEX Silver (SI=F).
+              <strong>Unit Metric:</strong> 1 kg = 1,000g exact &middot; 1 troy oz = 31.1034768g. Includes 6% customs duty, 3% GST, 0.45% margin.
+              <div style="margin-top:4px;font-size:10px;color:var(--muted);" id="silverProviderTime">Provider Feed: Live &middot; Updated: --</div>
+            </div>
+          </div>
+
+          <!-- Platinum & Palladium Sub-Card -->
+          <div class="mcard" style="padding:14px 16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-size:12px;font-weight:700;color:var(--text);"><i class="ri-shield-flash-line" style="color:#6366f1;"></i> Precious Metals: Platinum & Palladium</span>
+              <span class="source-pill" style="font-size:9px;">MetalpriceAPI</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div style="background:var(--rate-bg);padding:8px;border-radius:6px;border:1px solid var(--rate-border);">
+                <div style="font-size:10px;color:var(--muted);font-weight:600;">Platinum (XPT) Spot</div>
+                <div id="platinumGramVal" style="font-size:13px;font-weight:800;color:var(--text);margin-top:2px;">--</div>
+                <div id="platinumOzVal" style="font-size:10px;color:var(--muted);">/ troy oz</div>
+              </div>
+              <div style="background:var(--rate-bg);padding:8px;border-radius:6px;border:1px solid var(--rate-border);">
+                <div style="font-size:10px;color:var(--muted);font-weight:600;">Palladium (XPD) Spot</div>
+                <div id="palladiumGramVal" style="font-size:13px;font-weight:800;color:var(--text);margin-top:2px;">--</div>
+                <div id="palladiumOzVal" style="font-size:10px;color:var(--muted);">/ troy oz</div>
+              </div>
             </div>
           </div>
 
@@ -717,45 +789,94 @@
 
       renderSessionAndStatus(d);
 
-      // Gold (Pune Local Retail Bullion + Statutory Landed Tariff Breakdown)
+      const metalsProv = d.preciousMetalsProvider || {};
+      const metalStatus = metalsProv.dataStatus || (metalsProv.isStale ? 'STALE' : (metalsProv.cached ? 'CACHED' : 'LIVE'));
+
+      // Gold (MetalpriceAPI Spot Reference + Pune Retail Breakdown)
       if (d.gold?.karat24) {
-        const rawSpot24k = d.gold.karat24.perGram;
+        const spot24kGram = d.gold.karat24.perGram;
+        const spot24k10g = d.gold.karat24.per10Gram || (spot24kGram * 10);
+        const spot24kOz = d.gold.karat24.priceUSD ? `$${d.gold.karat24.priceUSD.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : (spot24kGram ? fmt(spot24kGram * 31.1034768) : '--');
+        const spot22kGram = d.gold.karat22?.perGram || (spot24kGram * 22 / 24);
+        const spot18kGram = d.gold.karat18?.perGram || (spot24kGram * 18 / 24);
+
         const pune = d.puneMarket || d.gold.puneMarket || {};
-        const puneGold24k = pune.gold?.karat24?.perGram || Math.round(rawSpot24k * 1.06 * 1.03 * 1.0045 * 100) / 100;
-        const puneGold22k = pune.gold?.karat22?.perGram || Math.round(puneGold24k * 0.916 * 100) / 100;
-        const puneGold10g = pune.gold?.karat24?.per10Gram || Math.round(puneGold24k * 10 * 100) / 100;
+        const puneGold24kGram = pune.gold24kRetailGram || pune.gold?.karat24?.perGram || Math.round(spot24kGram * 1.06 * 1.03 * 1.0045 * 100) / 100;
+        const puneGold10g = pune.gold24kRetail10Gram || pune.gold?.karat24?.per10Gram || Math.round(puneGold24kGram * 10 * 100) / 100;
+        const puneGold22kGram = pune.gold22kJewelleryGram || pune.gold?.karat22?.perGram || Math.round(spot22kGram * 1.06 * 1.03 * 1.0045 * 1.08 * 100) / 100;
 
-        const customsVal = Math.round(rawSpot24k * 0.06 * 100) / 100;
-        const gstVal = Math.round((rawSpot24k + customsVal) * 0.03 * 100) / 100;
-        const marginVal = Math.round((rawSpot24k + customsVal + gstVal) * 0.0045 * 100) / 100;
+        const customsVal = Math.round(spot24kGram * 0.06 * 100) / 100;
+        const gstVal = Math.round((spot24kGram + customsVal) * 0.03 * 100) / 100;
+        const marginVal = Math.round((spot24kGram + customsVal + gstVal) * 0.0045 * 100) / 100;
 
-        document.getElementById('gold24kVal').textContent = fmt(puneGold24k);
-        document.getElementById('gold22kVal').textContent = fmt(puneGold22k);
+        document.getElementById('gold24kVal').textContent = fmt(puneGold24kGram);
+        document.getElementById('goldSpotVal').textContent = fmt(spot24kGram) + ' / g';
+        document.getElementById('goldSpot10gVal').textContent = fmt(spot24k10g);
+        document.getElementById('goldSpotOzVal').textContent = spot24kOz;
+        document.getElementById('goldSpot22kVal').textContent = fmt(spot22kGram) + ' / g';
+        document.getElementById('goldSpot18kVal').textContent = fmt(spot18kGram) + ' / g';
+        document.getElementById('goldSourceVal').textContent = d.gold.karat24.instrument || 'MetalpriceAPI (XAU)';
+
         document.getElementById('gold10gVal').textContent = fmt(puneGold10g);
-        document.getElementById('goldSpotVal').textContent = fmt(rawSpot24k);
-        document.getElementById('goldSourceVal').textContent = d.gold.karat24.instrument || 'COMEX GC=F';
-
-        document.getElementById('goldExDutyVal').textContent = fmt(rawSpot24k) + ' / g';
+        document.getElementById('gold22kVal').textContent = fmt(puneGold22kGram) + ' / g';
+        document.getElementById('goldExDutyVal').textContent = fmt(spot24kGram) + ' / g';
         document.getElementById('goldCustomsVal').textContent = '+' + fmt(customsVal) + ' / g';
         document.getElementById('goldGstVal').textContent = '+' + fmt(gstVal) + ' / g';
         document.getElementById('goldMarginVal').textContent = '+' + fmt(marginVal) + ' / g';
+
+        const goldBadge = document.getElementById('goldFreshnessBadge');
+        if (goldBadge) {
+          goldBadge.className = `badge-status ${metalStatus.toLowerCase()}`;
+          goldBadge.textContent = metalStatus;
+        }
+        const provBadge = document.getElementById('goldProviderBadge');
+        if (provBadge) provBadge.textContent = d.gold.karat24.provider || 'MetalpriceAPI';
+        const provTime = document.getElementById('goldProviderTime');
+        if (provTime) provTime.textContent = `Provider Feed: ${d.gold.karat24.provider || 'MetalpriceAPI'} · As of: ${d.gold.karat24.timestamp || 'Live'}`;
       }
 
-      // Silver (Pune Landed Bullion + COMEX Converted)
+      // Silver (MetalpriceAPI Spot Reconciled + Pune Landed Retail)
       if (d.silver) {
-        const rawSilverGram = d.silver.perGram;
+        const spotSilverGram = d.silver.perGram || 0;
+        const spotSilver10g = d.silver.per10Gram || (spotSilverGram * 10);
+        const spotSilverKg = d.silver.perKg || (spotSilverGram * 1000);
+        const spotSilverOz = d.silver.priceUSD ? `$${d.silver.priceUSD.toFixed(2)}` : fmt(spotSilverGram * 31.1034768);
+
         const pune = d.puneMarket || d.silver.puneMarket || {};
-        const puneSilverGram = pune.silver?.perGram || Math.round(rawSilverGram * 1.06 * 1.03 * 1.005 * 100) / 100;
-        const puneSilverKg = pune.silver?.perKg || Math.round(puneSilverGram * 1000 * 100) / 100;
+        const puneSilverKg = pune.silverRetailKg || pune.silver?.perKg || Math.round(spotSilverKg * 1.06 * 1.03 * 1.0045 * 100) / 100;
+        const puneSilverGram = pune.silverRetailGram || pune.silver?.perGram || Math.round(puneSilverKg / 1000 * 100) / 100;
 
         document.getElementById('silverGramVal').textContent = fmt(puneSilverGram);
         document.getElementById('silverKgVal').textContent   = fmt(puneSilverKg);
+
+        document.getElementById('silverSpotGram').textContent = fmt(spotSilverGram) + ' / g';
+        document.getElementById('silverSpot10g').textContent = fmt(spotSilver10g) + ' / 10g';
+        document.getElementById('silverSpotKg').textContent = fmt(spotSilverKg) + ' / kg';
+        document.getElementById('silverSpotOz').textContent = spotSilverOz + ' / oz';
+
+        const silverBadge = document.getElementById('silverFreshnessBadge');
+        if (silverBadge) {
+          silverBadge.className = `badge-status ${metalStatus.toLowerCase()}`;
+          silverBadge.textContent = metalStatus;
+        }
+        const silvTime = document.getElementById('silverProviderTime');
+        if (silvTime) silvTime.textContent = `Provider Feed: ${d.silver.provider || 'MetalpriceAPI'} · As of: ${d.silver.timestamp || 'Live'}`;
+      }
+
+      // Platinum & Palladium
+      if (d.platinum) {
+        document.getElementById('platinumGramVal').textContent = `${fmt(d.platinum.perGram)} / g`;
+        document.getElementById('platinumOzVal').textContent = `${fmt(d.platinum.priceINR)} / troy oz`;
+      }
+      if (d.palladium) {
+        document.getElementById('palladiumGramVal').textContent = `${fmt(d.palladium.perGram)} / g`;
+        document.getElementById('palladiumOzVal').textContent = `${fmt(d.palladium.priceINR)} / troy oz`;
       }
 
       // Live FX
       if (d.usdToInr) {
         document.getElementById('usdInrVal').textContent = `\u20b9 ${parseFloat(d.usdToInr).toFixed(2)}`;
-        document.getElementById('usdInrTime').textContent = `Live Interbank FX &middot; 1 USD = \u20b9${parseFloat(d.usdToInr).toFixed(2)}`;
+        document.getElementById('usdInrTime').textContent = `Live Spot FX &middot; 1 USD = \u20b9${parseFloat(d.usdToInr).toFixed(2)}`;
       }
 
       // WTI Crude

@@ -778,6 +778,17 @@ const getStockHistory = async (symbol, timeframe = '1M') => {
  *   - Silver per kg     = Silver per gram * 1000 (1 kg = 1000 grams exact)
  */
 const getPreciousMetals = async () => {
+  // 0. Primary Provider: Dedicated MetalpriceAPI Service
+  try {
+    const metalPriceService = require('./metalPriceService');
+    const liveMetals = await metalPriceService.getPreciousMetals();
+    if (liveMetals && liveMetals.gold?.karat24?.perGram) {
+      return liveMetals;
+    }
+  } catch (err) {
+    console.warn('[MarketService] MetalpriceAPI provider notice:', err.message);
+  }
+
   const cacheKey = 'PRECIOUS_METALS';
   const cached = getCached(cacheKey);
   if (cached) return cached;

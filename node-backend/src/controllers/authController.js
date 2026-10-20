@@ -291,7 +291,7 @@ const getAuthProviders = (req, res) => {
 
 /**
  * GET /api/v1/auth/google
- * Redirects to Google OAuth
+ * Redirects to Google OAuth with CSRF state protection
  */
 const googleAuthRedirect = (req, res, next) => {
   const host = req.get('host') || '127.0.0.1:5000';
@@ -300,11 +300,44 @@ const googleAuthRedirect = (req, res, next) => {
     ? process.env.FRONTEND_URL
     : `${protocol}://${host}`;
 
+  const acceptHeader = req.headers.accept || '';
+  const isBrowserHtmlNav = acceptHeader.includes('text/html');
+
+  const isConfigured = !!(
+    process.env.GOOGLE_CLIENT_ID &&
+    process.env.GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com' &&
+    process.env.GOOGLE_CLIENT_SECRET &&
+    process.env.GOOGLE_CLIENT_SECRET !== 'YOUR_GOOGLE_CLIENT_SECRET'
+  );
+
+  if (!isConfigured) {
+    if (!isBrowserHtmlNav || req.query.format === 'json') {
+      return res.status(503).json({
+        success: false,
+        error: {
+          code: 'GOOGLE_NOT_CONFIGURED',
+          message: 'Google OAuth is not configured. Please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in node-backend/.env or Render dashboard.',
+        },
+      });
+    }
+    return res.redirect(`${frontendUrl}/login.html?error=google_not_configured`);
+  }
+
   try {
-    const url = authService.getGoogleAuthUrl();
+    const state = authService.generateOAuthState();
+    const url = authService.getGoogleAuthUrl(state);
     return res.redirect(url);
   } catch (error) {
     if (error.code === 'GOOGLE_NOT_CONFIGURED') {
+      if (!isBrowserHtmlNav || req.query.format === 'json') {
+        return res.status(503).json({
+          success: false,
+          error: {
+            code: 'GOOGLE_NOT_CONFIGURED',
+            message: error.message,
+          },
+        });
+      }
       return res.redirect(`${frontendUrl}/login.html?error=google_not_configured`);
     }
     next(error);
@@ -313,7 +346,7 @@ const googleAuthRedirect = (req, res, next) => {
 
 /**
  * GET /api/v1/auth/google/callback
- * Handles Google OAuth callback with code exchange
+ * Handles Google OAuth callback with code exchange and state validation
  */
 const googleAuthCallback = async (req, res, next) => {
   const host = req.get('host') || '127.0.0.1:5000';
@@ -322,19 +355,48 @@ const googleAuthCallback = async (req, res, next) => {
     ? process.env.FRONTEND_URL
     : `${protocol}://${host}`;
 
-  try {
-    const { code } = req.query;
-    if (!code) {
-      return res.redirect(`${frontendUrl}/login.html?error=google_auth_failed`);
-    }
+  const { code, state, error: googleError } = req.query;
 
-    const result = await authService.handleGoogleCallback(code);
-    const { accessToken, refreshToken } = result;
+  // Handle user denied consent or Google error
+  if (googleError === 'access_denied') {
+    return res.redirect(`${frontendUrl}/login.html?error=consent_denied`);
+  }
+  if (googleError) {
+    return res.redirect(`${frontendUrl}/login.html?error=${encodeURIComponent(googleError)}`);
+  }
+
+  if (!code) {
+    return res.redirect(`${frontendUrl}/login.html?error=google_auth_failed`);
+  }
+
+  try {
+    const result = await authService.handleGoogleCallback(code, state);
+    const { accessToken, refreshToken, user } = result;
+
+    // Audit Log
+    if (user?.id) {
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'USER_LOGIN_GOOGLE',
+          entity: 'User',
+          entityId: user.id,
+          ipAddress: req.ip || null,
+          userAgent: req.headers['user-agent'] || null,
+        },
+      }).catch(() => {});
+    }
 
     // Redirect to frontend with tokens in URL hash fragment for security (never exposed to server/logs)
     return res.redirect(`${frontendUrl}/dashboard.html#access_token=${accessToken}&refresh_token=${refreshToken}&google=true`);
   } catch (error) {
     console.error('Google callback error:', error.message);
+    if (error.code === 'INVALID_OAUTH_STATE') {
+      return res.redirect(`${frontendUrl}/login.html?error=invalid_oauth_state`);
+    }
+    if (error.code === 'ACCOUNT_TAKEOVER_PREVENTED') {
+      return res.redirect(`${frontendUrl}/login.html?error=account_conflict`);
+    }
     return res.redirect(`${frontendUrl}/login.html?error=google_auth_failed`);
   }
 };

@@ -5,6 +5,7 @@ const storageService = require('../services/storageService');
 const documentIngestionService = require('../services/documentIngestionService');
 const mlCategorizerService = require('../services/mlCategorizerService');
 const smsTransactionService = require('../services/smsTransactionService');
+const receiptOcrService = require('../services/receiptOcrService');
 const { createAppNotification } = require('../services/notificationService');
 const { v4: uuidv4 } = require('uuid');
 
@@ -162,15 +163,12 @@ const scanReceipt = async (req, res, next) => {
       });
     }
 
-    let extractedText = (receiptText || '').trim();
-    let ocrConfidence = 100;
+    let imageBuffer = null;
+    let mimeType = 'image/png';
+    let storedReceipt = null;
 
-    // If imageData is provided, perform genuine OCR via Tesseract.js
     if (imageData) {
-      let imageBuffer = null;
-
       if (typeof imageData === 'string' && imageData.startsWith('data:image/')) {
-        // Base64 data URL
         const match = imageData.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
         if (!match) {
           return res.status(400).json({
@@ -178,22 +176,21 @@ const scanReceipt = async (req, res, next) => {
             error: { code: 'INVALID_IMAGE_FORMAT', message: 'Only PNG, JPEG, and WebP images are supported.' },
           });
         }
+        mimeType = match[1] === 'jpg' ? 'image/jpeg' : `image/${match[1]}`;
         imageBuffer = Buffer.from(match[2], 'base64');
       } else if (typeof imageData === 'string') {
-        // Raw base64 string
         imageBuffer = Buffer.from(imageData, 'base64');
       } else if (Buffer.isBuffer(imageData)) {
         imageBuffer = imageData;
       }
 
-      if (!imageBuffer || imageBuffer.length < 100) {
+      if (!imageBuffer || imageBuffer.length < 50) {
         return res.status(400).json({
           success: false,
           error: { code: 'INVALID_IMAGE', message: 'Image payload is invalid or empty.' },
         });
       }
 
-      // Max 10MB file limit
       if (imageBuffer.length > 10 * 1024 * 1024) {
         return res.status(413).json({
           success: false,
@@ -201,73 +198,78 @@ const scanReceipt = async (req, res, next) => {
         });
       }
 
-      // Run Tesseract OCR Worker
-      const worker = await createWorker('eng');
+      // Persist raw receipt image to Cloud / Local Storage Service in user-isolated bucket
       try {
-        const ocrResult = await worker.recognize(imageBuffer);
-        extractedText = (ocrResult.data?.text || '').trim();
-        ocrConfidence = Math.round(ocrResult.data?.confidence || 0);
-      } finally {
-        await worker.terminate();
-      }
-
-      if (!extractedText) {
-        return res.status(422).json({
-          success: false,
-          error: {
-            code: 'OCR_UNREADABLE',
-            message: 'Could not extract readable text from the uploaded image. Please ensure the receipt is well-lit and legible, or enter details manually.',
-          },
-        });
-      }
-
-      // Persist raw receipt image to Cloud / Local Storage Service (User-isolated path)
-      try {
-        const receiptExt = '.png';
-        const storageKey = `users/${userId}/receipts/receipt_${Date.now()}_${uuidv4().slice(0, 8)}${receiptExt}`;
-        const stored = await storageService.upload({
+        const ext = mimeType.includes('webp') ? '.webp' : (mimeType.includes('jpeg') ? '.jpg' : '.png');
+        const storageKey = `users/${userId}/receipts/receipt_${Date.now()}_${uuidv4().slice(0, 8)}${ext}`;
+        storedReceipt = await storageService.upload({
           buffer: imageBuffer,
           key: storageKey,
-          contentType: 'image/png',
+          contentType: mimeType,
           metadata: { userId, documentType: 'receipts', scanDate: new Date().toISOString() },
         });
-        req.__storedReceipt = stored;
       } catch (storageErr) {
         console.warn('[Storage] Receipt image storage notice:', storageErr.message);
       }
     }
 
-    const parsed = parseReceiptText(extractedText);
-    const gstInfo = documentIngestionService.extractGSTInformation(extractedText);
-    const storedReceipt = req.__storedReceipt || null;
+    // Process through multi-engine receipt OCR service
+    const extracted = await receiptOcrService.processReceipt({
+      imageBuffer,
+      mimeType,
+      receiptText: receiptText ? receiptText.trim() : null,
+    });
 
-    const gstBreakdown = gstInfo ? {
+    const gstInfo = {
+      detected: Boolean(extracted.gstin || extracted.totalGst || extracted.cgst || extracted.sgst || extracted.igst),
+      gstin: extracted.gstin || null,
+      cgst: extracted.cgst || null,
+      sgst: extracted.sgst || null,
+      igst: extracted.igst || null,
+      totalGst: extracted.totalGst || null,
+      stateCode: extracted.gstin ? extracted.gstin.slice(0, 2) : null,
+    };
+
+    const gstBreakdown = gstInfo.detected ? {
       hasGst: true,
-      gstin: gstInfo.gstin,
-      cgst: gstInfo.cgst,
-      sgst: gstInfo.sgst,
-      igst: gstInfo.igst,
-      totalGst: gstInfo.totalGst,
-      taxableAmount: parsed.amount ? Math.max(0, parsed.amount - (gstInfo.totalGst || 0)) : null,
+      gstin: extracted.gstin,
+      cgst: extracted.cgst,
+      sgst: extracted.sgst,
+      igst: extracted.igst,
+      totalGst: extracted.totalGst,
+      taxableAmount: extracted.taxableValue || (extracted.totalAmount && extracted.totalGst ? Math.max(0, extracted.totalAmount - extracted.totalGst) : null),
     } : null;
 
-    if (!parsed.amount || parsed.amount <= 0) {
+    const parsedAmount = extracted.totalAmount ? Math.round(extracted.totalAmount * 100) / 100 : null;
+
+    if (!parsedAmount || parsedAmount <= 0) {
       const scan = await prisma.receiptScan.create({
         data: {
           userId,
-          merchant: parsed.merchant || 'Unidentified Merchant',
+          merchant: extracted.merchant || 'Unidentified Merchant',
           amount: null,
-          date: parsed.date ? new Date(parsed.date) : new Date(),
-          category: parsed.category || 'General',
+          date: extracted.date ? new Date(extracted.date) : new Date(),
+          category: extracted.category || 'General',
           items: {
-            lineItems: parsed.items,
+            invoiceNumber: extracted.invoiceNumber || null,
+            time: extracted.time || null,
+            currency: extracted.currency || 'INR',
+            subtotal: extracted.subtotal || null,
+            discount: extracted.discount || null,
+            taxableValue: extracted.taxableValue || null,
+            otherCharges: extracted.otherCharges || null,
+            paymentMethod: extracted.paymentMethod || null,
+            lineItems: extracted.items || [],
             gst: gstInfo,
             gstBreakdown,
             storageKey: storedReceipt?.key || null,
             receiptImageUrl: storedReceipt?.url || null,
-            confidence: ocrConfidence,
+            confidence: extracted.confidence || 30,
+            validationStatus: extracted.validationStatus || 'UNCERTAIN',
+            warnings: extracted.warnings || [],
+            engine: extracted.engine || 'Pattern Engine',
           },
-          rawText: extractedText.slice(0, 1000),
+          rawText: (extracted.rawText || '').slice(0, 4000),
           status: 'MANUAL_INPUT_REQUIRED',
         },
       });
@@ -276,18 +278,29 @@ const scanReceipt = async (req, res, next) => {
         success: true,
         data: {
           scanId: scan.id,
-          merchant: parsed.merchant || 'Unidentified Merchant',
+          merchant: extracted.merchant || 'Unidentified Merchant',
+          invoiceNumber: extracted.invoiceNumber || null,
           amount: null,
           formattedAmount: 'Unrecognized',
-          date: parsed.date,
-          category: parsed.category,
-          items: parsed.items,
+          date: extracted.date,
+          time: extracted.time || null,
+          currency: extracted.currency || 'INR',
+          subtotal: extracted.subtotal || null,
+          discount: extracted.discount || null,
+          taxableValue: extracted.taxableValue || null,
+          otherCharges: extracted.otherCharges || null,
+          paymentMethod: extracted.paymentMethod || null,
+          category: extracted.category || 'General',
+          items: extracted.items || [],
           gst: gstInfo,
           gstBreakdown,
-          rawText: extractedText.slice(0, 500),
-          ocrConfidence,
+          rawText: (extracted.rawText || '').slice(0, 1000),
+          ocrConfidence: extracted.confidence || 30,
+          confidence: extracted.confidence || 30,
+          validationStatus: extracted.validationStatus || 'UNCERTAIN',
           receiptImageUrl: storedReceipt?.url || null,
           storageKey: storedReceipt?.key || null,
+          engine: extracted.engine || 'Pattern Engine',
           status: 'MANUAL_INPUT_REQUIRED',
           message: 'Could not detect a clear total amount from the receipt. Please enter the amount before confirming.',
         },
@@ -298,19 +311,30 @@ const scanReceipt = async (req, res, next) => {
     const scan = await prisma.receiptScan.create({
       data: {
         userId,
-        merchant: parsed.merchant,
-        amount: parsed.amount,
-        date: new Date(parsed.date),
-        category: parsed.category,
+        merchant: extracted.merchant || 'Receipt Merchant',
+        amount: parsedAmount,
+        date: new Date(extracted.date),
+        category: extracted.category || 'General',
         items: {
-          lineItems: parsed.items,
+          invoiceNumber: extracted.invoiceNumber || null,
+          time: extracted.time || null,
+          currency: extracted.currency || 'INR',
+          subtotal: extracted.subtotal || null,
+          discount: extracted.discount || null,
+          taxableValue: extracted.taxableValue || null,
+          otherCharges: extracted.otherCharges || null,
+          paymentMethod: extracted.paymentMethod || null,
+          lineItems: extracted.items || [],
           gst: gstInfo,
           gstBreakdown,
           storageKey: storedReceipt?.key || null,
           receiptImageUrl: storedReceipt?.url || null,
-          confidence: ocrConfidence,
+          confidence: extracted.confidence || 90,
+          validationStatus: extracted.validationStatus || 'VALIDATED',
+          warnings: extracted.warnings || [],
+          engine: extracted.engine || 'Vision Engine',
         },
-        rawText: extractedText.slice(0, 1000),
+        rawText: (extracted.rawText || '').slice(0, 4000),
         status: 'PENDING_CONFIRMATION',
       },
     });
@@ -319,20 +343,32 @@ const scanReceipt = async (req, res, next) => {
       success: true,
       data: {
         scanId: scan.id,
-        merchant: parsed.merchant,
-        amount: parsed.amount,
-        formattedAmount: formatINR(parsed.amount),
-        date: parsed.date,
-        category: parsed.category,
-        items: parsed.items,
+        merchant: extracted.merchant || 'Receipt Merchant',
+        invoiceNumber: extracted.invoiceNumber || null,
+        amount: parsedAmount,
+        formattedAmount: formatINR(parsedAmount),
+        date: extracted.date,
+        time: extracted.time || null,
+        currency: extracted.currency || 'INR',
+        subtotal: extracted.subtotal || null,
+        discount: extracted.discount || null,
+        taxableValue: extracted.taxableValue || null,
+        otherCharges: extracted.otherCharges || null,
+        paymentMethod: extracted.paymentMethod || null,
+        category: extracted.category || 'General',
+        items: extracted.items || [],
         gst: gstInfo,
         gstBreakdown,
-        ocrConfidence,
-        rawTextPreview: extractedText.slice(0, 200),
+        ocrConfidence: extracted.confidence || 90,
+        confidence: extracted.confidence || 90,
+        validationStatus: extracted.validationStatus || 'VALIDATED',
+        rawTextPreview: (extracted.rawText || '').slice(0, 300),
+        rawText: (extracted.rawText || '').slice(0, 1000),
         receiptImageUrl: storedReceipt?.url || null,
         storageKey: storedReceipt?.key || null,
+        engine: extracted.engine || 'Vision Engine',
         status: 'PENDING_CONFIRMATION',
-        message: `Extracted ${formatINR(parsed.amount)} ${parsed.category} expense from ${parsed.merchant}. Please confirm to save to your transactions.`,
+        message: `Extracted ${formatINR(parsedAmount)} ${extracted.category} expense from ${extracted.merchant}. Please review and confirm to save.`,
       },
     });
   } catch (error) {
@@ -393,6 +429,7 @@ const confirmReceipt = async (req, res, next) => {
           merchant: (merchant || 'Receipt Merchant').trim(),
           description: `Receipt: ${(merchant || 'Expense').trim()}`,
           notes: notes || 'Recorded via OCR Receipt Scanner confirmation',
+          paymentMethod: req.body.paymentMethod || null,
           date: txDate,
         },
       });

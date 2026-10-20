@@ -1005,12 +1005,13 @@
         <div id="gstCalcSection" style="display:none;flex-direction:column;gap:10px;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div>
-              <label style="font-size:11px;font-weight:600;color:var(--text);">Taxable Amount (₹)</label>
+              <label style="font-size:11px;font-weight:600;color:var(--text);">Base / Gross Amount (₹)</label>
               <input type="number" id="calcTaxableInput" class="form-input" placeholder="10000" min="1" step="0.01">
             </div>
             <div>
               <label style="font-size:11px;font-weight:600;color:var(--text);">GST Rate (%)</label>
               <select id="calcRateInput" class="form-input">
+                <option value="0">0% (Exempt)</option>
                 <option value="5">5% (Essentials)</option>
                 <option value="12">12% (Standard 1)</option>
                 <option value="18" selected>18% (Services & General)</option>
@@ -1018,12 +1019,31 @@
               </select>
             </div>
           </div>
-          <div>
-            <label style="font-size:11px;font-weight:600;color:var(--text);">Transaction Territory</label>
-            <select id="calcInterstateInput" class="form-input">
-              <option value="false">Intra-State (CGST + SGST split 50/50)</option>
-              <option value="true">Inter-State (IGST 100%)</option>
-            </select>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--text);">Discount (₹)</label>
+              <input type="number" id="calcDiscountInput" class="form-input" placeholder="0" min="0" step="0.01" value="0">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--text);">Other Charges / Freight (₹)</label>
+              <input type="number" id="calcOtherChargesInput" class="form-input" placeholder="0" min="0" step="0.01" value="0">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--text);">Pricing Mode</label>
+              <select id="calcInclusiveInput" class="form-input">
+                <option value="false">Tax Exclusive (Base + GST)</option>
+                <option value="true">Tax Inclusive (Gross includes GST)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;color:var(--text);">Transaction Territory</label>
+              <select id="calcInterstateInput" class="form-input">
+                <option value="false">Intra-State (CGST + SGST split 50/50)</option>
+                <option value="true">Inter-State (IGST 100%)</option>
+              </select>
+            </div>
           </div>
           <button class="btn btn-primary" id="btnCalculateGst">Compute Tax Breakdown</button>
           <div id="gstCalcResultBox"
@@ -2001,15 +2021,18 @@
 
     document.getElementById('btnCalculateGst').addEventListener('click', async () => {
       const taxableAmount = parseFloat(document.getElementById('calcTaxableInput').value) || 0;
-      const rate = parseFloat(document.getElementById('calcRateInput').value) || 18;
+      const rate = parseFloat(document.getElementById('calcRateInput').value) || 0;
       const isInterState = document.getElementById('calcInterstateInput').value === 'true';
+      const isInclusive = document.getElementById('calcInclusiveInput')?.value === 'true';
+      const discount = parseFloat(document.getElementById('calcDiscountInput')?.value) || 0;
+      const otherCharges = parseFloat(document.getElementById('calcOtherChargesInput')?.value) || 0;
 
       if (taxableAmount <= 0) {
-        alert('Please enter a valid taxable amount greater than zero.');
+        alert('Please enter a valid amount greater than zero.');
         return;
       }
 
-      const res = await api.gstAPI.calculate({ taxableAmount, rate, isInterState });
+      const res = await api.gstAPI.calculate({ taxableAmount, rate, isInterState, isInclusive, discount, otherCharges });
       if (res?.success) {
         const d = res.data;
         const box = document.getElementById('gstCalcResultBox');
@@ -2018,7 +2041,7 @@
           <div style="font-weight:700;font-size:13px;color:#0f172a;margin-bottom:8px;">Tax Invoice Computation Breakdown</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
             <div style="background:#ffffff;border:1px solid var(--border);padding:8px;border-radius:6px;">
-              <div style="color:var(--muted);font-size:10px;">Taxable Base Value</div>
+              <div style="color:var(--muted);font-size:10px;">Taxable Net Value</div>
               <div style="font-size:14px;font-weight:700;">${formatINR(d.taxableAmount)}</div>
             </div>
             <div style="background:#ffffff;border:1px solid var(--border);padding:8px;border-radius:6px;">
@@ -2026,6 +2049,18 @@
               <div style="font-size:14px;font-weight:700;color:var(--primary);">${d.rate}% (${isInterState ? 'IGST' : 'CGST+SGST'})</div>
             </div>
           </div>
+          ${(d.discount > 0 || d.otherCharges > 0) ? `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div style="background:#ffffff;border:1px solid var(--border);padding:8px;border-radius:6px;">
+              <div style="color:var(--muted);font-size:10px;">Discount Applied</div>
+              <div style="font-size:13px;font-weight:700;color:#dc2626;">-${formatINR(d.discount || 0)}</div>
+            </div>
+            <div style="background:#ffffff;border:1px solid var(--border);padding:8px;border-radius:6px;">
+              <div style="color:var(--muted);font-size:10px;">Other Charges / Freight</div>
+              <div style="font-size:13px;font-weight:700;color:#0f172a;">+${formatINR(d.otherCharges || 0)}</div>
+            </div>
+          </div>
+          ` : ''}
           <div style="display:grid;grid-template-columns:${isInterState ? '1fr' : '1fr 1fr'};gap:8px;margin-bottom:8px;">
             ${!isInterState ? `
               <div style="background:#ffffff;border:1px solid var(--border);padding:8px;border-radius:6px;">

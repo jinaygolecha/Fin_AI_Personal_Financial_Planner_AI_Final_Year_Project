@@ -480,6 +480,34 @@ const getSilver = async (req, res, next) => {
 };
 
 /**
+ * GET /api/v1/market/metals/status
+ */
+const getMetalsStatus = async (req, res, next) => {
+  try {
+    const metalPriceService = require('../services/metalPriceService');
+    const status = metalPriceService.getProviderStatus();
+    return res.status(200).json({ success: true, data: status });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/market/metals/pune
+ */
+const getPuneRetailMetals = async (req, res, next) => {
+  try {
+    const metals = await marketService.getPreciousMetals();
+    return res.status(200).json({
+      success: true,
+      data: metals.puneMarket || metals.pune_market,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/v1/market/watchlist
  */
 const getWatchlist = async (req, res, next) => {
@@ -693,6 +721,8 @@ module.exports = {
   addToWatchlist,
   removeFromWatchlist,
   getMetals,
+  getMetalsStatus,
+  getPuneRetailMetals,
   getGold,
   getSilver,
   getMarketNews,

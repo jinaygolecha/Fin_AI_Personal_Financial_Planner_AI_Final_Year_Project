@@ -56,6 +56,7 @@ class DocumentIngestionService {
 
   /**
    * Normalizes disparate date formats into YYYY-MM-DD
+   * Supports: YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, DD-Mon-YYYY (e.g. 15-Aug-2026), DD-Mon-YY, etc.
    */
   normalizeDate(rawDate) {
     if (!rawDate) return new Date().toISOString().split('T')[0];
@@ -66,12 +67,34 @@ class DocumentIngestionService {
       return cleaned;
     }
 
-    // Check DD/MM/YYYY or DD-MM-YYYY
+    // Check DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
     const dmyMatch = cleaned.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
     if (dmyMatch) {
-      const day = dmyMatch[1].padStart(2, '0');
-      const month = dmyMatch[2].padStart(2, '0');
+      let day = parseInt(dmyMatch[1], 10);
+      let month = parseInt(dmyMatch[2], 10);
       let year = dmyMatch[3];
+      if (year.length === 2) year = '20' + year;
+
+      // Handle MM/DD/YYYY if month > 12 and day <= 12
+      if (month > 12 && day <= 12) {
+        const tmp = day;
+        day = month;
+        month = tmp;
+      }
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+
+    // Check DD-Mon-YYYY or DD Mon YYYY or DD-Mon-YY (e.g. 15-Aug-2026, 05-Sep-25)
+    const monthMap = {
+      jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+      jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+    };
+    const namedMonthMatch = cleaned.match(/(\d{1,2})[-/.\s]+([A-Za-z]{3})[a-z]*[-/.\s]+(\d{2,4})/);
+    if (namedMonthMatch) {
+      const day = namedMonthMatch[1].padStart(2, '0');
+      const monStr = namedMonthMatch[2].toLowerCase().slice(0, 3);
+      const month = monthMap[monStr] || '01';
+      let year = namedMonthMatch[3];
       if (year.length === 2) year = '20' + year;
       return `${year}-${month}-${day}`;
     }
@@ -85,18 +108,21 @@ class DocumentIngestionService {
   }
 
   /**
-   * Normalizes amount string (handles Indian commas, currency symbols, Dr/Cr)
+   * Normalizes amount string (handles Indian commas, currency symbols, Dr/Cr suffixes, parentheses)
    */
   normalizeAmount(rawAmount) {
     if (typeof rawAmount === 'number') return Math.abs(rawAmount);
     if (!rawAmount) return null;
-    const cleanStr = String(rawAmount)
-      .replace(/(?:₹|\$|INR|Rs\.?)/gi, '')
+    const str = String(rawAmount);
+    const cleanStr = str
+      .replace(/(?:₹|\$|INR|Rs\.?|EUR|€|GBP|£)/gi, '')
       .replace(/,/g, '')
+      .replace(/[()]/g, '')
       .replace(/\s+/g, '')
+      .replace(/(?:dr|cr)$/i, '')
       .trim();
     const val = parseFloat(cleanStr);
-    return isNaN(val) ? null : Math.abs(val);
+    return (isNaN(val) || val < 0) ? null : Math.round(val * 100) / 100;
   }
 
   /**
@@ -122,10 +148,10 @@ class DocumentIngestionService {
     }
 
     // Match CGST, SGST, IGST numbers
-    const cgstMatch = text.match(/CGST(?:\s*@?\s*[\d.]+%)?[\s:]+([₹Rs.\d,.]+)/i);
-    const sgstMatch = text.match(/SGST(?:\s*@?\s*[\d.]+%)?[\s:]+([₹Rs.\d,.]+)/i);
-    const igstMatch = text.match(/IGST(?:\s*@?\s*[\d.]+%)?[\s:]+([₹Rs.\d,.]+)/i);
-    const totalGstMatch = text.match(/(?:Total\s+GST|GST\s+Total|GST\s+Amount)[\s:]+([₹Rs.\d,.]+)/i);
+    const cgstMatch = text.match(/(?:CGST|Central\s+GST)(?:\s*@?\s*[\d.]+%)?[\s:=]+([₹Rs.\d,.]+)/i);
+    const sgstMatch = text.match(/(?:SGST|State\s+GST|UTGST)(?:\s*@?\s*[\d.]+%)?[\s:=]+([₹Rs.\d,.]+)/i);
+    const igstMatch = text.match(/(?:IGST|Integrated\s+GST)(?:\s*@?\s*[\d.]+%)?[\s:=]+([₹Rs.\d,.]+)/i);
+    const totalGstMatch = text.match(/(?:Total\s+GST|GST\s+Total|GST\s+Amount)[\s:=]+([₹Rs.\d,.]+)/i);
 
     if (cgstMatch) gstInfo.cgst = this.normalizeAmount(cgstMatch[1]);
     if (sgstMatch) gstInfo.sgst = this.normalizeAmount(sgstMatch[1]);
@@ -135,7 +161,7 @@ class DocumentIngestionService {
       gstInfo.totalGst = this.normalizeAmount(totalGstMatch[1]);
       gstInfo.detected = true;
     } else if (gstInfo.cgst || gstInfo.sgst || gstInfo.igst) {
-      gstInfo.totalGst = (gstInfo.cgst || 0) + (gstInfo.sgst || 0) + (gstInfo.igst || 0);
+      gstInfo.totalGst = Math.round(((gstInfo.cgst || 0) + (gstInfo.sgst || 0) + (gstInfo.igst || 0)) * 100) / 100;
       gstInfo.detected = true;
     }
 
@@ -176,13 +202,31 @@ class DocumentIngestionService {
    * Deterministically classifies transaction type (INCOME | EXPENSE | TRANSFER)
    * Prevents outgoing bills / UPI debits from ever being classified as INCOME.
    */
-  detectTransactionType({ rawType = '', rawAmount = '', description = '', isDebitCol = false, isCreditCol = false }) {
+  detectTransactionType(opts = {}, maybeAmount = '', maybeType = '') {
+    let description = '';
+    let rawAmount = '';
+    let rawType = '';
+    let isDebitCol = false;
+    let isCreditCol = false;
+
+    if (typeof opts === 'string') {
+      description = opts;
+      rawAmount = maybeAmount;
+      rawType = maybeType;
+    } else if (typeof opts === 'object' && opts !== null) {
+      description = opts.description || '';
+      rawAmount = opts.rawAmount || '';
+      rawType = opts.rawType || '';
+      isDebitCol = Boolean(opts.isDebitCol);
+      isCreditCol = Boolean(opts.isCreditCol);
+    }
+
     const desc = String(description || '').toLowerCase();
     const typeStr = String(rawType || '').toUpperCase();
     const amtStr = String(rawAmount || '').toUpperCase();
 
-    // 1. Internal Transfer Check (e.g. self transfer, own account transfer, transfer between accounts)
-    if (/\b(self transfer|own account|internal transfer|to self|from self|transfer to own|transfer between accounts|transfer from sbi|transfer to sbi|transfer from hdfc|transfer to hdfc)\b/i.test(desc)) {
+    // 1. Internal Transfer Check
+    if (/\b(self transfer|own account|internal transfer|to self|from self|transfer to own|transfer between accounts|transfer from sbi|transfer to sbi|transfer from hdfc|transfer to hdfc|sweep in|sweep out)\b/i.test(desc)) {
       return 'TRANSFER';
     }
 
@@ -190,7 +234,12 @@ class DocumentIngestionService {
     if (isCreditCol) return 'INCOME';
     if (isDebitCol) return 'EXPENSE';
 
-    // 3. Explicit Type Column or Amount Suffix (CR / DR)
+    // 3. Parentheses in amount indicates negative / debit in Indian banking
+    if (amtStr.includes('(') && amtStr.includes(')')) {
+      return 'EXPENSE';
+    }
+
+    // 4. Explicit Type Column or Amount Suffix (CR / DR)
     if (typeStr.includes('CR') || typeStr.includes('CREDIT') || typeStr.includes('INCOME') || amtStr.includes('CR') || amtStr.startsWith('+')) {
       return 'INCOME';
     }
@@ -198,16 +247,18 @@ class DocumentIngestionService {
       return 'EXPENSE';
     }
 
-    // 4. Description Semantic Clues for Indian Banking
-    if (/\b(salary|interest|dividend|refund|cashback|bonus|stipend|received from|credited by|upi\/cr|neft cr|rtgs cr|imps cr|customer payment|received payment)\b/i.test(desc)) {
+    // 5. Description Semantic Clues for Indian Banking
+    // Inward credits & refunds
+    if (/\b(salary|payroll|stipend|interest|dividend|refund|cashback|bonus|received from|credited by|upi\/cr|upi-cr|upi\/in|neft cr|neft-inw|rtgs cr|rtgs-inw|imps cr|imps-inw|cms credit|ach c-|nach c-|customer payment|received payment)\b/i.test(desc)) {
       return 'INCOME';
     }
 
-    if (/\b(paid to|payment to|spent|bill|electricity|water|wifi|recharge|dth|broadband|rent|emi|loan|tax|fee|charge|pos|purchase|swiggy|zomato|amazon|flipkart|uber|ola|upi\/dr|neft dr|rtgs dr|imps dr|atm|withdrawal)\b/i.test(desc)) {
+    // Debits & expenses
+    if (/\b(paid to|payment to|spent|bill|electricity|water|wifi|recharge|dth|broadband|rent|emi|loan|tax|fee|charge|charges|annual fee|sms chg|pos|purchase|swiggy|zomato|amazon|flipkart|uber|ola|upi\/dr|upi-dr|upi\/out|neft dr|neft-out|rtgs dr|rtgs-out|imps dr|imps-out|ach d-|nach d-|ecs|atm|withdrawal|debit card)\b/i.test(desc)) {
       return 'EXPENSE';
     }
 
-    // 5. Default
+    // 6. Default fallback
     return 'EXPENSE';
   }
 
@@ -466,9 +517,9 @@ class DocumentIngestionService {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     const results = [];
 
-    // Regex for matching lines with Date + Description + Amount
-    // e.g. "12/08/2026 Amazon India 1,499.00 DR" or "2026-08-01 Salary Credit 85000"
-    const lineTxRegex = /(?:^|\s)(\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|\d{4}[-/.]\d{1,2}[-/.]\d{1,2})\s+(.+?)\s+([₹Rs.\d,]+\.\d{2}|[₹Rs.\d,]{3,})(?:\s+(CR|DR|CREDIT|DEBIT|INCOME|EXPENSE))?/i;
+    // Regex for matching lines with Date + Description + Amount (with optional CR/DR or type)
+    // Supports DD/MM/YYYY, YYYY-MM-DD, DD-Mon-YYYY (e.g. "12/08/2026 Amazon India 1,499.00 DR" or "15-Aug-2026 Salary Credit 85000")
+    const lineTxRegex = /(?:^|\s)(\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.\s]+[A-Za-z]{3}[a-z]*[-/.\s]+\d{2,4})\s+(.+?)\s+([₹Rs.\d,]+\.\d{2}|[₹Rs.\d,]{3,})(?:\s+(CR|DR|CREDIT|DEBIT|INCOME|EXPENSE))?/i;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -480,10 +531,12 @@ class DocumentIngestionService {
         const rawTypeIndicator = (match[4] || '').toUpperCase();
 
         const amount = this.normalizeAmount(rawAmt);
-        if (amount && amount > 0 && rawDesc.length >= 3) {
-          const type = (rawTypeIndicator.includes('CR') || rawTypeIndicator.includes('INC'))
-            ? 'INCOME'
-            : 'EXPENSE';
+        if (amount && amount > 0 && rawDesc.length >= 2) {
+          const type = this.detectTransactionType({
+            rawType: rawTypeIndicator,
+            rawAmount: rawAmt,
+            description: rawDesc,
+          });
 
           results.push({
             date: this.normalizeDate(rawDate),

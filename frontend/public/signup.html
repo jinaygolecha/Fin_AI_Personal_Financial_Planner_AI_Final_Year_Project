@@ -257,6 +257,20 @@
       window.location.href = '/dashboard.html';
     }
 
+    // Check URL parameters for OAuth errors
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('error') === 'google_not_configured') {
+      showAlert('error', 'Google Sign-In is not configured. To enable Google OAuth, please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Render Environment Variables. Please register with email and password below.');
+    } else if (searchParams.get('error') === 'consent_denied') {
+      showAlert('error', 'Google authentication was cancelled or consent was denied. Please register with email and password below.');
+    } else if (searchParams.get('error') === 'invalid_oauth_state') {
+      showAlert('error', 'Authentication security check failed (expired or invalid state). Please try again.');
+    } else if (searchParams.get('error') === 'account_conflict') {
+      showAlert('error', 'An account already exists with this email address. Please sign in instead.');
+    } else if (searchParams.get('error')) {
+      showAlert('error', `Registration notice: ${searchParams.get('error')}`);
+    }
+
     // Check auth providers status
     let googleOAuthEnabled = false;
     fetch(`${API_BASE}/auth/providers`)
@@ -271,7 +285,7 @@
     document.getElementById('googleSignupBtn').addEventListener('click', async (e) => {
       e.preventDefault();
       if (!googleOAuthEnabled) {
-        showAlert('error', 'Google Sign-In is not configured. To enable Google OAuth, please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in node-backend/.env. Please create your account with email and password below.');
+        showAlert('error', 'Google Sign-In is not configured. To enable Google OAuth, please configure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in Render Environment Variables. Please create your account with email and password below.');
         return;
       }
       window.location.href = `${API_BASE}/auth/google`;
