@@ -21,6 +21,7 @@ const requestLogger = require('./middleware/requestLogger');
 const prisma = require('./config/database');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // ==================== SECURITY MIDDLEWARE ====================
 

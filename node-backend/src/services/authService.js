@@ -406,13 +406,15 @@ const handleGoogleCallback = async (code, state = null) => {
     throw Object.assign(new Error('Google OAuth is not configured.'), { statusCode: 503, code: 'GOOGLE_NOT_CONFIGURED' });
   }
 
-  const tokenRes = await axios.post('https://oauth2.googleapis.com/token', {
+  const tokenParams = new URLSearchParams({
     code,
     client_id: clientId,
     client_secret: clientSecret,
     redirect_uri: redirectUri,
     grant_type: 'authorization_code',
-  }, {
+  });
+
+  const tokenRes = await axios.post('https://oauth2.googleapis.com/token', tokenParams.toString(), {
     timeout: 10000,
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });

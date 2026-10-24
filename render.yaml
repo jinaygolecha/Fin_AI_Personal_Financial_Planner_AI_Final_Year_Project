@@ -21,11 +21,14 @@ services:
         value: production
 
       # Supabase PostgreSQL Database URL
-      # Pooled connection string (port 6543 with pgbouncer=true or port 5432)
+      # Pooled connection string (port 5432)
       - key: DATABASE_URL
         sync: false
-      # Direct connection URL for migrations and schema synchronization (port 5432)
+      # Direct connection URL for migrations (port 5432)
       - key: DIRECT_URL
+        sync: false
+      # Alias for Supabase database URL
+      - key: SUPABASE_DATABASE_URL
         sync: false
 
       # Authentication Secrets
@@ -50,6 +53,12 @@ services:
       - key: ALPHA_VANTAGE_API_KEY
         sync: false
 
+      # Precious Metals Live Pricing (MetalpriceAPI)
+      # REQUIRED for live gold/silver prices. Register at https://metalpriceapi.com/
+      # Set your API key in Render Dashboard > Environment Variables > METALPRICE_API_KEY
+      - key: METALPRICE_API_KEY
+        sync: false
+
       # Financial News Feeds
       - key: MARKETAUX_API_KEY
         sync: false
@@ -60,7 +69,9 @@ services:
       - key: FRONTEND_URL
         value: https://finpro-finance-ai-olvt.onrender.com
 
-      # Google OAuth
+      # Google OAuth (required for Google Sign-In / Sign-Up)
+      # Configure at: https://console.cloud.google.com/apis/credentials
+      # Authorized redirect URI must be: https://finpro-finance-ai-olvt.onrender.com/api/v1/auth/google/callback
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
@@ -68,7 +79,7 @@ services:
       - key: GOOGLE_REDIRECT_URI
         value: https://finpro-finance-ai-olvt.onrender.com/api/v1/auth/google/callback
 
-      # Document & Receipt Storage Abstraction (Supabase Cloud Object Storage)
+      # Document & Receipt Storage (Supabase S3-compatible Cloud Object Storage)
       - key: STORAGE_PROVIDER
         value: s3
       - key: S3_ENDPOINT

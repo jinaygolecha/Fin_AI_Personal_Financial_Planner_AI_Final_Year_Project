@@ -455,22 +455,6 @@ export const formatINRFull = (amount) => {
   }).format(parseFloat(amount) || 0);
 };
 
-export const requireAuth = (redirectTo = '/login.html') => {
-  if (!isAuthenticated()) {
-    window.location.href = redirectTo;
-    return false;
-  }
-  return true;
-};
-
-export const redirectIfAuth = (redirectTo = '/dashboard.html') => {
-  if (isAuthenticated()) {
-    window.location.href = redirectTo;
-    return true;
-  }
-  return false;
-};
-
 export const handleGoogleCallback = () => {
   // Support URL hash fragment (secure) or query params (legacy)
   const hashString = window.location.hash ? window.location.hash.substring(1) : '';
@@ -480,7 +464,40 @@ export const handleGoogleCallback = () => {
   const refreshToken = params.get('refresh_token');
   if (accessToken) {
     setTokens(accessToken, refreshToken);
+    // Asynchronously pre-fetch user profile if not cached yet
+    if (!getUser()) {
+      fetch(`${API_BASE}/auth/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      })
+      .then(r => r.json())
+      .then(d => { if (d.success && d.data) setUser(d.data); })
+      .catch(() => {});
+    }
+    // Clean up sensitive tokens from browser address bar
     window.history.replaceState({}, '', window.location.pathname);
+    return true;
+  }
+  return false;
+};
+
+// Automatically execute on module load to catch any OAuth redirects
+try {
+  handleGoogleCallback();
+} catch {}
+
+export const requireAuth = (redirectTo = '/login.html') => {
+  handleGoogleCallback();
+  if (!isAuthenticated()) {
+    window.location.href = redirectTo;
+    return false;
+  }
+  return true;
+};
+
+export const redirectIfAuth = (redirectTo = '/dashboard.html') => {
+  handleGoogleCallback();
+  if (isAuthenticated()) {
+    window.location.href = redirectTo;
     return true;
   }
   return false;

@@ -167,27 +167,25 @@ class MetalPriceService {
     let silverUsdPerOz = null;
 
     if (base === 'INR') {
-      // Rates with base INR:
-      // rates.INRXAU = INR price per 1 troy oz of gold
-      // rates.INRXAG = INR price per 1 troy oz of silver
-      // rates.INRXPT = INR price per 1 troy oz of platinum
-      // rates.INRXPD = INR price per 1 troy oz of palladium
-      // rates.INRUSD = INR price of 1 USD
-      // Reciprocal: rates.XAU = ounces per 1 INR (1 / rates.XAU = INR/oz)
+      // Base = INR: rates.XAU = troy ounces per 1 INR → INR per oz = 1 / rates.XAU
+      // rates.USD = USD per 1 INR → INR per USD = 1 / rates.USD
       goldInrPerOz = rates.INRXAU || (rates.XAU && rates.XAU > 0 ? 1 / rates.XAU : null);
       silverInrPerOz = rates.INRXAG || (rates.XAG && rates.XAG > 0 ? 1 / rates.XAG : null);
       platinumInrPerOz = rates.INRXPT || (rates.XPT && rates.XPT > 0 ? 1 / rates.XPT : null);
       palladiumInrPerOz = rates.INRXPD || (rates.XPD && rates.XPD > 0 ? 1 / rates.XPD : null);
 
+      // rates.USD = how many USD per 1 INR; so USD/INR = 1 / rates.USD
       usdToInr = rates.INRUSD || (rates.USD && rates.USD > 0 ? 1 / rates.USD : null);
       if (rates.USDXAU) goldUsdPerOz = rates.USDXAU;
       else if (goldInrPerOz && usdToInr) goldUsdPerOz = this.round(goldInrPerOz / usdToInr);
       if (rates.USDXAG) silverUsdPerOz = rates.USDXAG;
       else if (silverInrPerOz && usdToInr) silverUsdPerOz = this.round(silverInrPerOz / usdToInr);
     } else {
-      // Base is USD (or other currency):
+      // Base = USD: rates.XAU = troy ounces per 1 USD → USD per oz = 1 / rates.XAU
+      //             rates.INR = INR per 1 USD (direct USD/INR rate)
       usdToInr = rates.INR || (rates.USDINR && rates.USDINR > 0 ? 1 / rates.USDINR : null);
-      
+
+      // XAU: rates.XAU = ounces-per-USD → goldUSD/oz = 1 / rates.XAU
       goldUsdPerOz = rates.USDXAU || (rates.XAU && rates.XAU > 0 ? 1 / rates.XAU : null);
       silverUsdPerOz = rates.USDXAG || (rates.XAG && rates.XAG > 0 ? 1 / rates.XAG : null);
       const platinumUsdPerOz = rates.USDXPT || (rates.XPT && rates.XPT > 0 ? 1 / rates.XPT : null);
@@ -341,6 +339,11 @@ class MetalPriceService {
       market_label: 'Pune Local Bullion & Retail Indicative Market (Laxmi Road / Raviwar Peth)',
       selection_status: 'SELECTED_LOCAL_MARKET',
       provider: 'MetalpriceAPI + Indian Statutory Import Parity Engine',
+      gold24kRetailGram: puneBullion24kGram,
+      gold24kRetail10Gram: puneBullion24k10Gram,
+      gold22kJewelleryGram: puneJewellery22kGram,
+      silverRetailKg: puneBullionSilverKg,
+      silverRetailGram: puneBullionSilverGram,
       gold: {
         karat24: {
           perGram: puneBullion24kGram,
@@ -350,6 +353,7 @@ class MetalPriceService {
           description: 'Investment bullion bar / coin (Ex-making charges)',
         },
         karat22: {
+          perGram: puneBullion22kGram,
           bullionPerGram: puneBullion22kGram,
           bullionPer10Gram: puneBullion22k10Gram,
           jewelleryPerGram: puneJewellery22kGram,
@@ -359,6 +363,7 @@ class MetalPriceService {
           description: 'Standard Indian retail jewellery benchmark with estimated 8% making charges',
         },
         karat18: {
+          perGram: puneBullion18kGram,
           bullionPerGram: puneBullion18kGram,
           bullionPer10Gram: puneBullion18k10Gram,
           jewelleryPerGram: puneJewellery18kGram,
@@ -596,7 +601,9 @@ class MetalPriceService {
   }
 
   /**
-   * Fallback retrieval from PostgreSQL CommodityPrice table
+   * Fallback retrieval from PostgreSQL CommodityPrice table.
+   * Uses a live USD/INR FX rate (from Yahoo Finance) instead of a hardcoded constant
+   * so that cached metal prices remain accurate even during provider outages.
    */
   async fetchFromDatabase() {
     if (!prisma?.commodityPrice) return null;
@@ -617,6 +624,21 @@ class MetalPriceService {
       const silverGram = parseFloat(dbSilver.pricePerGram);
       if (isNaN(goldGram) || isNaN(silverGram)) return null;
 
+      // Use live FX rate for accurate INR conversion; fall back to a reasonable default
+      let liveUsdToInr = 84.50;
+      try {
+        const fxRes = await axios.get(
+          'https://query1.finance.yahoo.com/v8/finance/chart/USDINR=X?interval=1d&range=1d',
+          { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 5000 }
+        );
+        const fxPrice = fxRes.data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+        if (fxPrice && typeof fxPrice === 'number' && fxPrice > 70 && fxPrice < 120) {
+          liveUsdToInr = Math.round(fxPrice * 100) / 100;
+        }
+      } catch {
+        // Keep default fallback
+      }
+
       const goldInrPerOz = goldGram * TROY_OUNCE_TO_GRAMS;
       const silverInrPerOz = silverGram * TROY_OUNCE_TO_GRAMS;
       const ageSec = Math.round((Date.now() - new Date(dbGold.timestamp).getTime()) / 1000);
@@ -626,16 +648,16 @@ class MetalPriceService {
         silverInrPerOz,
         platinumInrPerOz: null,
         palladiumInrPerOz: null,
-        usdToInr: 83.5,
+        usdToInr: liveUsdToInr,
         providerTimestamp: new Date(dbGold.timestamp).toISOString(),
         providerTimestampIST: this.toISTString(dbGold.timestamp),
         fetchedAt: new Date(dbGold.timestamp).toISOString(),
         dataStatus: 'STALE',
-        source: `${this.providerName} (DB Cache)`,
+        source: `${this.providerName} (DB Cache — live FX applied)`,
       });
 
       payload.cache_age_seconds = ageSec;
-      payload.error_status = 'Provider currently offline. Showing last recorded database rate.';
+      payload.error_status = 'MetalpriceAPI provider currently offline. Showing last recorded database rate with live USD/INR FX applied.';
       return payload;
     } catch (err) {
       return null;

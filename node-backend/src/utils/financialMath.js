@@ -65,11 +65,12 @@ const simulatePrepayment = (principal, annualRate, tenureMonths, prepaymentAmoun
   }
 
   const monthsSaved = Math.max(0, tenureMonths - newTenure);
-  const interestSaved = monthsSaved * emi;
+  const rawInterestSaved = (monthsSaved * emi) - prepaymentAmount;
+  const interestSaved = Math.max(0, Math.round(rawInterestSaved * 100) / 100);
 
   return {
     monthsSaved,
-    interestSaved: Math.round(interestSaved * 100) / 100,
+    interestSaved,
     newPrincipal: Math.round(newPrincipal * 100) / 100,
     newEmi: Math.round(calculateEMI(newPrincipal, annualRate, newTenure) * 100) / 100,
     newTenure,
